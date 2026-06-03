@@ -1,0 +1,17 @@
+RewriteEngine On
+
+# =========================================================
+# 🔐 1. Force HTTPS（推荐）
+# =========================================================
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
+
+# =========================================================
+# 🎯 2. Remove .php extension (for all PHP files)
+#    /shop        -> shop.php
+#    /contact     -> contact.php
+#    /order/list  -> order/list.php
+# =========================================================
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^/]+)/?$ $1.php [L]

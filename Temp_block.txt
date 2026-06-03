@@ -1,0 +1,20 @@
+document.addEventListener("DOMContentLoaded", () => {
+  if (!localStorage.getItem("readRules")) {
+    const modal = document.createElement("div");
+    modal.classList.add("rules-popup");
+    modal.innerHTML = `
+      <div class="rules-content">
+        <img src="images/27.png" alt="Qii Girl" class="qii-float">
+        <h2>💕请阅读完毕～</h2>
+        <img src="images/29.png" alt="说明图片" class="rules-image">
+        <button id="closeRules">我已阅读完毕</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("closeRules").onclick = () => {
+      modal.remove();
+      localStorage.setItem("readRules", "1");
+    };
+  }
+});

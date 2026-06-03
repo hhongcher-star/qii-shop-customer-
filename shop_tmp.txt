@@ -1,0 +1,640 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start(); 
+require_once __DIR__ . '/a9sd8f7sd9f_admin/config.php';
+
+// ????(?????)
+$cat = $_GET['cat'] ?? 'phone';
+
+
+// ????
+$categories = [
+  'phone'   => '?? ????',
+  'hair'    => '?? ????',
+  'snack'   => '?? ??',
+  'creative'=> '?? ??',
+  'case'    => '?? ???',
+  'nail'    => '?? ???',
+  'scent'   => '?? ??',
+  'doll'    => '?? ??',
+  'stationery' => '?? ??'
+];
+
+// ?????????
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? ORDER BY sort_order ASC, created_at DESC");
+$stmt->execute([$cat]);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ??? AJAX ??,????? HTML
+if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
+  ob_start();
+  if ($products) {
+    foreach ($products as $p): ?>
+      <div class="product-card">
+        <?php if ($p['stock'] <= 0): ?>
+          <div class="soldout-tag">SOLD OUT</div>
+        <?php endif; ?>
+        <img src="<?= htmlspecialchars($p['image_url']) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
+        <div class="product-info">
+          <h4><?= htmlspecialchars($p['name']) ?></h4>
+          <?php if (!empty($p['sku'])): ?><p>??:<?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
+          <p>??:<?= (int)$p['stock'] ?></p>
+          <div class="price">RM <?= number_format($p['price'], 2) ?></div>
+        </div>
+        <?php if ($p['stock'] > 0): ?>
+          <button class="add-btn"
+            data-id="<?= (int)$p['id'] ?>"
+            data-sku="<?= htmlspecialchars($p['sku']) ?>"
+            data-name="<?= htmlspecialchars($p['name']) ?>"
+            data-price="<?= htmlspecialchars($p['price']) ?>"
+            data-img="a9sd8f7sd9f_admin/<?= htmlspecialchars($p['image_url']) ?>"
+            data-stock="<?= (int)$p['stock'] ?>">?????</button>
+        <?php else: ?>
+          <button class="add-btn" disabled>??</button>
+        <?php endif; ?>
+      </div>
+    <?php endforeach;
+  } else {
+    echo "<p>????????</p>";
+  }
+  echo ob_get_clean();
+  exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qii.shoppp | ??</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/shop.css" />
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* ? ??? */
+    #loader {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: linear-gradient(180deg,#FFF6FA 0%, #FFE9F0 100%);
+      z-index: 2000; opacity: 1; transition: opacity .3s ease;
+    }
+    #loader.fade-out{opacity:0;}
+    #loader img{width:160px;animation:float 2s ease-in-out infinite;}
+    #loader p{
+      margin-top:18px;font-family:"Patrick Hand",cursive;
+      color:#E5679C;font-size:1.2rem;letter-spacing:.5px;
+      animation:fadeInText 1s ease-in-out infinite alternate;
+    }
+    @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+    @keyframes fadeInText{0%{opacity:.7;transform:scale(.98);}100%{opacity:1;transform:scale(1.02);} }
+
+    /* ?? ??? */
+    .navbar {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 12px rgba(230,103,156,0.1);
+      z-index: 1000;
+    }
+    .nav-container {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 6%; max-width: 1200px; margin: 0 auto;
+    }
+    .nav-logo img { height: 50px; border-radius: 50%; transition: transform 0.2s ease; }
+    .nav-logo img:hover { transform: scale(1.05); }
+    .nav-links a {
+      text-decoration: none; color: #C94B82;
+      margin: 0 14px; font-family: "Patrick Hand", cursive; font-size: 1.1rem;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: #E5679C; }
+
+    body {
+      margin: 0;
+      font-family: "Patrick Hand", cursive;
+      background-color: #FFF8FB;
+      overflow-x: hidden;
+    }
+
+    main {
+      padding-top: 80px; /* ???? */
+    }
+
+    /* ?? ???? */
+    .falling-sakura {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; overflow: hidden; pointer-events: none;
+      z-index: 999;
+    }
+    .sakura {
+      position: absolute; top: -100px; width: 80px; opacity: 0.7;
+      animation: sakuraFall 10s linear infinite;
+    }
+    @keyframes sakuraFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { transform: translateY(100vh) rotate(360deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(390deg); opacity: 0; }
+    }
+
+    /* ?? ??? */
+    .shop-header {
+      width: 100%;
+      padding: 30px 0 40px 0; /* ????,???? */
+      background: linear-gradient(180deg, #FFD7E9 0%, #FFEFF5 100%);
+      text-align: center;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      margin: 0;      /* ? ????? margin ?? */
+      border: 0;      /* ? ?????? */
+    }
+    .shop-header img {
+      width: 150px;  /* ???????? */
+      height: auto;
+      margin-bottom: 10px;
+      animation: floatUp 3s ease-in-out infinite;
+    }
+    .shop-header h1 {
+      font-size: 32px;
+      color: #E44B87;
+      font-weight: bold;
+      margin: 0;
+    }
+    @keyframes floatUp {0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);} }
+
+    /* ?? ????:??????? */
+.shop-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  width: 95%;
+  max-width: 1200px;
+  margin: 30px auto;
+  gap: 15px;
+}
+
+/* ????? */
+.sidebar {
+  background: #fff6fa;
+  border: 2px solid #f6bdd9;
+  border-radius: 20px;
+  padding: 15px;
+  height: 100%;
+  overflow-y: auto;
+  box-shadow: 0 4px 10px rgba(245,180,200,0.25);
+}
+.sidebar h3 {
+  color: #e5679c;
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar li {
+  background: #fff;
+  border-radius: 15px;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #c94b82;
+  cursor: pointer;
+  border: 1px solid #f6bdd9;
+  transition: all 0.25s ease;
+}
+.sidebar li:hover { background: #ffe9f0; transform: scale(1.03); color: #e5679c; }
+.sidebar li.active { background: #f6bdd9; color: white; transform: scale(1.05); }
+
+/* ????? */
+.product-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.product-card {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #fad2e1;
+  box-shadow: 0 4px 10px rgba(240,150,180,0.15);
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.25s ease;
+}
+.product-card:hover { transform: translateY(-3px); }
+.product-card img {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  border: 1px solid #f6bdd9;
+  object-fit: cover;
+}
+.product-info {
+  flex: 1;
+  margin-left: 15px;
+  text-align: left;
+}
+.product-info h4 {
+  color: #e5679c;
+  margin: 0 0 5px;
+  font-size: 1rem;
+}
+.product-info p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+.product-info .price {
+  color: #c94b82;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+.add-btn {
+  background: #f6bdd9;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: white;
+  font-family: "Patrick Hand", cursive;
+  cursor: pointer;
+  transition: all .3s ease;
+}
+.add-btn:hover { background: #e5679c; transform: scale(1.05); }
+
+/* ? ????????? */
+@media (max-width: 768px) {
+  .shop-layout {
+    grid-template-columns:40% 60%;
+    width: 98%;
+  }
+  .sidebar {
+    padding: 10px;
+    border-radius: 15px;
+  }
+  .sidebar li {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+  .product-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 15px;
+  }
+  .product-card img {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 10px;
+  }
+  .product-info {
+    margin: 0;
+    text-align: center;
+  }
+  .add-btn {
+    width: 100%;
+    max-width: 180px;
+    margin-top: 8px;
+  }
+}
+
+    /* ?? ????? */
+    .cart-modal {
+      display:none; position:fixed; inset:0;
+      background:rgba(255,230,240,0.4); backdrop-filter:blur(10px);
+      z-index:3000; justify-content:center; align-items:center;
+      animation:fadeIn .4s ease;
+    }
+    .cart-box {
+      position:relative; width:420px; max-width:90%;
+      background:linear-gradient(180deg,#FFF6FA 0%,#FFE9F0 100%);
+      border-radius:25px; padding:35px 25px 25px;
+      text-align:center; color:#C94B82;
+      box-shadow:0 6px 20px rgba(230,103,156,0.2);
+      overflow:hidden; animation:popUp .5s ease;
+    }
+    .cart-girl {
+      position:absolute; top:45%; left:50%;
+      transform:translate(-50%,-190px);
+      width:120px; pointer-events:none; z-index:3100;
+      animation:floatGirl 2.5s ease-in-out infinite;
+    }
+    .close-btn {
+      position:absolute; right:16px; top:12px;
+      font-size:22px; color:#E5679C; cursor:pointer; transition:.3s;
+    }
+    .close-btn:hover{color:#C94B82;}
+    @keyframes floatGirl{0%,100%{transform:translate(-50%,-190px);}50%{transform:translate(-50%,-198px);}}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    @keyframes popUp{from{transform:scale(.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+  </style>
+  <style>
+    /* SOLD OUT ?????? */
+    .soldout-tag {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: #e5679c;
+      color: #fff;
+      font-size: 0.8rem;
+      font-family: "Patrick Hand", cursive;
+      padding: 3px 8px;
+      border-radius: 6px;
+      transform: rotate(-8deg);
+      opacity: 0.9;
+      z-index: 20;
+      box-shadow: 0 2px 6px rgba(229,103,156,0.3);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ?? ???? -->
+  <div id="loader">
+    <img src="images/25.png" alt="Loading..." />
+    <p>Qii ?????????,???~ ??</p>
+  </div>
+
+  <!-- ?? ???? -->
+  <div class="falling-sakura">
+    <img src="images/candy1.png" class="sakura" />
+    <img src="images/candy1.png" class="sakura" />
+    <img src="images/candy1.png" class="sakura" />
+    <img src="images/candy1.png" class="sakura" />
+  </div>
+
+  <!-- ??? -->
+  <?php include __DIR__ . "/includes/header.php"; ?>
+
+  <main>
+    <header class="shop-header" data-aos="fade-down">
+      <img src="images/4.png" alt="????" />
+      <h1>?? ??????</h1>
+    </header>
+
+    <section class="shop-layout">
+  <!-- ????? -->
+  <aside class="sidebar">
+    <h3>?? ??</h3>
+    <ul>
+  <li class="cat-link <?= ($cat === 'phone') ? 'active' : '' ?>" data-cat="phone">?? ????</li>
+  <li class="cat-link <?= ($cat === 'hair') ? 'active' : '' ?>" data-cat="hair">?? ????</li>
+  <li class="cat-link <?= ($cat === 'snack') ? 'active' : '' ?>" data-cat="snack">?? ??</li>
+  <li class="cat-link <?= ($cat === 'creative') ? 'active' : '' ?>" data-cat="creative">?? ??</li>
+  <li class="cat-link <?= ($cat === 'case') ? 'active' : '' ?>" data-cat="case">?? ???</li>
+  <li class="cat-link <?= ($cat === 'nail') ? 'active' : '' ?>" data-cat="nail">?? ???</li>
+  <li class="cat-link <?= ($cat === 'scent') ? 'active' : '' ?>" data-cat="scent">?? ??</li>
+  <li class="cat-link <?= ($cat === 'doll') ? 'active' : '' ?>" data-cat="doll">?? ??</li>
+  <li class="cat-link <?= ($cat === 'stationery') ? 'active' : '' ?>" data-cat="stationery">?? ??</li>
+  </ul>
+
+  </aside>
+
+  <!-- ?????? -->
+  <div>
+    <h2 class="category-title"><?= htmlspecialchars($categories[$cat] ?? '????') ?></h2>
+    <div class="product-area">
+      <?php if (empty($products)): ?>
+    <p style="text-align:center;color:#999;">????~ ??</p>
+  <?php else: ?>
+    <?php foreach ($products as $p): ?>
+      <div class="product-card" data-aos="fade-up">
+        <?php if ($p['stock'] <= 0): ?>
+          <div class="soldout-tag">SOLD OUT</div>
+        <?php endif; ?>
+        <img src="a9sd8f7sd9f_admin/<?= htmlspecialchars($p['image_url']) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
+        <div class="product-info">
+          <h4><?= htmlspecialchars($p['name']) ?></h4>
+          <?php if (!empty($p['sku'])): ?><p>??:<?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
+          <p>??:<?= (int)$p['stock'] ?></p>
+          <div class="price">RM <?= number_format($p['price'], 2) ?></div>
+        </div>
+        <?php if ($p['stock'] > 0): ?>
+          <button class="add-btn"
+            data-id="<?= (int)$p['id'] ?>"
+            data-sku="<?= htmlspecialchars($p['sku']) ?>"
+            data-name="<?= htmlspecialchars($p['name']) ?>"
+            data-price="<?= htmlspecialchars($p['price']) ?>"
+            data-img="a9sd8f7sd9f_admin/<?= htmlspecialchars($p['image_url']) ?>"
+            data-stock="<?= (int)$p['stock'] ?>">?????</button>
+        <?php else: ?>
+          <button class="add-btn" disabled>??</button>
+        <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+    </div>
+  </div>
+</section>
+  </main>
+
+  <?php include __DIR__ . "/includes/footer.php"; ?>
+
+  <!-- ? JS ?? -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({ duration: 800, once: true });
+
+    // ????????? SKU(???????)
+    let outOfStockSKU = new Set();
+
+    // Loader ??
+    window.addEventListener("load", () => {
+      const loader = document.getElementById("loader");
+      setTimeout(() => {
+        loader.classList.add("fade-out");
+        setTimeout(() => (loader.style.display = "none"), 600);
+      }, 1800);
+    });
+
+    // ? ???????????(???????)
+    document.addEventListener("DOMContentLoaded", () => {
+      const categoryList = document.querySelectorAll(".cat-link");
+      const productArea = document.querySelector(".product-area");
+      const title = document.querySelector(".category-title");
+
+      // ?? ?????????????(????)
+      const defaultCat = "phone";
+      fetch(`shop.php?cat=${defaultCat}&ajax=1`)
+        .then(res => res.text())
+        .then(html => {
+          if (productArea) productArea.innerHTML = html;
+          if (title) title.textContent = "?? ????";
+          // ????
+          categoryList.forEach(li => li.classList.remove("active"));
+          const activeLi = document.querySelector(`[data-cat="${defaultCat}"]`);
+          if (activeLi) activeLi.classList.add("active");
+
+          // ?? ?????????????
+          outOfStockSKU.forEach(sku => {
+            const btn = productArea.querySelector(`.add-btn[data-sku="${sku}"]`);
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "?? ????";
+              btn.style.background = "#e4c0cb";
+              btn.style.color = "#fff";
+              btn.style.cursor = "not-allowed";
+              btn.style.opacity = "0.8";
+              btn.style.transition = "all .3s ease";
+              btn.style.transform = "scale(0.95)";
+            }
+          });
+        });
+
+      // ? ??????
+      categoryList.forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+
+          categoryList.forEach(li => li.classList.remove("active"));
+          item.classList.add("active");
+
+          if (title) title.textContent = item.textContent.trim();
+
+          const cat = item.dataset.cat;
+          fetch(`shop.php?cat=${cat}&ajax=1`)
+            .then(res => res.text())
+            .then(html => {
+              productArea.innerHTML = html;
+
+              // ?? ?????????????
+              outOfStockSKU.forEach(sku => {
+                const btn = productArea.querySelector(`.add-btn[data-sku="${sku}"]`);
+                if (btn) {
+                  btn.disabled = true;
+                  btn.textContent = "?? ????";
+                  btn.style.background = "#e4c0cb";
+                  btn.style.color = "#fff";
+                  btn.style.cursor = "not-allowed";
+                  btn.style.opacity = "0.8";
+                  btn.style.transition = "all .3s ease";
+                  btn.style.transform = "scale(0.95)";
+                }
+              });
+            })
+            .catch(err => {
+              productArea.innerHTML = `<p style="color:#c94b82;text-align:center;">????,?????~</p>`;
+            });
+        });
+      });
+    });
+
+    // ?? Add to Cart ??
+document.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("add-btn")) {
+    const btn = e.target;
+    const fd = new FormData();
+    fd.append("sku", btn.dataset.sku);
+    fd.append("name", btn.dataset.name);
+    fd.append("price", btn.dataset.price);
+    fd.append("img", btn.dataset.img);
+
+    const res = await fetch("add_to_cart.php?mode=add", {
+      method: "POST",
+      body: fd
+    });
+    const data = await res.json();
+
+   if (data.success) {
+  // ? ???????
+  const countEl = document.querySelector(".cart-count");
+  if (countEl) countEl.textContent = data.count;
+
+  // ?? ?????????(???? footer ??)
+  if (typeof getCartAndUpdate === "function") {
+    getCartAndUpdate();
+  }
+
+      // ?? ??????
+      const tip = document.createElement("div");
+      tip.textContent = `?? ??? ${btn.dataset.name}`;
+      Object.assign(tip.style, {
+        position: "fixed",
+        bottom: "90px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#ffc0cb",
+        color: "#fff",
+        padding: "10px 18px",
+        borderRadius: "20px",
+        boxShadow: "0 4px 10px rgba(255,105,180,.4)",
+        fontSize: "15px",
+        zIndex: "9999",
+        opacity: "0",
+        transition: "opacity .3s, bottom .5s ease-out"
+      });
+      document.body.appendChild(tip);
+      setTimeout(() => {
+        tip.style.opacity = "1";
+        tip.style.bottom = "110px";
+      }, 50);
+      setTimeout(() => {
+        tip.style.opacity = "0";
+        tip.style.bottom = "130px";
+      }, 1600);
+      setTimeout(() => tip.remove(), 2000);
+    } else {
+      // ??????????,???????????????
+      if (data && data.message && data.message.includes("????")) {
+        btn.disabled = true;
+        btn.textContent = "?? ???";
+        btn.style.background = "#e4c0cb";
+        btn.style.color = "#fff";
+        btn.style.cursor = "not-allowed";
+        btn.style.opacity = "0.8";
+        btn.style.transform = "scale(0.95)";
+        const card = btn.closest('.product-card');
+        if (card && !card.querySelector('.soldout-tag')) {
+          const tag = document.createElement('div');
+          tag.className = 'soldout-tag';
+          tag.textContent = 'SOLD OUT';
+          card.appendChild(tag);
+        }
+      }
+      // ??? SKU ????,????????
+      outOfStockSKU.add(btn.dataset.sku);
+      // ?? ????,? qii ??????
+      btn.disabled = true;
+      btn.textContent = "?? ????";
+      btn.style.background = "#e4c0cb";
+      btn.style.color = "#fff";
+      btn.style.cursor = "not-allowed";
+      btn.style.opacity = "0.8";
+      btn.style.transition = "all .3s ease";
+      btn.style.transform = "scale(0.95)";
+      // ??????,???????????????
+    }
+  }
+});
+
+// ???????????
+document.querySelectorAll(".sakura").forEach((el, i) => {
+  el.style.left = Math.random() * 100 + "vw";          
+  el.style.animationDuration = 8 + Math.random()*6 + "s";
+  el.style.animationDelay = Math.random()*3 + "s";
+  el.style.opacity = 0.4 + Math.random() * 0.6;
+});
+  </script>
+</body>
+</html>

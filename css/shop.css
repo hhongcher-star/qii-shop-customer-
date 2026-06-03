@@ -1,0 +1,139 @@
+/* 🎀 Qii Modal Styles */
+.qii-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,200,220,0.45);
+  backdrop-filter: blur(6px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+.qii-modal-content {
+  width: 90%;
+  max-width: 400px;
+  background: #FFF6FA;
+  border-radius: 22px;
+  padding: 20px;
+  animation: popup .25s ease;
+  position: relative;
+  text-align: center;
+}
+
+@keyframes popup {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.close-modal {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #e5679c;
+}
+
+.modal-img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 15px;
+  border-radius: 12px;
+  border: 2px solid #fde0eb;
+}
+
+#modalName {
+    font-size: 1.3rem;
+    color: #E5679C;
+    margin: 0 0 5px;
+}
+
+.modal-price {
+    font-size: 1.1rem;
+    color: #C94B82;
+    margin: 0 0 15px;
+    font-weight: bold;
+}
+
+.variant-box {
+  margin-bottom: 15px;
+}
+
+.variant-box h4 {
+    font-size: 1rem;
+    color: #E5679C;
+    margin: 0 0 10px;
+    text-align: left;
+}
+
+.variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.variant-option {
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 2px solid #ffc4d9;
+  background: #fff;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.variant-option.active {
+  border-color: #e5679c;
+  background: #ffe3ed;
+  color: #c94b82;
+  font-weight: bold;
+}
+
+.qty-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.qty-box button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #f6bdd9;
+    background: #fff;
+    color: #e5679c;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.qty-box button:hover {
+    background: #ffe3ed;
+}
+
+#modalQty {
+    font-size: 1.2rem;
+    color: #C94B82;
+    font-weight: bold;
+}
+
+.qii-add-btn {
+  width: 100%;
+  background: #f6bdd9;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 0;
+  color: white;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all .2s ease;
+  font-family: "Patrick Hand", cursive;
+}
+.qii-add-btn:hover {
+  background: #e5679c;
+  transform: scale(1.02);
+}

@@ -1,0 +1,77 @@
+/* 🎀 Qii 甜甜风格 CSS（粉系、圆角、可爱按钮） */
+.qii-modal-content {
+  width: 90%;
+  max-width: 420px;
+  background: #FFF6FA;
+  border-radius: 25px;
+  padding: 20px;
+  text-align: center;
+  color: #C94B82;
+  animation: pop .25s ease;
+}
+.modal-img {
+  width: 150px;
+  height: 150px;
+  border-radius: 15px;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+/* 规格组标题 */
+.variant-title {
+  font-size: 16px;
+  margin: 12px 0 6px;
+  color: #C94B82;
+}
+
+/* 规格按钮 */
+.variant-item {
+  display: inline-block;
+  padding: 10px 12px;
+  background: #fff;
+  margin: 5px;
+  border-radius: 12px;
+  border: 1.5px solid #f6bdd9;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.variant-item.active {
+  background: #FFE9F0;
+  border-color: #E5679C;
+  color: #E5679C;
+}
+
+/* 数量按钮 */
+.qty-box {
+  margin: 15px 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.qty-box button {
+  background: #FFE9F0;
+  border: 1px solid #E5679C;
+  border-radius: 10px;
+  width: 35px;
+  height: 35px;
+  color: #E5679C;
+  font-size: 18px;
+}
+
+/* Qii 粉粉按钮 */
+.qii-add-btn {
+  width: 100%;
+  background: #E5679C;
+  color: #fff;
+  border: none;
+  padding: 12px 0;
+  border-radius: 18px;
+  font-size: 17px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+@keyframes pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
