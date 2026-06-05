@@ -7,9 +7,8 @@ RewriteCond %{HTTPS} off
 RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
 
-RewriteRule ^$ frontend/pages/index.php [L]
-RewriteRule ^(index|shop|search|contact|receipt|sitemap)\.php$ frontend/pages/$1.php [L,QSA]
-RewriteRule ^(index|shop|search|contact|receipt|sitemap)/?$ frontend/pages/$1.php [L,QSA]
+RewriteRule ^$ index.php [L]
+RewriteRule ^(index|shop|search|contact|receipt|sitemap)/?$ $1.php [L,QSA]
 
 # =========================================================
 # 🎯 2. Remove .php extension (for all PHP files)
