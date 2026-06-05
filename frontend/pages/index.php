@@ -592,7 +592,9 @@
         <h1>Welcome to <span>qii.shoppp</span></h1>
         <h3>发现每一份可爱的生活小物</h3>
         <p>让每一天，都有一点粉色的温柔与惊喜。</p>
-        <button class="shop-btn">立即购物</button>
+        <button class="shop-btn" onclick="window.location.href='shop.php'">
+    立即购物
+</button>
       </div>
 
       <div class="hero-image" data-aos="fade-left">

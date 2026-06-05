@@ -693,10 +693,7 @@ function closePay(){
                 width:320px; text-align:center; 
                 box-shadow:0 8px 20px rgba(0,0,0,0.25);">
 
-        <h3 style="color:#E5679C;">请扫描付款二维码</h3>
-        <p style="font-size:14px; color:#A0587E; margin-top:-5px;">
-            付款后请截图给店主确认 🩷
-        </p>
+
 
         <h3 style="color:#E5679C;">请扫描付款二维码</h3>
 

@@ -65,6 +65,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   if ($products) {
     foreach ($products as $p): ?>
       <div class="product-card">
+        <?php if (!empty($p['brand'])): ?>
+          <div class="brand-badge"><?= htmlspecialchars(qii_text($p['brand'])) ?></div>
+        <?php endif; ?>
         <?php if ($p['stock'] <= 0): ?>
           <div class="soldout-tag">SOLD OUT</div>
         <?php endif; ?>
@@ -266,6 +269,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   gap: 15px;
 }
 .product-card {
+  position: relative;
   background: #fff;
   border-radius: 18px;
   border: 1px solid #fad2e1;
@@ -278,6 +282,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   transition: transform 0.25s ease;
 }
 .product-card:hover { transform: translateY(-3px); }
+.brand-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  max-width: calc(100% - 20px);
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid #ffc6dd;
+  color: #e44b87;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  box-shadow: 0 6px 16px rgba(230, 75, 135, .16);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .product-card img {
   width: 80px;
   height: 80px;
@@ -1154,6 +1178,9 @@ html, body {
   <?php else: ?>
     <?php foreach ($products as $p): ?>
       <div class="product-card" data-aos="fade-up">
+        <?php if (!empty($p['brand'])): ?>
+          <div class="brand-badge"><?= htmlspecialchars(qii_text($p['brand'])) ?></div>
+        <?php endif; ?>
         <?php if ($p['stock'] <= 0): ?>
           <div class="soldout-tag">SOLD OUT</div>
         <?php endif; ?>

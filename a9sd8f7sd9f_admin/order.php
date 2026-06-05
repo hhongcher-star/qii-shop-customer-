@@ -61,6 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
     redirect_order(['msg' => '批量操作已完成']);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
+    verify_csrf();
+    $orderId = (int)($_POST['order_id'] ?? 0);
+    if ($orderId > 0) {
+        $stmt = $pdo->prepare("DELETE FROM orders WHERE id=?");
+        $stmt->execute([$orderId]);
+    }
+    redirect_order(['msg' => '订单已删除']);
+}
+
 $search = trim($_GET['search'] ?? '');
 $orderStatus = $_GET['order_status'] ?? '';
 $payStatus = $_GET['pay_status'] ?? '';
@@ -132,6 +142,19 @@ $msg = $_GET['msg'] ?? '';
   <title>订单管理 | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/order_admin.css?v=20260604">
+  <style>
+    .delete-order-form { display: inline-flex; margin: 0; }
+    .delete-order-btn {
+      border: 1px solid #ffc4d8;
+      background: #fff5f8;
+      color: #e83f7d;
+      border-radius: 14px;
+      padding: 9px 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .delete-order-btn:hover { background: #ffe7ef; }
+  </style>
 </head>
 <body>
 <?php include 'includes/admin_header.php'; ?>
@@ -230,6 +253,13 @@ $msg = $_GET['msg'] ?? '';
                   <button type="submit" name="update_status">
   <i class="fa-solid fa-check"></i> 保存
 </button>
+                </form>
+                <form method="post" class="delete-order-form" onsubmit="return confirm('确定要删除这个订单吗？此操作不能撤销。');">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="order_id" value="<?= (int)$o['id'] ?>">
+                  <button type="submit" name="delete_order" class="delete-order-btn">
+                    <i class="fa-solid fa-trash"></i> 删除
+                  </button>
                 </form>
               </div>
             </td>

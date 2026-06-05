@@ -43,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $type = $_POST['type'] ?? 'product';
     $id = (int)($_POST['id'] ?? 0);
+    $isAjax = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest' || ($_POST['ajax'] ?? '') === '1';
+    $newStock = null;
+    $warningLevel = null;
 
     if ($id > 0) {
         $table = $type === 'variant' ? 'product_variants' : 'products';
@@ -58,6 +61,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("UPDATE products SET warning_level=? WHERE id=?");
             $stmt->execute([max(0, (int)$_POST['warning_level']), $id]);
         }
+        $stockStmt = $pdo->prepare("SELECT stock FROM $table WHERE id=?");
+        $stockStmt->execute([$id]);
+        $newStock = (int)$stockStmt->fetchColumn();
+        if ($table === 'products') {
+            $warnStmt = $pdo->prepare("SELECT warning_level FROM products WHERE id=?");
+            $warnStmt->execute([$id]);
+            $warningLevel = (int)$warnStmt->fetchColumn();
+        } else {
+            $warnStmt = $pdo->prepare("
+                SELECT p.warning_level
+                FROM product_variants v
+                INNER JOIN product_groups g ON g.id = v.group_id
+                INNER JOIN products p ON p.id = g.product_id
+                WHERE v.id=?
+            ");
+            $warnStmt->execute([$id]);
+            $warningLevel = (int)$warnStmt->fetchColumn();
+        }
+    }
+    if ($isAjax) {
+        $state = $newStock <= 0 ? '缺货' : ($newStock <= $warningLevel ? '库存不足' : '正常');
+        $stateClass = $newStock <= 0 ? 'out' : ($newStock <= $warningLevel ? 'low' : 'normal');
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'success' => true,
+            'stock' => $newStock,
+            'warning' => $warningLevel,
+            'state' => $state,
+            'stateClass' => $stateClass,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     redirect_inventory(['msg' => '库存已更新']);
 }
@@ -332,16 +366,16 @@ $msg = $_GET['msg'] ?? '';
             $sku = $r['variant_sku'] ?: $r['product_sku'];
             $image = $r['variant_image'] ?: $r['product_image'];
           ?>
-          <tr class="inventory-row">
+          <tr class="inventory-row" data-inventory-row data-row-kind="product" data-product-id="<?= (int)$r['product_id'] ?>">
             <td class="check-cell"><input type="checkbox"></td>
             <td class="product-cell"><img src="<?= htmlspecialchars(img_url($image)) ?>" alt=""><div><strong><?= htmlspecialchars(qii_text($r['product_name'])) ?></strong></div></td>
             <td><?= htmlspecialchars(qii_text($r['variant_name'] ?: '默认规格')) ?></td>
             <td><?= htmlspecialchars($sku ?? '-') ?></td>
             <td><span class="cat-pill"><?= htmlspecialchars($categories[$r['category']] ?? $r['category']) ?></span></td>
-            <td class="stock-number"><?= $stock ?></td>
+            <td class="stock-number" data-stock-cell><?= $stock ?></td>
             <td>
               <?php if ($r['item_type'] === 'product'): ?>
-                <form method="post" class="warning-form">
+                <form method="post" class="warning-form" data-inventory-form>
                   <?= csrf_field() ?>
                   <input type="hidden" name="type" value="product">
                   <input type="hidden" name="id" value="<?= (int)$r['item_id'] ?>">
@@ -352,12 +386,12 @@ $msg = $_GET['msg'] ?? '';
                 <span><?= $warning ?></span>
               <?php endif; ?>
             </td>
-            <td><span class="state-pill <?= $stateClass ?>"><?= $state ?></span></td>
+            <td><span class="state-pill <?= $stateClass ?>" data-state-pill><?= $state ?></span></td>
             <td>
               <div class="stock-actions">
                 <?php if ((int)($r['has_variant'] ?? 0) === 0): ?>
-                  <form method="post"><?= csrf_field() ?><input type="hidden" name="type" value="product"><input type="hidden" name="id" value="<?= (int)$r['item_id'] ?>"><input type="hidden" name="adjust" value="1"><button><i class="fa-solid fa-plus"></i></button></form>
-                  <form method="post"><?= csrf_field() ?><input type="hidden" name="type" value="product"><input type="hidden" name="id" value="<?= (int)$r['item_id'] ?>"><input type="hidden" name="adjust" value="-1"><button class="minus"><i class="fa-solid fa-minus"></i></button></form>
+                  <form method="post" data-inventory-form><?= csrf_field() ?><input type="hidden" name="type" value="product"><input type="hidden" name="id" value="<?= (int)$r['item_id'] ?>"><input type="hidden" name="adjust" value="1"><button><i class="fa-solid fa-plus"></i></button></form>
+                  <form method="post" data-inventory-form><?= csrf_field() ?><input type="hidden" name="type" value="product"><input type="hidden" name="id" value="<?= (int)$r['item_id'] ?>"><input type="hidden" name="adjust" value="-1"><button class="minus"><i class="fa-solid fa-minus"></i></button></form>
                 <?php endif; ?>
                 <?php if ((int)($r['has_variant'] ?? 0) === 1): ?>
                   <button type="button" class="history" data-toggle-variants="<?= (int)$r['product_id'] ?>"><i class="fa-solid fa-chevron-down"></i></button>
@@ -372,7 +406,7 @@ $msg = $_GET['msg'] ?? '';
     $vStateClass = $v['stock'] <= 0 ? 'out' : ($v['stock'] <= $v['warning'] ? 'low' : 'normal');
   ?>
 
-  <tr class="variant-detail-row" data-variant-panel="<?= (int)$r['product_id'] ?>" hidden>
+  <tr class="variant-detail-row" data-variant-panel="<?= (int)$r['product_id'] ?>" data-inventory-row data-row-kind="variant" data-product-id="<?= (int)$r['product_id'] ?>" hidden>
     <td></td>
     <td class="product-cell">
       <img src="<?= htmlspecialchars(img_url($v['image'])) ?>" alt="">
@@ -381,13 +415,13 @@ $msg = $_GET['msg'] ?? '';
     <td><?= htmlspecialchars(qii_text($v['name'])) ?></td>
     <td><?= htmlspecialchars($v['sku'] ?: '-') ?></td>
     <td><span class="cat-pill"><?= htmlspecialchars($categories[$r['category']] ?? $r['category']) ?></span></td>
-    <td class="stock-number"><?= (int)$v['stock'] ?></td>
+    <td class="stock-number" data-stock-cell><?= (int)$v['stock'] ?></td>
     <td><?= (int)$v['warning'] ?></td>
-    <td><span class="state-pill <?= $vStateClass ?>"><?= $vState ?></span></td>
+    <td><span class="state-pill <?= $vStateClass ?>" data-state-pill><?= $vState ?></span></td>
     <td>
       <div class="stock-actions">
-        <form method="post"><?= csrf_field() ?><input type="hidden" name="type" value="<?= htmlspecialchars($v['type']) ?>"><input type="hidden" name="id" value="<?= (int)$v['id'] ?>"><input type="hidden" name="adjust" value="1"><button><i class="fa-solid fa-plus"></i></button></form>
-        <form method="post"><?= csrf_field() ?><input type="hidden" name="type" value="<?= htmlspecialchars($v['type']) ?>"><input type="hidden" name="id" value="<?= (int)$v['id'] ?>"><input type="hidden" name="adjust" value="-1"><button class="minus"><i class="fa-solid fa-minus"></i></button></form>
+        <form method="post" data-inventory-form><?= csrf_field() ?><input type="hidden" name="type" value="<?= htmlspecialchars($v['type']) ?>"><input type="hidden" name="id" value="<?= (int)$v['id'] ?>"><input type="hidden" name="adjust" value="1"><button><i class="fa-solid fa-plus"></i></button></form>
+        <form method="post" data-inventory-form><?= csrf_field() ?><input type="hidden" name="type" value="<?= htmlspecialchars($v['type']) ?>"><input type="hidden" name="id" value="<?= (int)$v['id'] ?>"><input type="hidden" name="adjust" value="-1"><button class="minus"><i class="fa-solid fa-minus"></i></button></form>
       </div>
     </td>
   </tr>
@@ -411,6 +445,49 @@ document.addEventListener('DOMContentLoaded', function () {
       var nextHidden = !panels[0].hidden;
       panels.forEach(function (panel) { panel.hidden = nextHidden; });
       button.classList.toggle('open', !nextHidden);
+    });
+  });
+
+  document.querySelectorAll('[data-inventory-form]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const button = form.querySelector('button');
+      const row = form.closest('[data-inventory-row]');
+      const fd = new FormData(form);
+      fd.append('ajax', '1');
+      if (button) button.disabled = true;
+
+      fetch('inventory.php', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+      })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.success || !row) return;
+        const stockCell = row.querySelector('[data-stock-cell]');
+        const statePill = row.querySelector('[data-state-pill]');
+        const oldStock = stockCell ? parseInt(stockCell.textContent || '0', 10) : 0;
+        if (stockCell) stockCell.textContent = data.stock;
+        if (row.dataset.rowKind === 'variant') {
+          const parentRow = document.querySelector('[data-row-kind="product"][data-product-id="' + row.dataset.productId + '"]');
+          const parentStockCell = parentRow?.querySelector('[data-stock-cell]');
+          if (parentStockCell) {
+            const parentStock = parseInt(parentStockCell.textContent || '0', 10);
+            parentStockCell.textContent = Math.max(0, parentStock + (parseInt(data.stock, 10) - oldStock));
+          }
+        }
+        if (statePill) {
+          statePill.textContent = data.state;
+          statePill.className = 'state-pill ' + data.stateClass;
+        }
+      })
+      .catch(function () {
+        form.submit();
+      })
+      .finally(function () {
+        if (button) button.disabled = false;
+      });
     });
   });
 });
