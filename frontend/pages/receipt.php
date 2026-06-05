@@ -698,15 +698,23 @@ function closePay(){
             付款后请截图给店主确认 🩷
         </p>
 
-        <a href="images/payment-qr.png" target="_blank" rel="noopener">
-            <img src="images/payment-qr.png"
-                 alt="付款二维码"
-                 onerror="this.style.display='none'; document.getElementById('qrMissing').style.display='block';"
-                 style="width:260px; border-radius:10px; margin:10px auto;">
-        </a>
-        <p id="qrMissing" style="display:none; color:#A0587E; font-size:13px;">
-            请把付款二维码图片放到 images/payment-qr.png
-        </p>
+        <h3 style="color:#E5679C;">请扫描付款二维码</h3>
+
+<p style="font-size:14px; color:#A0587E; margin-top:-5px; line-height:1.7;">
+    付款后请将付款记录发送给店主确认 💕<br>
+    Instagram:
+    <a href="https://www.instagram.com/qii.shoppp?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+       target="_blank"
+       style="color:#E5679C; font-weight:bold; text-decoration:none;">
+       @qii.shoppp
+    </a>
+</p>
+
+<a href="images/image.png" target="_blank" rel="noopener">
+    <img src="images/image.png"
+         alt="付款二维码"
+         style="width:260px; border-radius:10px; margin:10px auto; display:block;">
+</a>
 
         <button class="btn btn-pink"
                 onclick="window.location.href='shop.php'">
