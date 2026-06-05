@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /a9sd8f7sd9f_admin/
+Disallow: /checkout.php
+Disallow: /receipt.php
+Disallow: /submit_order.php
+Disallow: /add_to_cart.php
+Disallow: /search_suggest.php
+Disallow: /variant_box.php
+Disallow: /variant_box_front.php
+Disallow: /variant_modal.php
+
+Sitemap: /sitemap.php

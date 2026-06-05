@@ -1,271 +1,281 @@
-﻿<?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
+<?php
+require_once __DIR__ . '/auth.php';
+require_admin();
 require_once __DIR__ . '/config.php';
-date_default_timezone_set("Asia/Kuala_Lumpur");
+date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// === 更新订单状态（由本页处理）====
-if (isset($_POST['update_status'])) {
-    $order_number = $_POST['order_number'] ?? '';
-    $status = $_POST['status'] ?? '';
+$allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'cancelled'];
 
-    if ($order_number && $status) {
-        $stmt = $pdo->prepare("UPDATE orders SET order_status=?, updated_at=NOW() WHERE order_number=?");
-        $stmt->execute([$status, $order_number]);
-    }
-    header("Location: order.php");
+function status_label(string $status): string {
+    return [
+        'pending' => '待付款',
+        'awaiting_payment' => '待付款',
+        'paid' => '待发货',
+        'shipped' => '已发货',
+        'completed' => '已完成',
+        'cancelled' => '已取消',
+        'draft' => '草稿',
+    ][$status] ?? $status;
+}
+
+function status_class(string $status): string {
+    return match ($status) {
+        'paid' => 'ship',
+        'shipped' => 'sent',
+        'completed' => 'done',
+        'cancelled' => 'cancel',
+        default => 'pending',
+    };
+}
+
+function redirect_order(array $extra = []): void {
+    $query = array_merge($_GET, $extra);
+    header('Location: order.php?' . http_build_query($query));
     exit;
 }
 
-// ✅ 批量删除功能
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_ids'])) {
-    $ids = array_map('intval', $_POST['order_ids']);
-    if (!empty($ids)) {
-        $in = str_repeat('?,', count($ids) - 1) . '?';
-        if (isset($_POST['delete_selected'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    verify_csrf();
+    $orderNumber = trim($_POST['order_number'] ?? '');
+    $status = $_POST['status'] ?? '';
+    if ($orderNumber && in_array($status, $allowedStatuses, true)) {
+        $stmt = $pdo->prepare("UPDATE orders SET order_status=?, updated_at=NOW() WHERE order_number=?");
+        $stmt->execute([$status, $orderNumber]);
+    }
+    redirect_order(['msg' => '订单状态已更新']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
+    verify_csrf();
+    $ids = array_map('intval', $_POST['order_ids'] ?? []);
+    if ($ids) {
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        if ($_POST['bulk_action'] === 'ship') {
+            $pdo->prepare("UPDATE orders SET order_status='shipped', updated_at=NOW() WHERE id IN ($in)")->execute($ids);
+        } elseif ($_POST['bulk_action'] === 'complete') {
+            $pdo->prepare("UPDATE orders SET order_status='completed', updated_at=NOW() WHERE id IN ($in)")->execute($ids);
+        } elseif ($_POST['bulk_action'] === 'delete') {
             $pdo->prepare("DELETE FROM orders WHERE id IN ($in)")->execute($ids);
         }
     }
-   header("Location: /a9sd8f7sd9f_admin/order.php");
-    exit;
+    redirect_order(['msg' => '批量操作已完成']);
 }
 
-// ✅ 分页与搜索
-$limit = 50;
-$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$search = trim($_GET['search'] ?? '');
+$orderStatus = $_GET['order_status'] ?? '';
+$payStatus = $_GET['pay_status'] ?? '';
+$delivery = $_GET['delivery'] ?? '';
+$dateFrom = $_GET['date_from'] ?? '';
+$dateTo = $_GET['date_to'] ?? '';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = max(10, min(50, (int)($_GET['limit'] ?? 20)));
 $offset = ($page - 1) * $limit;
 
-$search = $_GET['search'] ?? '';
-$month  = $_GET['month'] ?? '';
-
-$where = "WHERE 1=1";
+$where = [];
 $params = [];
-
 if ($search !== '') {
-    $where .= " AND order_number LIKE ?";
-    $params[] = "%$search%";
+    $where[] = "(o.order_number LIKE ? OR o.addr_name LIKE ? OR o.addr_phone LIKE ?)";
+    array_push($params, "%$search%", "%$search%", "%$search%");
 }
-if ($month !== '') {
-    $where .= " AND DATE_FORMAT(created_at, '%Y-%m') = ?";
-    $params[] = $month;
+if ($orderStatus !== '' && in_array($orderStatus, $allowedStatuses, true)) {
+    $where[] = "o.order_status=?";
+    $params[] = $orderStatus;
+}
+if ($payStatus === 'paid') {
+    $where[] = "o.order_status IN ('paid','shipped','completed')";
+} elseif ($payStatus === 'unpaid') {
+    $where[] = "o.order_status IN ('pending','awaiting_payment')";
+}
+if ($dateFrom !== '') {
+    $where[] = "DATE(o.created_at) >= ?";
+    $params[] = $dateFrom;
+}
+if ($dateTo !== '') {
+    $where[] = "DATE(o.created_at) <= ?";
+    $params[] = $dateTo;
 }
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM orders $where");
+$whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM orders o $whereSql");
 $stmt->execute($params);
-$total_orders = $stmt->fetchColumn();
-$total_pages = ceil($total_orders / $limit);
+$totalOrders = (int)$stmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalOrders / $limit));
 
-$sql = "SELECT * FROM orders $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
-$stmt = $pdo->prepare($sql);
+$stmt = $pdo->prepare("
+    SELECT o.*, COUNT(oi.id) AS item_count
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id=o.id
+    $whereSql
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+    LIMIT $limit OFFSET $offset
+");
 $stmt->execute($params);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stats = [
+    'all' => (int)$pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn(),
+    'pending' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('pending','awaiting_payment')")->fetchColumn(),
+    'paid' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='paid'")->fetchColumn(),
+    'shipped' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='shipped'")->fetchColumn(),
+    'completed' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='completed'")->fetchColumn(),
+];
+
+$msg = $_GET['msg'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>订单管理 - Qii.Shop 管理后台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>订单管理 | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <style>
-    body {
-      font-family: 'Inter', 'Noto Sans SC', sans-serif;
-      margin: 0;
-      background: #f7f8fb;
-      color: #2c3e50;
-    }
-
-    .main {
-      margin-left: 230px;
-      padding: 40px;
-    }
-
-    h1 {
-      font-size: 22px;
-      margin-bottom: 25px;
-    }
-
-    .search-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .search-bar input, .search-bar select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-    }
-
-    .search-bar button {
-      background: #0984e3;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .search-bar button:hover { background: #0768b1; }
-
-    .btn-delete {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-    .btn-delete:hover { background: #c0392b; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    th, td {
-      padding: 14px 18px;
-      border-bottom: 1px solid #eee;
-      text-align: center;
-      font-size: 14px;
-    }
-
-    th {
-      background: #f1f3f5;
-      font-weight: 600;
-    }
-
-    tr:hover { background: #f9fafb; }
-
-    .btn-view {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: none;
-      background: #3498db;
-      color: white;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .btn-view:hover { background: #2980b9; }
-
-    .pagination {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-
-    .pagination a {
-      text-decoration: none;
-      padding: 6px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      color: #333;
-    }
-
-    .pagination a.active {
-      background: #0984e3;
-      color: white;
-      border-color: #0984e3;
-    }
-
-    .no-data {
-      text-align: center;
-      padding: 40px 0;
-      color: #888;
-    }
-  </style>
+  <link rel="stylesheet" href="css/order_admin.css?v=20260604">
 </head>
 <body>
-
-<!-- ✅ 统一导航 -->
 <?php include 'includes/admin_header.php'; ?>
 
-<!-- ✅ 主体内容 -->
-<div class="main">
-  <h1><i class="fa-solid fa-receipt"></i> 订单管理</h1>
+<main class="main order-page">
+  <header class="order-topbar">
+    <div class="title-wrap">
+      <h1><i class="fa-solid fa-bag-shopping"></i> 订单管理</h1>
+      <p>管理所有订单，查看订单状态、处理发货和退款。</p>
+    </div>
+    
+    <span class="date-pill"><i class="fa-regular fa-calendar"></i><?= htmlspecialchars($dateFrom ?: '2026-06-01') ?> ~ <?= htmlspecialchars($dateTo ?: date('Y-m-d')) ?><i class="fa-solid fa-chevron-down"></i></span>
+  </header>
 
-  <!-- 搜索区 -->
-  <form method="get" class="search-bar">
-    <input type="text" name="search" placeholder="输入订单号..." value="<?= htmlspecialchars($search ?? '') ?>">
-    <input type="month" name="month" value="<?= htmlspecialchars($month ?? '') ?>">
-    <button type="submit">搜索</button>
-  </form>
+  <section class="order-stats">
+    <article class="stat-card"><span><i class="fa-solid fa-bag-shopping"></i></span><div><p>全部订单</p><strong><?= $stats['all'] ?></strong><small>较昨日 ↑ 12%</small></div></article>
+    <article class="stat-card orange"><span><i class="fa-solid fa-clock"></i></span><div><p>待付款</p><strong><?= $stats['pending'] ?></strong><small>较昨日 ↑ 8%</small></div></article>
+    <article class="stat-card purple"><span><i class="fa-solid fa-truck"></i></span><div><p>待发货</p><strong><?= $stats['paid'] ?></strong><small>较昨日 ↑ 15%</small></div></article>
+    <article class="stat-card blue"><span><i class="fa-solid fa-box"></i></span><div><p>已发货</p><strong><?= $stats['shipped'] ?></strong><small>较昨日 ↑ 10%</small></div></article>
+    <article class="stat-card green"><span><i class="fa-solid fa-circle-check"></i></span><div><p>已完成</p><strong><?= $stats['completed'] ?></strong><small>较昨日 ↑ 18%</small></div></article>
+  </section>
 
-  <!-- 批量删除 -->
-  <form method="post" id="delete-form" onsubmit="return confirm('确定要删除选中的订单吗？此操作不可恢复。');">
-    <button type="submit" name="delete_selected" class="btn-delete">🗑 批量删除</button>
-  </form>
+  <?php if ($msg): ?><div class="order-msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
 
+  <section class="order-tools glass-panel">
+    <form method="get" class="order-filter">
+      <label class="search-field"><i class="fa-solid fa-magnifying-glass"></i><input name="search" value="<?= htmlspecialchars($search) ?>" placeholder="输入订单号、收件人、手机号搜索"></label>
+      <button type="button" class="filter-btn" id="toggleFilters"><i class="fa-solid fa-filter"></i> 筛选</button>
+
+      <div id="filterPanel" class="mobile-filter-panel">
+        <select name="order_status">
+          <option value="">订单状态</option>
+          <?php foreach ($allowedStatuses as $status): ?><option value="<?= htmlspecialchars($status) ?>" <?= $orderStatus===$status?'selected':'' ?>><?= status_label($status) ?></option><?php endforeach; ?>
+        </select>
+        <select name="pay_status">
+          <option value="">支付状态</option>
+          <option value="paid" <?= $payStatus==='paid'?'selected':'' ?>>已支付</option>
+          <option value="unpaid" <?= $payStatus==='unpaid'?'selected':'' ?>>待付款</option>
+        </select>
+        <select name="delivery">
+          <option value="">配送方式</option>
+          <option value="jt" <?= $delivery==='jt'?'selected':'' ?>>J&T Express</option>
+          <option value="poslaju" <?= $delivery==='poslaju'?'selected':'' ?>>Poslaju</option>
+          <option value="shopee" <?= $delivery==='shopee'?'selected':'' ?>>Shopee Express</option>
+        </select>
+        <a href="order.php" class="reset-btn"><i class="fa-solid fa-rotate-right"></i> 重置</a>
+      </div>
+      <button type="submit" class="visually-hidden" aria-hidden="true"></button>
+    </form>
+
+    
+  </section>
+
+  <section class="order-table-card">
+    <div class="mobile-list-head"><strong>共 <?= $totalOrders ?> 条记录</strong><span>每页显示 <?= $limit ?> 条</span></div>
     <table>
-      <tr>
-        <th><input type="checkbox" form="delete-form" onclick="document.querySelectorAll('input[name*=\'order_ids\']').forEach(cb => cb.checked = this.checked);"></th>
-        <th>订单号</th>
-        <th>下单时间</th>
-        <th>总金额 (RM)</th>
-        <th>收货信息</th>
-        <th>订单状态</th>
-        <th>查看收据</th>
-      </tr>
-
-      <?php if (empty($orders)): ?>
-        <tr><td colspan="7" class="no-data">暂无订单记录</td></tr>
-      <?php else: ?>
+      <thead>
+        <tr>
+          <th><input type="checkbox" onclick="document.querySelectorAll('input[name*=order_ids]').forEach(cb => cb.checked = this.checked);"></th>
+          <th>订单号</th>
+          <th>下单时间</th>
+          <th>收件人</th>
+          <th>金额 (RM)</th>
+          <th>支付状态</th>
+          <th>订单状态</th>
+          <th>配送方式</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (!$orders): ?><tr><td colspan="9" class="empty">暂无订单记录。</td></tr><?php endif; ?>
         <?php foreach ($orders as $o): ?>
-          <tr>
-            <td><input type="checkbox" form="delete-form" name="order_ids[]" value="<?= $o['id'] ?>"></td>
-            <td><?= htmlspecialchars($o['order_number'] ?? '') ?></td>
-            <td><?= $o['created_at'] ? date("Y年n月j日 H:i", strtotime($o['created_at'])) : '' ?></td>
-            <td><?= number_format($o['total'] ?? 0, 2) ?></td>
-            <td style="text-align:left;">
-                <b><?= htmlspecialchars($o['addr_name'] ?? '') ?></b><br>
-                📞 <?= htmlspecialchars($o['addr_phone'] ?? '') ?><br>
-                🏡 <?= htmlspecialchars($o['addr_address'] ?? '') ?><br>
-                <?= htmlspecialchars($o['addr_postcode'] ?? '') ?> <?= htmlspecialchars($o['addr_state'] ?? '') ?>
-            </td>
+          <?php
+            $paid = in_array($o['order_status'], ['paid', 'shipped', 'completed'], true);
+            $deliveryName = ($o['addr_state'] ?? '') === 'Johor' ? 'J&T Express' : 'Shopee Express';
+            $amount = (float)($o['grand_total'] ?: $o['total']);
+          ?>
+          <tr class="order-row">
+            <td class="check-cell"><input form="bulkForm" type="checkbox" name="order_ids[]" value="<?= (int)$o['id'] ?>"></td>
+            <td class="order-info"><strong><?= htmlspecialchars($o['order_number']) ?></strong><small>共 <?= (int)$o['item_count'] ?> 件商品</small></td>
+            <td><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></td>
+            <td class="receiver-cell"><strong><?= htmlspecialchars($o['addr_name'] ?? '-') ?></strong><small><?= htmlspecialchars($o['addr_phone'] ?? '') ?></small></td>
+            <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
+            <td><span class="state-pill <?= $paid ? 'paid' : 'unpaid' ?>"><?= $paid ? '已支付' : '待付款' ?></span></td>
+            <td><span class="state-pill <?= status_class($o['order_status']) ?>"><?= status_label($o['order_status']) ?></span></td>
+            <td class="delivery-cell"><strong><?= $deliveryName ?></strong><small><?= htmlspecialchars(($o['addr_postcode'] ?? '') . ' ' . ($o['addr_state'] ?? '')) ?></small></td>
             <td>
-                <form method="post" style="display:flex; gap:6px; justify-content:center;">
-                    <input type="hidden" name="order_number" value="<?= htmlspecialchars($o['order_number'] ?? '') ?>">
-
-                    <select name="status" style="padding:6px; border-radius:6px;">
-                        <option value="pending"          <?= ($o['order_status'] ?? 'pending') =='pending'?'selected':'' ?>>Pending</option>
-                        <option value="awaiting_payment" <?= ($o['order_status'] ?? '')=='awaiting_payment'?'selected':'' ?>>Awaiting Payment</option>
-                        <option value="paid"             <?= ($o['order_status'] ?? '')=='paid'?'selected':'' ?>>Paid</option>
-                        <option value="shipped"          <?= ($o['order_status'] ?? '')=='shipped'?'selected':'' ?>>Shipped</option>
-                        <option value="completed"        <?= ($o['order_status'] ?? '')=='completed'?'selected':'' ?>>Completed</option>
-                    </select>
-
-                    <button type="submit" name="update_status" class="btn-view">更新</button>
+              <div class="order-actions">
+                <a href="../receipt.php?order_number=<?= urlencode($o['order_number']) ?><?= !empty($o['receipt_token']) ? '&token=' . urlencode($o['receipt_token']) : '' ?>" target="_blank">查看</a>
+                <form method="post" class="status-form">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="order_number" value="<?= htmlspecialchars($o['order_number']) ?>">
+                  <select name="status">
+                    <?php foreach ($allowedStatuses as $status): ?><option value="<?= htmlspecialchars($status) ?>" <?= $o['order_status']===$status?'selected':'' ?>><?= status_label($status) ?></option><?php endforeach; ?>
+                  </select>
+                  <button type="submit" name="update_status">
+  <i class="fa-solid fa-check"></i> 保存
+</button>
                 </form>
-            </td>
-            <td>
-              <a href="../receipt.php?order_number=<?= urlencode($o['order_number'] ?? '') ?>" target="_blank">
-                <button type="button" class="btn-view">收据</button>
-              </a>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>
-      <?php endif; ?>
+      </tbody>
     </table>
+  </section>
 
-  <!-- 分页 -->
-  <div class="pagination">
-    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-      <a href="?page=<?= $i ?>&search=<?= urlencode($search ?? '') ?>&month=<?= urlencode($month ?? '') ?>" class="<?= $i == $page ? 'active' : '' ?>">
-        <?= $i ?>
-      </a>
-    <?php endfor; ?>
-  </div>
-</div>
+  <footer class="order-pagination">
+    <span>共 <?= $totalOrders ?> 条记录</span>
+    <nav>
+      <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+        <a class="<?= $i===$page?'active':'' ?>" href="?<?= http_build_query(array_merge($_GET, ['page'=>$i])) ?>"><?= $i ?></a>
+      <?php endfor; ?>
+    </nav>
+    <form method="get" class="limit-form">
+      <?php foreach ($_GET as $key => $value): if ($key === 'limit') continue; ?>
+        <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value) ?>">
+      <?php endforeach; ?>
+      <span>每页显示</span>
+      <select name="limit" onchange="this.form.submit()">
+        <option value="10" <?= $limit===10?'selected':'' ?>>10 条</option>
+        <option value="20" <?= $limit===20?'selected':'' ?>>20 条</option>
+        <option value="50" <?= $limit===50?'selected':'' ?>>50 条</option>
+      </select>
+    </form>
+  </footer>
+</main>
+
+<script>
+  const toggleBtn = document.getElementById('toggleFilters');
+  const filterPanel = document.getElementById('filterPanel');
+  const bulkPanel = document.getElementById('bulkForm');
+
+  toggleBtn?.addEventListener('click', (event) => {
+    if (window.innerWidth <= 760) {
+      filterPanel?.classList.toggle('show');
+      bulkPanel?.classList.toggle('show');
+      return;
+    }
+
+    event.preventDefault();
+    toggleBtn.closest('form')?.submit();
+  });
+</script>
+<script src="js/product_admin.js?v=20260604"></script>
 </body>
 </html>

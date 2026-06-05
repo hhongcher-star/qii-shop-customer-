@@ -1,0 +1,306 @@
+﻿<?php
+require_once __DIR__ . '/auth.php';
+require_admin();
+require_once __DIR__ . '/config.php';
+
+date_default_timezone_set('Asia/Kuala_Lumpur');
+
+$categories = [
+    'phone' => '手机配件',
+    'hair' => '发夹发饰',
+    'snack' => '零食',
+    'creative' => '文创',
+    'case' => '手机壳',
+    'nail' => '穿戴甲',
+    'scent' => '香片',
+    'doll' => '娃娃',
+    'stationery' => '文具',
+];
+
+function ensure_product_admin_columns(PDO $pdo): void {
+    $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!in_array('brand', $columns, true)) {
+        $pdo->exec("ALTER TABLE products ADD COLUMN brand VARCHAR(120) NULL AFTER category");
+    }
+
+    if (!in_array('status', $columns, true)) {
+        $pdo->exec("ALTER TABLE products ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'active' AFTER brand");
+    }
+}
+
+function product_img(?string $path): string {
+    $path = trim((string)$path);
+
+    if ($path === '') {
+        return '../images/logo.png';
+    }
+
+    if (preg_match('#^(https?:)?//#', $path)) {
+        return $path;
+    }
+
+    return '../' . ltrim($path, '/');
+}
+
+ensure_product_admin_columns($pdo);
+
+$deleteError = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_product') {
+    verify_csrf();
+
+    $deleteId = (int)($_POST['product_id'] ?? 0);
+
+    if ($deleteId > 0) {
+        $pdo->beginTransaction();
+
+        try {
+            $pdo->prepare("
+                DELETE v FROM product_variants v
+                INNER JOIN product_groups g ON g.id = v.group_id
+                WHERE g.product_id = ?
+            ")->execute([$deleteId]);
+
+            $pdo->prepare("DELETE FROM product_groups WHERE product_id = ?")->execute([$deleteId]);
+            $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$deleteId]);
+
+            $pdo->commit();
+
+            header('Location: product.php?deleted=1');
+            exit;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $deleteError = '删除失败：' . $e->getMessage();
+        }
+    }
+}
+
+$search = trim($_GET['search'] ?? '');
+$cat = $_GET['cat'] ?? '';
+$status = $_GET['status'] ?? '';
+$sort = $_GET['sort'] ?? 'newest';
+
+$where = [];
+$params = [];
+
+if ($search !== '') {
+    $where[] = "(p.name LIKE ? OR p.sku LIKE ?)";
+    $params[] = "%{$search}%";
+    $params[] = "%{$search}%";
+}
+
+if ($cat !== '' && isset($categories[$cat])) {
+    $where[] = "p.category = ?";
+    $params[] = $cat;
+}
+
+if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
+    $where[] = "p.status = ?";
+    $params[] = $status;
+}
+
+$orderSql = match ($sort) {
+    'price_asc' => 'min_price ASC, p.id DESC',
+    'price_desc' => 'min_price DESC, p.id DESC',
+    'stock_asc' => 'total_stock ASC, p.id DESC',
+    'stock_desc' => 'total_stock DESC, p.id DESC',
+    default => 'p.id DESC',
+};
+
+$sql = "
+    SELECT
+        p.*,
+        COUNT(v.id) AS variant_count,
+        COALESCE(SUM(v.stock), p.stock) AS total_stock,
+        COALESCE(MIN(v.price), p.price) AS min_price
+    FROM products p
+    LEFT JOIN product_groups g ON g.product_id = p.id
+    LEFT JOIN product_variants v ON v.group_id = g.id
+";
+
+if ($where) {
+    $sql .= " WHERE " . implode(" AND ", $where);
+}
+
+$sql .= " GROUP BY p.id ORDER BY {$orderSql}";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 | Qii.shop Admin</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <link rel="stylesheet" href="css/product_admin.css?v=20260605">
+</head>
+
+<body>
+<?php include 'includes/admin_header.php'; ?>
+
+<main class="main product-admin-page">
+
+    <header class="product-topbar">
+        <div>
+            <h1>商品管理</h1>
+            <p>管理所有商品，查看库存、规格和上架状态</p>
+        </div>
+
+        <a href="product_editor.php" class="primary-action">
+            <i class="fa-solid fa-plus"></i>
+            新增商品
+        </a>
+    </header>
+
+    <form class="product-filters glass-card" method="get">
+        <label class="search-field">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input 
+                type="search" 
+                name="search" 
+                value="<?= htmlspecialchars($search) ?>" 
+                placeholder="搜索商品名称 / SKU"
+            >
+        </label>
+
+        <select name="cat">
+            <option value="">全部分类</option>
+            <?php foreach ($categories as $key => $label): ?>
+                <option value="<?= htmlspecialchars($key) ?>" <?= $cat === $key ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($label) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+
+        <select name="status">
+            <option value="">全部状态</option>
+            <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>上架中</option>
+            <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>已下架</option>
+        </select>
+
+        <select name="sort">
+            <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>最新商品</option>
+            <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>价格低到高</option>
+            <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>价格高到低</option>
+            <option value="stock_asc" <?= $sort === 'stock_asc' ? 'selected' : '' ?>>库存少到多</option>
+            <option value="stock_desc" <?= $sort === 'stock_desc' ? 'selected' : '' ?>>库存多到少</option>
+        </select>
+
+        <button class="filter-button" type="submit" title="筛选">
+            <i class="fa-solid fa-sliders"></i>
+        </button>
+    </form>
+
+    <?php if ($deleteError): ?>
+        <div class="editor-alert">
+            <?= htmlspecialchars($deleteError) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="editor-alert success">
+            商品已删除
+        </div>
+    <?php endif; ?>
+
+    <section class="product-grid" aria-label="商品列表">
+
+        <?php if (!$products): ?>
+            <div class="empty-card glass-card">
+                暂时没有符合条件的商品。
+            </div>
+        <?php endif; ?>
+
+        <?php foreach ($products as $p): ?>
+            <?php
+                $variantCount = (int)($p['variant_count'] ?? 0);
+                $totalStock = (int)($p['total_stock'] ?? 0);
+                $minPrice = (float)($p['min_price'] ?? 0);
+                $isActive = ($p['status'] ?? 'active') === 'active';
+                $productName = $p['name'] ?? '';
+                $productCategory = $p['category'] ?? '';
+            ?>
+
+            <article class="product-card glass-card">
+
+                <div class="product-image-wrap">
+                    <img 
+                        src="<?= htmlspecialchars(product_img($p['image_url'] ?? '')) ?>" 
+                        alt="<?= htmlspecialchars($productName) ?>"
+                    >
+
+                    <button class="more-button" type="button" aria-label="更多">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                </div>
+
+                <div class="product-card-body">
+                    <h2><?= htmlspecialchars($productName) ?></h2>
+
+                    <span class="category-badge">
+                        <?= htmlspecialchars($categories[$productCategory] ?? $productCategory) ?>
+                    </span>
+
+                    <p class="product-price">
+                        RM <?= number_format($minPrice, 2) ?> 起
+                    </p>
+
+                    <div class="product-meta">
+                        <span>
+                            <i class="fa-regular fa-tags"></i>
+                            规格：<?= $variantCount ?: 1 ?> 个
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-cube"></i>
+                            库存：<?= $totalStock ?>
+                        </span>
+                    </div>
+
+                    <span class="status-badge <?= $isActive ? 'active' : 'inactive' ?>">
+                        <?= $isActive ? '上架中' : '已下架' ?>
+                    </span>
+                </div>
+
+                <footer class="product-actions">
+                    <a href="product_editor.php?id=<?= (int)$p['id'] ?>" class="soft-button">
+                        <i class="fa-solid fa-pen"></i>
+                        编辑
+                    </a>
+
+                    <a href="product_editor.php?id=<?= (int)$p['id'] ?>" class="soft-button detail">
+                        <i class="fa-regular fa-eye"></i>
+                        查看详情
+                    </a>
+
+                    <form method="post" onsubmit="return confirm('确定删除这个商品吗？');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete_product">
+                        <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
+
+                        <button type="submit" class="icon-button danger" title="删除">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </footer>
+
+            </article>
+        <?php endforeach; ?>
+
+    </section>
+
+</main>
+
+<script src="js/product_admin.js?v=20260605"></script>
+</body>
+</html>

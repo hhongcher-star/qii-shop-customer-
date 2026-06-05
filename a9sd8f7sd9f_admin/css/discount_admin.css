@@ -1,0 +1,876 @@
+:root {
+  --primary: #ff4fa3;
+  --primary2: #ff77c1;
+  --bg: #fff7fb;
+  --card: rgba(255, 255, 255, .9);
+  --border: #ffd4e8;
+  --text: #2d2340;
+  --muted: #8f88a3;
+  --shadow: 0 18px 48px rgba(255, 79, 163, .12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 79, 163, .18), transparent 28%),
+    radial-gradient(circle at 88% 0%, rgba(255, 212, 232, .45), transparent 32%),
+    linear-gradient(135deg, #fff7fb 0%, #fff 44%, #fff3f9 100%);
+  color: var(--text);
+}
+
+.discount-page {
+  min-height: 100vh;
+  padding-bottom: 44px;
+}
+
+.glass-panel,
+.discount-stats article {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.discount-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.mobile-drawer-btn {
+  display: none;
+}
+
+.title-wrap h1 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.title-wrap h1 i {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(135deg, var(--primary), #ff2d8f);
+  color: #fff;
+  box-shadow: 0 16px 32px rgba(255, 79, 163, .26);
+}
+
+.title-wrap p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.primary-action,
+.outline-action,
+.notify-btn,
+.coupon-create-form button,
+.search-btn,
+.reset-btn,
+.sort-form button,
+.coupon-actions button,
+.discount-footer nav a {
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.primary-action,
+.coupon-create-form button,
+.search-btn {
+  min-height: 52px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--primary), #ff2d8f);
+  color: #fff;
+  box-shadow: 0 14px 32px rgba(255, 79, 163, .24);
+}
+
+.outline-action,
+.reset-btn {
+  min-height: 52px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, .86);
+  color: var(--text);
+}
+
+.notify-btn {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .86);
+  color: #716b80;
+  font-size: 20px;
+}
+
+.notify-btn span {
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+}
+
+.admin-mini {
+  display: grid;
+  grid-template-columns: 44px auto 18px;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-mini img {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  object-fit: cover;
+}
+
+.admin-mini strong,
+.admin-mini small {
+  display: block;
+}
+
+.admin-mini small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.discount-msg {
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border: 1px solid #bdeece;
+  border-radius: 16px;
+  background: rgba(220, 249, 232, .82);
+  color: #159555;
+  font-weight: 900;
+}
+
+.create-panel {
+  display: none;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+.create-panel.open {
+  display: block;
+}
+
+.create-panel h2,
+.table-head h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.filter-title {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.filter-title span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-title i {
+  color: var(--primary);
+}
+
+.create-panel h2 i,
+.filter-panel h2 i {
+  color: var(--primary);
+}
+
+.coupon-create-form,
+.discount-filter {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.coupon-create-form {
+  grid-template-columns: repeat(4, minmax(160px, 1fr)) auto;
+}
+
+.filter-panel {
+  padding: 26px;
+  margin-bottom: 24px;
+}
+
+.discount-filter {
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+}
+
+.discount-filter label {
+  display: grid;
+  gap: 9px;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.discount-filter span {
+  font-size: 14px;
+}
+
+.coupon-create-form input,
+.coupon-create-form select,
+.discount-filter input,
+.discount-filter select,
+.sort-form select,
+.limit-form select {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid #eadde8;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .9);
+  color: var(--text);
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 750;
+  outline: none;
+}
+
+.search-btn,
+.reset-btn {
+  align-self: end;
+}
+
+.discount-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.discount-stats article {
+  min-height: 128px;
+  padding: 24px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+.discount-stats span {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  color: var(--primary);
+  background: linear-gradient(135deg, rgba(255, 79, 163, .18), rgba(255,255,255,.9));
+  font-size: 24px;
+}
+
+.discount-stats .purple span { color: #7c3aed; background: #f0e7ff; }
+.discount-stats .orange span { color: #f59e0b; background: #fff2d8; }
+.discount-stats .green span { color: #22c55e; background: #dcfce7; }
+.discount-stats .blue span { color: #3b82f6; background: #dbeafe; }
+
+.discount-stats p,
+.discount-stats small {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.discount-stats strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.coupon-table-card {
+  overflow: hidden;
+  padding: 18px;
+}
+
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sort-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-form label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.sort-form select {
+  min-width: 150px;
+}
+
+.sort-form button,
+.coupon-actions button {
+  width: 46px;
+  height: 46px;
+  background: rgba(255, 255, 255, .86);
+  color: var(--primary);
+}
+
+.coupon-table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.coupon-table-card th,
+.coupon-table-card td {
+  padding: 18px 16px;
+  border-bottom: 1px solid #f4ddea;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.coupon-table-card th {
+  background: linear-gradient(90deg, rgba(255, 79, 163, .08), rgba(255, 247, 251, .9));
+  color: #6f687e;
+  font-size: 14px;
+  font-weight: 950;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.coupon-code strong,
+.coupon-table-card td strong {
+  display: block;
+  color: var(--text);
+  font-weight: 950;
+}
+
+.coupon-code small,
+.coupon-code span,
+.coupon-table-card td small {
+  display: block;
+  margin-top: 6px;
+  color: #6d657a;
+  font-weight: 750;
+}
+
+.type-pill,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.type-pill.percent {
+  background: #ffe4f1;
+  color: var(--primary);
+}
+
+.type-pill.fixed {
+  background: #e7f1ff;
+  color: #3b82f6;
+}
+
+.type-pill.ship {
+  background: #fff3df;
+  color: #f59e0b;
+}
+
+.status-pill.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-pill.inactive {
+  background: #f0eff4;
+  color: #6b6478;
+}
+
+.status-pill.expired {
+  background: #ffe4e6;
+  color: #ef4444;
+}
+
+.coupon-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty {
+  padding: 50px 20px !important;
+  text-align: center !important;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.discount-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 22px;
+  color: #676079;
+  font-weight: 850;
+}
+
+.discount-footer nav {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.discount-footer nav a {
+  min-width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .86);
+  color: var(--text);
+}
+
+.discount-footer nav a.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--primary), #ff2d8f);
+  color: #fff;
+}
+
+.limit-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primary-action:hover,
+.outline-action:hover,
+.search-btn:hover,
+.reset-btn:hover,
+.coupon-actions button:hover,
+.discount-footer nav a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(255, 79, 163, .16);
+}
+
+@media (max-width: 1280px) {
+  .discount-filter {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .discount-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .discount-page {
+    padding: 16px 12px 32px;
+  }
+
+  .discount-topbar {
+    grid-template-columns: minmax(0, 1fr) auto 52px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .mobile-drawer-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    font-size: 30px;
+  }
+
+  .title-wrap h1 {
+    gap: 10px;
+    font-size: 24px;
+  }
+
+  .title-wrap h1 i {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+
+  .title-wrap p {
+    display: none;
+    font-size: 14px;
+  }
+
+  .primary-action {
+    grid-column: auto;
+    min-height: 50px;
+    padding: 0 14px;
+    width: auto;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .desktop-only,
+  .outline-action.desktop-only {
+    display: none;
+  }
+
+  .notify-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .admin-mini {
+    display: none;
+  }
+
+  .create-panel,
+  .filter-panel {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .create-panel {
+    display: none;
+  }
+
+  .create-panel.open {
+    display: block;
+  }
+
+  .coupon-create-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .discount-filter {
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .filter-panel.filters-open .discount-filter {
+    display: grid;
+  }
+
+  .coupon-create-form input,
+  .coupon-create-form select,
+  .coupon-create-form button,
+  .discount-filter input,
+  .discount-filter select,
+  .search-btn,
+  .reset-btn {
+    min-height: 58px;
+    border-radius: 16px;
+    font-size: 15px;
+  }
+
+  .discount-filter label:nth-child(1),
+  .discount-filter label:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .discount-filter span {
+    font-size: 13px;
+  }
+
+  .discount-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .discount-stats article {
+    min-height: 176px;
+    padding: 16px;
+    align-content: center;
+    gap: 9px;
+    border-radius: 22px;
+  }
+
+  .discount-stats span {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    font-size: 22px;
+  }
+
+  .discount-stats p {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .discount-stats strong {
+    font-size: 30px;
+  }
+
+  .discount-stats small {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .coupon-table-card {
+    padding: 0;
+    border-radius: 22px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-head {
+    min-width: 980px;
+    padding: 14px 16px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .table-head h2 {
+    font-size: 20px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .sort-form label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .sort-form select {
+    min-width: 142px;
+    min-height: 46px;
+    max-width: 150px;
+  }
+
+  .coupon-table-card table,
+  .coupon-table-card tbody {
+    display: table;
+    width: 100%;
+    min-width: 980px;
+    table-layout: fixed;
+  }
+
+  .coupon-table-card th:nth-child(1),
+  .coupon-table-card td:nth-child(1) { width: 64px; }
+
+  .coupon-table-card th:nth-child(2),
+  .coupon-table-card td:nth-child(2) { width: 190px; }
+
+  .coupon-table-card th:nth-child(3),
+  .coupon-table-card td:nth-child(3) { width: 190px; }
+
+  .coupon-table-card th:nth-child(4),
+  .coupon-table-card td:nth-child(4) { width: 220px; }
+
+  .coupon-table-card th:nth-child(5),
+  .coupon-table-card td:nth-child(5) { width: 180px; }
+
+  .coupon-table-card th:nth-child(6),
+  .coupon-table-card td:nth-child(6) { width: 136px; }
+
+  .coupon-table-card thead {
+    display: table-header-group;
+  }
+
+  .coupon-table-card tbody tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .coupon-table-card td {
+    display: table-cell;
+    min-width: 0;
+    padding: 14px 12px;
+    border-bottom: 1px solid #f4ddea;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .coupon-table-card th {
+    padding: 14px 12px;
+    white-space: nowrap;
+    word-break: keep-all;
+    line-height: 1.45;
+  }
+
+  .coupon-table-card td::before {
+    content: none !important;
+  }
+
+  .coupon-table-card td:nth-child(1)::before { content: "选择"; }
+  .coupon-table-card td:nth-child(2)::before { content: "优惠码 / 说明"; }
+  .coupon-table-card td:nth-child(3)::before { content: "优惠类型 / 优惠值"; }
+  .coupon-table-card td:nth-child(4)::before { content: "最低订单 / 有效期"; }
+  .coupon-table-card td:nth-child(5)::before { content: "状态 / 使用次数"; }
+  .coupon-table-card td:nth-child(6)::before { content: "操作"; }
+
+  .coupon-table-card td::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .coupon-code strong,
+  .coupon-code span,
+  .coupon-table-card td strong,
+  .coupon-table-card td small {
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .type-pill,
+  .status-pill {
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .coupon-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .coupon-actions button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .discount-footer { display: none; }
+}
+
+.discount-page select option {
+  background: #fff;
+  color: var(--text);
+}
+
+.mobile-drawer-btn {
+  display: none !important;
+}
+
+@media (max-width: 430px) {
+  .discount-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .admin-mini {
+    display: none;
+  }
+
+  .title-wrap h1 {
+    font-size: 24px;
+  }
+
+  .primary-action {
+    font-size: 13px;
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+    padding: 0 12px;
+  }
+
+  .coupon-create-form {
+    grid-template-columns: 1fr;
+  }
+
+  .discount-filter label,
+  .discount-filter label:nth-child(1),
+  .discount-filter label:nth-child(4),
+  .discount-filter label:nth-child(5) {
+    grid-column: 1;
+  }
+
+  .coupon-table-card tbody tr {
+    display: table-row;
+  }
+
+  .coupon-actions {
+    grid-template-columns: 38px;
+  }
+
+  .coupon-actions button {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 760px) {
+  .discount-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  .discount-stats article {
+    min-height: 176px !important;
+    padding: 16px !important;
+    display: grid !important;
+    align-content: center !important;
+    gap: 9px !important;
+  }
+}

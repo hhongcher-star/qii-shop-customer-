@@ -1,162 +1,98 @@
 <?php
-  // 自动识别当前页面文件名
-  $current_page = basename($_SERVER['PHP_SELF']);
+$current_page = basename($_SERVER['PHP_SELF']);
+
+$menu_items = [
+    ['file' => 'dashboard.php', 'icon' => 'fa-chart-line', 'label' => '仪表盘 Dashboard'],
+    ['file' => 'product.php', 'icon' => 'fa-box-open', 'label' => '商品管理'],
+    ['file' => 'inventory.php', 'icon' => 'fa-boxes-stacked', 'label' => '库存管理'],
+    ['file' => 'order.php', 'icon' => 'fa-bag-shopping', 'label' => '订单管理'],
+    ['file' => 'discount_center.php', 'icon' => 'fa-ticket', 'label' => '优惠管理'],
+    ['file' => 'reply.php', 'icon' => 'fa-comments', 'label' => '用户消息'],
+];
+
+$mobile_items = [
+    ['file' => 'dashboard.php', 'icon' => 'fa-house', 'label' => '首页'],
+    ['file' => 'order.php', 'icon' => 'fa-bag-shopping', 'label' => '订单'],
+    ['file' => 'product_editor.php', 'icon' => 'fa-plus', 'label' => '发布商品', 'class' => 'publish'],
+    ['file' => 'product.php', 'icon' => 'fa-box-open', 'label' => '商品'],
+    ['file' => '#', 'icon' => 'fa-table-cells-large', 'label' => '更多', 'class' => 'more'],
+];
+
+$more_pages = ['discount_center.php', 'reply.php', 'inventory.php'];
 ?>
-<header>
-  <div class="admin-sidebar">
-    <div class="logo-area">
-      <img src="/images/logo.png" alt="Qii.shop Logo" class="logo">
-      <h2>Qii.shop</h2>
+<link rel="stylesheet" href="includes/admin_layout.css?v=20260604c">
+
+<header class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand-panel">
+      <img src="../images/logo.png" alt="Qii.shop Logo" class="brand-logo">
+      <div>
+        <p class="brand-kicker">Qii Admin</p>
+        <h2>Qii.shop</h2>
+      </div>
     </div>
 
-    <nav class="menu">
-      <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">
-        <i class="fa-solid fa-chart-line"></i> 仪表盘 Dashboard
-      </a>
-      <a href="products.php" class="<?= $current_page == 'products.php' ? 'active' : '' ?>">
-        <i class="fa-solid fa-box"></i> 商品管理
-      </a>
-      <a href="inventory.php" class="<?= $current_page == 'inventory.php' ? 'active' : '' ?>">
-        <i class="fa-solid fa-warehouse"></i> 库存管理
-      </a>
-      <a href="orders.php" class="<?= $current_page == 'orders.php' ? 'active' : '' ?>">
-        <i class="fa-solid fa-receipt"></i> 订单管理
-      </a>
-      <a href="discount.php" class="<?= $current_page == 'discount.php' ? 'active' : '' ?>">
-        <i class="fa-solid fa-tags"></i> 优惠管理
-      </a>
+    <nav class="menu" aria-label="后台导航">
+      <?php foreach ($menu_items as $item): ?>
+        <a href="<?= htmlspecialchars($item['file']) ?>" class="<?= $current_page === $item['file'] ? 'active' : '' ?>">
+          <span class="menu-icon"><i class="fa-solid <?= htmlspecialchars($item['icon']) ?>"></i></span>
+          <span><?= htmlspecialchars($item['label']) ?></span>
+        </a>
+      <?php endforeach; ?>
     </nav>
 
     <div class="logout">
-      <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> 退出登录</a>
+      <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i><span>退出登录</span></a>
     </div>
-  </div>
+  </aside>
 </header>
 
-<style>
-/* ============ 🧭 Sidebar Layout ============ */
-body {
-  margin: 0;
-  font-family: "Inter", "Noto Sans SC", sans-serif;
-  background: #f8f9fb;
-}
+<nav class="mobile-bottom-nav" aria-label="手机底部导航">
+  <?php foreach ($mobile_items as $item): ?>
+    <?php
+      $classes = [];
+      if (($item['class'] ?? '') === 'publish') {
+          $classes[] = 'publish';
+      }
+      if (($item['class'] ?? '') === 'more') {
+          $classes[] = 'mobile-more-trigger';
+      }
+      if ($current_page === $item['file'] || (($item['class'] ?? '') === 'more' && in_array($current_page, $more_pages, true))) {
+          $classes[] = 'active';
+      }
+    ?>
+    <a href="<?= htmlspecialchars($item['file']) ?>" class="<?= htmlspecialchars(implode(' ', $classes)) ?>" <?= (($item['class'] ?? '') === 'more') ? 'data-mobile-more aria-expanded="false"' : '' ?>>
+      <i class="fa-solid <?= htmlspecialchars($item['icon']) ?>"></i>
+      <span><?= htmlspecialchars($item['label']) ?></span>
+    </a>
+  <?php endforeach; ?>
+</nav>
 
-/* 侧边栏整体 */
-.admin-sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 230px;
-  height: 100vh;
-  background: #1e1f26;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.2);
-}
+<div class="mobile-more-menu" data-mobile-more-menu>
+  <a href="discount_center.php"><i class="fa-solid fa-ticket"></i><span>优惠管理</span></a>
+  <a href="reply.php"><i class="fa-solid fa-comments"></i><span>用户消息</span></a>
+  <a href="inventory.php"><i class="fa-solid fa-boxes-stacked"></i><span>库存管理</span></a>
+  <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i><span>退出登录</span></a>
+</div>
 
-/* logo 区域 */
-.logo-area {
-  text-align: center;
-  padding: 25px 10px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.logo-area .logo {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.logo-area h2 {
-  margin: 10px 0 0;
-  font-size: 18px;
-  color: #fff;
-  letter-spacing: 0.5px;
-}
-
-/* 菜单 */
-.menu {
-  display: flex;
-  flex-direction: column;
-  padding: 20px 0;
-}
-.menu a {
-  color: #ddd;
-  text-decoration: none;
-  padding: 12px 25px;
-  display: flex;
-  align-items: center;
-  transition: all 0.25s ease;
-  position: relative;
-}
-.menu a i {
-  margin-right: 10px;
-  font-size: 16px;
-}
-.menu a:hover {
-  background: #2b2d35;
-  color: #fff;
-}
-.menu a.active {
-  background: linear-gradient(90deg, #2b2d35 0%, #3a3c46 100%);
-  color: #fff;
-  border-left: 4px solid #3a82ff;
-  padding-left: 21px; /* 为左侧蓝条留空间 */
-}
-
-/* 退出按钮 */
-.logout {
-  padding: 15px 25px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-.logout a {
-  color: #ccc;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  transition: 0.2s;
-}
-.logout a:hover {
-  color: #fff;
-}
-
-/* 主内容区右侧留白 */
-.main-content {
-  margin-left: 230px;
-  padding: 30px;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .admin-sidebar {
-    position: relative;
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-  }
-  .logo-area {
-    display: none;
-  }
-  .menu {
-    flex-direction: row;
-    padding: 0;
-  }
-  .menu a {
-    padding: 10px 15px;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-  .logout {
-    display: none;
-  }
-  .main-content {
-    margin-left: 0;
-    padding: 20px;
-  }
-}
-</style>
-
-<!-- Font Awesome CDN -->
 <script src="https://kit.fontawesome.com/a2d9e1a36b.js" crossorigin="anonymous"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var trigger = document.querySelector('[data-mobile-more]');
+  var menu = document.querySelector('[data-mobile-more-menu]');
+  if (!trigger || !menu) return;
+
+  trigger.addEventListener('click', function (event) {
+    event.preventDefault();
+    var open = menu.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!menu.contains(event.target) && !trigger.contains(event.target)) {
+      menu.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
+</script>
