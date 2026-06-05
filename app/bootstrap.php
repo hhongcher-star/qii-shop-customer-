@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const QII_APP_ENV = 'local';
+const QII_APP_ENV = 'production';
 
 if (QII_APP_ENV === 'production') {
     error_reporting(E_ALL);

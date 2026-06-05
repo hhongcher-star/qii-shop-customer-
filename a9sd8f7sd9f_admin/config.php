@@ -2,10 +2,10 @@
 // Local database connection for XAMPP/Laragon.
 // Database name: qi_shop
 
-$host = "127.0.0.1";
-$db   = "qi_shop";
-$user = "root";
-$pass = "";
+$host = "localhost";
+$db   = "u751690829_qi_shop";
+$user = "u751690829_qi_shop_user";
+$pass = "#M!uYL8y";
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
