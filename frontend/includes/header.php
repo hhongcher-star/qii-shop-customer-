@@ -5,7 +5,7 @@ $cartCount = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart']
 
 <header class="mobile-app-header">
   <button class="mobile-menu-btn" type="button" aria-label="Menu"><span></span><span></span><span></span></button>
-  <a class="mobile-brand" href="index.php">Qii Shop <span>&#128149;</span></a>
+  <a class="mobile-brand" href="index.php">琪琪文创店铺 <span>&#128149;</span></a>
   <div class="mobile-actions">
     <button class="mobile-icon-link mobile-search-toggle" type="button" aria-label="Search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5 21 21"></path></svg>
