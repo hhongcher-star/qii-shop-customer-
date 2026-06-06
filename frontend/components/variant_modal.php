@@ -78,9 +78,9 @@
     </div>
 
     <div class="variant-benefits">
-      <div class="variant-benefit"><strong>🚚 满 RM50</strong>免运费</div>
+      <div class="variant-benefit"><strong>🚚 西马满 RM60 / 东马满 RM80</strong> 免运费
       <div class="variant-benefit"><strong>✨ 100%</strong>正品保证</div>
-      <div class="variant-benefit"><strong>💖 7天</strong>退换保障</div>
+      <div class="variant-benefit"><strong>💖 24小时以内</strong>收到货</div>
     </div>
 
     <input type="hidden" id="selectedVariantId">
