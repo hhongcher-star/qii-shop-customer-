@@ -2,19 +2,19 @@
 <?php
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/content_settings.php';
-$heroTitle = qii_content($pdo, 'hero_title', 'Welcome to qii.shoppp');
-$heroSubtitle = qii_content($pdo, 'hero_subtitle', '发现每一份可爱的生活小物');
-$heroDescription = qii_content($pdo, 'hero_description', '让每一天，都有一点粉色的温柔与惊喜。');
-$heroButton = qii_content($pdo, 'hero_button', '立即购物');
+$heroTitle = qii_sanitize_rich_text(qii_content($pdo, 'hero_title', 'Welcome to qii.shoppp'));
+$heroSubtitle = qii_sanitize_rich_text(qii_content($pdo, 'hero_subtitle', '发现每一份可爱的生活小物'));
+$heroDescription = qii_sanitize_rich_text(qii_content($pdo, 'hero_description', '让每一天，都有一点粉色的温柔与惊喜。'));
+$heroButton = qii_sanitize_rich_text(qii_content($pdo, 'hero_button', '立即购物'));
 $heroImageAlt = qii_content($pdo, 'hero_image_alt', 'Qiqi with Cart');
-$aboutTitle = qii_content($pdo, 'about_title', '关于 qii.shoppp 💌');
-$aboutText = qii_content($pdo, 'about_text', "qii.shoppp 是一个关于温柔与日常的小角落。\n我们相信，每个女孩都值得一点被生活宠爱的可爱。\n每件商品，都像一份心意——小小、但刚刚好。");
+$aboutTitle = qii_sanitize_rich_text(qii_content($pdo, 'about_title', '关于 qii.shoppp 💌'));
+$aboutText = qii_sanitize_rich_text(qii_content($pdo, 'about_text', "qii.shoppp 是一个关于温柔与日常的小角落。<br>我们相信，每个女孩都值得一点被生活宠爱的可爱。<br>每件商品，都像一份心意——小小、但刚刚好。"));
 $aboutImageAlt = qii_content($pdo, 'about_image_alt', 'Qiqi Bag');
-$giftTitle = qii_content($pdo, 'gift_title', '🎁 每一份礼物');
-$giftText = qii_content($pdo, 'gift_text', "每一份礼物都承载着特别的心意。\n我们为你准备的，不只是商品，而是一份温柔的陪伴。\n让可爱成为生活的一部分。");
+$giftTitle = qii_sanitize_rich_text(qii_content($pdo, 'gift_title', '🎁 每一份礼物'));
+$giftText = qii_sanitize_rich_text(qii_content($pdo, 'gift_text', "每一份礼物都承载着特别的心意。<br>我们为你准备的，不只是商品，而是一份温柔的陪伴。<br>让可爱成为生活的一部分。"));
 $giftImageAlt = qii_content($pdo, 'gift_image_alt', 'Qiqi Gift');
-$dailyTitle = qii_content($pdo, 'daily_title', '🌸 粉色的日常');
-$dailyText = qii_content($pdo, 'daily_text', "每一个小物件，都能让生活多一点甜。\n我们希望，在你的每一天里，都能遇见一点粉色的温柔。\nqii.shoppp — 温柔从这里开始。");
+$dailyTitle = qii_sanitize_rich_text(qii_content($pdo, 'daily_title', '🌸 粉色的日常'));
+$dailyText = qii_sanitize_rich_text(qii_content($pdo, 'daily_text', "每一个小物件，都能让生活多一点甜。<br>我们希望，在你的每一天里，都能遇见一点粉色的温柔。<br>qii.shoppp — 温柔从这里开始。"));
 $dailyImageAlt = qii_content($pdo, 'daily_image_alt', 'Qiqi Flower');
 $heroTitleColor = qii_content($pdo, 'hero_title_color', '#D9488B');
 $heroSubtitleColor = qii_content($pdo, 'hero_subtitle_color', '#C43A80');
@@ -621,11 +621,11 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
     <!-- 🌷 Hero Section -->
     <section class="hero">
       <div class="hero-text" data-aos="fade-right">
-        <h1><?= htmlspecialchars($heroTitle) ?></h1>
-        <h3><?= htmlspecialchars($heroSubtitle) ?></h3>
-        <p><?= htmlspecialchars($heroDescription) ?></p>
+        <h1><?= $heroTitle ?></h1>
+        <h3><?= $heroSubtitle ?></h3>
+        <p><?= $heroDescription ?></p>
         <button class="shop-btn" onclick="window.location.href='shop.php'">
-    <?= htmlspecialchars($heroButton) ?>
+    <?= $heroButton ?>
 </button>
       </div>
 
@@ -644,10 +644,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2><?= htmlspecialchars($aboutTitle) ?></h2>
+          <h2><?= $aboutTitle ?></h2>
 
           <div class="about-card">
-            <p><?= nl2br(htmlspecialchars($aboutText)) ?></p>
+            <p><?= $aboutText ?></p>
           </div>
         </div>
       </div>
@@ -661,10 +661,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-right">
-          <h2><?= htmlspecialchars($giftTitle) ?></h2>
+          <h2><?= $giftTitle ?></h2>
 
           <div class="about-card">
-            <p><?= nl2br(htmlspecialchars($giftText)) ?></p>
+            <p><?= $giftText ?></p>
           </div>
         </div>
       </div>
@@ -678,10 +678,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2><?= htmlspecialchars($dailyTitle) ?></h2>
+          <h2><?= $dailyTitle ?></h2>
 
           <div class="about-card">
-            <p><?= nl2br(htmlspecialchars($dailyText)) ?></p>
+            <p><?= $dailyText ?></p>
           </div>
         </div>
       </div>

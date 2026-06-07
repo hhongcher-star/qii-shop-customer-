@@ -9,25 +9,20 @@ $pages = [
         'label' => '首页 Index',
         'url' => '../index.php',
         'fields' => [
-            'hero_title' => ['主标题', 'Welcome to qii.shoppp', 'input'],
-            'hero_subtitle' => ['副标题', '发现每一份可爱的生活小物', 'input'],
-            'hero_description' => ['说明文字', '让每一天，都有一点粉色的温柔与惊喜。', 'textarea'],
-            'hero_button' => ['按钮文字', '立即购物', 'input'],
+            'hero_title' => ['主标题', 'Welcome to qii.shoppp', 'rich'],
+            'hero_subtitle' => ['副标题', '发现每一份可爱的生活小物', 'rich'],
+            'hero_description' => ['说明文字', '让每一天，都有一点粉色的温柔与惊喜。', 'rich'],
+            'hero_button' => ['按钮文字', '立即购物', 'rich'],
             'hero_image_alt' => ['Hero 图片说明', 'Qiqi with Cart', 'input'],
-            'about_title' => ['关于区标题', '关于 qii.shoppp 💌', 'input'],
-            'about_text' => ['关于区正文', "qii.shoppp 是一个关于温柔与日常的小角落。\n我们相信，每个女孩都值得一点被生活宠爱的可爱。\n每件商品，都像一份心意——小小、但刚刚好。", 'textarea'],
+            'about_title' => ['关于区标题', '关于 qii.shoppp 💌', 'rich'],
+            'about_text' => ['关于区正文', "qii.shoppp 是一个关于温柔与日常的小角落。<br>我们相信，每个女孩都值得一点被生活宠爱的可爱。<br>每件商品，都像一份心意——小小、但刚刚好。", 'rich'],
             'about_image_alt' => ['关于区图片说明', 'Qiqi Bag', 'input'],
-            'gift_title' => ['礼物区标题', '🎁 每一份礼物', 'input'],
-            'gift_text' => ['礼物区正文', "每一份礼物都承载着特别的心意。\n我们为你准备的，不只是商品，而是一份温柔的陪伴。\n让可爱成为生活的一部分。", 'textarea'],
+            'gift_title' => ['礼物区标题', '🎁 每一份礼物', 'rich'],
+            'gift_text' => ['礼物区正文', "每一份礼物都承载着特别的心意。<br>我们为你准备的，不只是商品，而是一份温柔的陪伴。<br>让可爱成为生活的一部分。", 'rich'],
             'gift_image_alt' => ['礼物区图片说明', 'Qiqi Gift', 'input'],
-            'daily_title' => ['日常区标题', '🌸 粉色的日常', 'input'],
-            'daily_text' => ['日常区正文', "每一个小物件，都能让生活多一点甜。\n我们希望，在你的每一天里，都能遇见一点粉色的温柔。\nqii.shoppp — 温柔从这里开始。", 'textarea'],
+            'daily_title' => ['日常区标题', '🌸 粉色的日常', 'rich'],
+            'daily_text' => ['日常区正文', "每一个小物件，都能让生活多一点甜。<br>我们希望，在你的每一天里，都能遇见一点粉色的温柔。<br>qii.shoppp — 温柔从这里开始。", 'rich'],
             'daily_image_alt' => ['日常区图片说明', 'Qiqi Flower', 'input'],
-            'hero_title_color' => ['主标题颜色', '#D9488B', 'color'],
-            'hero_subtitle_color' => ['副标题颜色', '#C43A80', 'color'],
-            'hero_text_color' => ['说明文字颜色', '#A0336B', 'color'],
-            'section_title_color' => ['介绍区标题颜色', '#D9488B', 'color'],
-            'section_text_color' => ['介绍区正文颜色', '#8A2F61', 'color'],
             'hero_button_color' => ['按钮颜色', '#E5679C', 'color'],
         ],
     ],
@@ -62,9 +57,10 @@ $pageConfig = $pages[$page];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $settings = [];
-    foreach ($pageConfig['fields'] as $key => [$label, $default]) {
+    foreach ($pageConfig['fields'] as $key => [$label, $default, $type]) {
         $value = trim((string)($_POST[$key] ?? ''));
-        $settings[$key] = $value !== '' ? $value : $default;
+        $value = $value !== '' ? $value : $default;
+        $settings[$key] = $type === 'rich' ? qii_sanitize_rich_text($value) : $value;
     }
     qii_save_content($pdo, $settings);
     header('Location: hero_content.php?page=' . rawurlencode($page) . '&saved=1');
@@ -97,6 +93,12 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
     .content-field { display: grid; gap: 7px; color: #62576c; font-weight: 800; }
     .content-field input, .content-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #f3c6d8; border-radius: 12px; padding: 12px 14px; background: #fffafb; color: #29203d; font: inherit; outline: none; }
     .content-field input[type="color"] { height: 48px; padding: 5px; cursor: pointer; }
+    .rich-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .rich-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid #f3c6d8; border-radius: 9px; background: #fff; color: #62576c; font-size: 12px; cursor: pointer; }
+    .rich-tool input { width: 24px; height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .rich-editor { min-height: 48px; padding: 12px 14px; border: 1px solid #f3c6d8; border-radius: 12px; background: #fffafb; color: #29203d; font-weight: 600; line-height: 1.55; outline: none; }
+    .rich-editor[data-multiline="1"] { min-height: 100px; }
+    .rich-editor:focus { border-color: #ff4fa3; box-shadow: 0 0 0 3px rgba(255,79,163,.1); }
     .content-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
     .content-save-row { display: flex; justify-content: flex-end; margin-top: 20px; }
     .content-save-row button { border: 0; cursor: pointer; }
@@ -144,7 +146,14 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
       <div class="content-fields">
         <?php foreach ($pageConfig['fields'] as $key => [$label, $default, $type]): ?>
           <label class="content-field"><?= htmlspecialchars($label) ?>
-            <?php if ($type === 'textarea'): ?>
+            <?php if ($type === 'rich'): ?>
+              <div class="rich-toolbar">
+                <label class="rich-tool"><i class="fa-solid fa-palette"></i> 字色 <input type="color" value="#d9488b" data-rich-color="foreColor"></label>
+                <label class="rich-tool"><i class="fa-solid fa-highlighter"></i> Highlight <input type="color" value="#fff0a8" data-rich-color="hiliteColor"></label>
+              </div>
+              <div class="rich-editor" contenteditable="true" data-rich-editor data-multiline="<?= str_contains($key, 'text') || str_contains($key, 'description') ? '1' : '0' ?>"><?= $values[$key] ?></div>
+              <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" data-rich-input>
+            <?php elseif ($type === 'textarea'): ?>
               <textarea name="<?= htmlspecialchars($key) ?>" required><?= htmlspecialchars($values[$key]) ?></textarea>
             <?php elseif ($type === 'color'): ?>
               <input type="color" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
@@ -166,5 +175,44 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
     </aside>
   </section>
 </main>
+<script>
+document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
+  var field = editor.closest('.content-field');
+  var hidden = field.querySelector('[data-rich-input]');
+  var savedRange = null;
+
+  function rememberSelection() {
+    var selection = window.getSelection();
+    if (selection.rangeCount && editor.contains(selection.anchorNode)) {
+      savedRange = selection.getRangeAt(0).cloneRange();
+    }
+  }
+
+  editor.addEventListener('mouseup', rememberSelection);
+  editor.addEventListener('keyup', rememberSelection);
+  editor.addEventListener('input', function () { hidden.value = editor.innerHTML; });
+
+  field.querySelectorAll('[data-rich-color]').forEach(function (picker) {
+    picker.addEventListener('mousedown', function () { rememberSelection(); });
+    picker.addEventListener('input', function () {
+      editor.focus();
+      if (savedRange) {
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+      }
+      document.execCommand(picker.dataset.richColor, false, picker.value);
+      hidden.value = editor.innerHTML;
+      rememberSelection();
+    });
+  });
+});
+
+document.querySelector('.content-editor-card').addEventListener('submit', function () {
+  document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
+    editor.closest('.content-field').querySelector('[data-rich-input]').value = editor.innerHTML;
+  });
+});
+</script>
 </body>
 </html>
