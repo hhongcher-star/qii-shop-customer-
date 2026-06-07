@@ -19,11 +19,11 @@
 .variant-like { margin-top: 8px; color: #f5a8c9; font-size: 32px; text-align: right; line-height: 1; }
 .variant-section { padding: 14px 0 0; }
 .variant-section-title { margin: 0 0 10px; color: #7f6873; font-size: 12px; font-weight: 800; }
-.variant-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; margin-top: 0; }
-.variant-card { min-height: 46px; background: #fffafd; border: 1px solid #f3d3e0; border-radius: 12px; padding: 5px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: .2s; position: relative; }
+.variant-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 0; }
+.variant-card { min-width: 0; min-height: 48px; background: #fffafd; border: 1px solid #f3d3e0; border-radius: 12px; padding: 5px 7px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: .2s; position: relative; overflow: hidden; }
 .variant-card:hover { background: #fff0f7; }
 .variant-card img { display: none; width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 0; }
-.variant-name { color: #9b536f; font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; }
+.variant-name { width: 100%; color: #9b536f; font-size: 11px; font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
 .variant-stock { display: none; }
 .variant-card.active { border-color: #ff77b4; background: #fff0f7; box-shadow: 0 0 0 1px #ff77b4 inset; }
 .variant-card.active::after { content: "✓"; position: absolute; top: -7px; right: -6px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #f5368d; color: #fff; font-size: 11px; font-weight: 900; }
