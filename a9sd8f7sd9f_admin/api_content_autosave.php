@@ -20,11 +20,15 @@ $allowed = [
     'about_title','about_text','gift_title','gift_text','daily_title','daily_text',
     'shop_title','shop_promo_title','shop_promo_text','shop_promo_button',
     'contact_title','contact_description','contact_button','contact_social_text',
+    'announcement_title','announcement_intro','announcement_quality','announcement_storage',
+    'announcement_shipping','announcement_dispatch','announcement_warning','announcement_button',
+    'variant_choose_title','variant_quantity_title','variant_max_text','variant_shipping_text',
+    'variant_quality_text','variant_return_text','variant_cart_button',
 ];
 
 if (!in_array($key, $allowed, true)) {
     http_response_code(422);
-    echo json_encode(['success' => false]);
+    echo json_encode(['success' => false, 'message' => 'Unsupported content key', 'key' => $key], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

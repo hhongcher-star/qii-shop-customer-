@@ -140,7 +140,7 @@ function autoSaveElement(el) {
     data.append('value', el.innerHTML);
     fetch('api_content_autosave.php', { method:'POST', body:data })
       .then(function (response) { return response.json(); })
-      .then(function (result) { setSaveState(result.success ? '已自动保存' : '保存失败', false); })
+      .then(function (result) { setSaveState(result.success ? '已自动保存' : (result.message || '保存失败'), false); })
       .catch(function () { setSaveState('保存失败', false); });
   }, 550);
 }

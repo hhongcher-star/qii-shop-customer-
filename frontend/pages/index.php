@@ -710,10 +710,12 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
     /* 🍔 Hamburger Menu Toggle */
     const hamburger = document.querySelector(".hamburger");
     const navMenu = document.querySelector(".nav-menu");
-    hamburger.addEventListener("click", () => {
-      hamburger.classList.toggle("active");
-      navMenu.classList.toggle("active");
-    });
+    if (hamburger && navMenu) {
+      hamburger.addEventListener("click", () => {
+        hamburger.classList.toggle("active");
+        navMenu.classList.toggle("active");
+      });
+    }
 
   </script>
   
