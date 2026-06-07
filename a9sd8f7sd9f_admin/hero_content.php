@@ -145,22 +145,27 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
       <h2><i class="fa-solid fa-pen-to-square"></i> 修改 <?= htmlspecialchars($pageConfig['label']) ?></h2>
       <div class="content-fields">
         <?php foreach ($pageConfig['fields'] as $key => [$label, $default, $type]): ?>
-          <label class="content-field"><?= htmlspecialchars($label) ?>
-            <?php if ($type === 'rich'): ?>
+          <?php if ($type === 'rich'): ?>
+            <div class="content-field">
+              <span><?= htmlspecialchars($label) ?></span>
               <div class="rich-toolbar">
                 <label class="rich-tool"><i class="fa-solid fa-palette"></i> 字色 <input type="color" value="#d9488b" data-rich-color="foreColor"></label>
                 <label class="rich-tool"><i class="fa-solid fa-highlighter"></i> Highlight <input type="color" value="#fff0a8" data-rich-color="hiliteColor"></label>
               </div>
               <div class="rich-editor" contenteditable="true" data-rich-editor data-multiline="<?= str_contains($key, 'text') || str_contains($key, 'description') ? '1' : '0' ?>"><?= $values[$key] ?></div>
               <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" data-rich-input>
-            <?php elseif ($type === 'textarea'): ?>
+            </div>
+          <?php else: ?>
+            <label class="content-field"><?= htmlspecialchars($label) ?>
+            <?php if ($type === 'textarea'): ?>
               <textarea name="<?= htmlspecialchars($key) ?>" required><?= htmlspecialchars($values[$key]) ?></textarea>
             <?php elseif ($type === 'color'): ?>
               <input type="color" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
             <?php else: ?>
               <input name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
             <?php endif; ?>
-          </label>
+            </label>
+          <?php endif; ?>
         <?php endforeach; ?>
       </div>
       <div class="content-save-row"><button class="primary-action" type="submit"><i class="fa-solid fa-floppy-disk"></i> 保存此页面</button></div>
