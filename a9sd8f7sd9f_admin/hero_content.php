@@ -13,6 +13,22 @@ $pages = [
             'hero_subtitle' => ['副标题', '发现每一份可爱的生活小物', 'input'],
             'hero_description' => ['说明文字', '让每一天，都有一点粉色的温柔与惊喜。', 'textarea'],
             'hero_button' => ['按钮文字', '立即购物', 'input'],
+            'hero_image_alt' => ['Hero 图片说明', 'Qiqi with Cart', 'input'],
+            'about_title' => ['关于区标题', '关于 qii.shoppp 💌', 'input'],
+            'about_text' => ['关于区正文', "qii.shoppp 是一个关于温柔与日常的小角落。\n我们相信，每个女孩都值得一点被生活宠爱的可爱。\n每件商品，都像一份心意——小小、但刚刚好。", 'textarea'],
+            'about_image_alt' => ['关于区图片说明', 'Qiqi Bag', 'input'],
+            'gift_title' => ['礼物区标题', '🎁 每一份礼物', 'input'],
+            'gift_text' => ['礼物区正文', "每一份礼物都承载着特别的心意。\n我们为你准备的，不只是商品，而是一份温柔的陪伴。\n让可爱成为生活的一部分。", 'textarea'],
+            'gift_image_alt' => ['礼物区图片说明', 'Qiqi Gift', 'input'],
+            'daily_title' => ['日常区标题', '🌸 粉色的日常', 'input'],
+            'daily_text' => ['日常区正文', "每一个小物件，都能让生活多一点甜。\n我们希望，在你的每一天里，都能遇见一点粉色的温柔。\nqii.shoppp — 温柔从这里开始。", 'textarea'],
+            'daily_image_alt' => ['日常区图片说明', 'Qiqi Flower', 'input'],
+            'hero_title_color' => ['主标题颜色', '#D9488B', 'color'],
+            'hero_subtitle_color' => ['副标题颜色', '#C43A80', 'color'],
+            'hero_text_color' => ['说明文字颜色', '#A0336B', 'color'],
+            'section_title_color' => ['介绍区标题颜色', '#D9488B', 'color'],
+            'section_text_color' => ['介绍区正文颜色', '#8A2F61', 'color'],
+            'hero_button_color' => ['按钮颜色', '#E5679C', 'color'],
         ],
     ],
     'shop' => [
@@ -80,6 +96,7 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
     .content-fields { display: grid; gap: 16px; margin-top: 20px; }
     .content-field { display: grid; gap: 7px; color: #62576c; font-weight: 800; }
     .content-field input, .content-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #f3c6d8; border-radius: 12px; padding: 12px 14px; background: #fffafb; color: #29203d; font: inherit; outline: none; }
+    .content-field input[type="color"] { height: 48px; padding: 5px; cursor: pointer; }
     .content-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
     .content-save-row { display: flex; justify-content: flex-end; margin-top: 20px; }
     .content-save-row button { border: 0; cursor: pointer; }
@@ -129,6 +146,8 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
           <label class="content-field"><?= htmlspecialchars($label) ?>
             <?php if ($type === 'textarea'): ?>
               <textarea name="<?= htmlspecialchars($key) ?>" required><?= htmlspecialchars($values[$key]) ?></textarea>
+            <?php elseif ($type === 'color'): ?>
+              <input type="color" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
             <?php else: ?>
               <input name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
             <?php endif; ?>

@@ -6,6 +6,22 @@ $heroTitle = qii_content($pdo, 'hero_title', 'Welcome to qii.shoppp');
 $heroSubtitle = qii_content($pdo, 'hero_subtitle', '发现每一份可爱的生活小物');
 $heroDescription = qii_content($pdo, 'hero_description', '让每一天，都有一点粉色的温柔与惊喜。');
 $heroButton = qii_content($pdo, 'hero_button', '立即购物');
+$heroImageAlt = qii_content($pdo, 'hero_image_alt', 'Qiqi with Cart');
+$aboutTitle = qii_content($pdo, 'about_title', '关于 qii.shoppp 💌');
+$aboutText = qii_content($pdo, 'about_text', "qii.shoppp 是一个关于温柔与日常的小角落。\n我们相信，每个女孩都值得一点被生活宠爱的可爱。\n每件商品，都像一份心意——小小、但刚刚好。");
+$aboutImageAlt = qii_content($pdo, 'about_image_alt', 'Qiqi Bag');
+$giftTitle = qii_content($pdo, 'gift_title', '🎁 每一份礼物');
+$giftText = qii_content($pdo, 'gift_text', "每一份礼物都承载着特别的心意。\n我们为你准备的，不只是商品，而是一份温柔的陪伴。\n让可爱成为生活的一部分。");
+$giftImageAlt = qii_content($pdo, 'gift_image_alt', 'Qiqi Gift');
+$dailyTitle = qii_content($pdo, 'daily_title', '🌸 粉色的日常');
+$dailyText = qii_content($pdo, 'daily_text', "每一个小物件，都能让生活多一点甜。\n我们希望，在你的每一天里，都能遇见一点粉色的温柔。\nqii.shoppp — 温柔从这里开始。");
+$dailyImageAlt = qii_content($pdo, 'daily_image_alt', 'Qiqi Flower');
+$heroTitleColor = qii_content($pdo, 'hero_title_color', '#D9488B');
+$heroSubtitleColor = qii_content($pdo, 'hero_subtitle_color', '#C43A80');
+$heroTextColor = qii_content($pdo, 'hero_text_color', '#A0336B');
+$sectionTitleColor = qii_content($pdo, 'section_title_color', '#D9488B');
+$sectionTextColor = qii_content($pdo, 'section_text_color', '#8A2F61');
+$heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
 ?>
 <html lang="zh-CN">
 <head>
@@ -24,6 +40,14 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 
   <!-- Your Inline CSS -->
   <style>
+    :root {
+      --qii-hero-title: <?= htmlspecialchars($heroTitleColor) ?>;
+      --qii-hero-subtitle: <?= htmlspecialchars($heroSubtitleColor) ?>;
+      --qii-hero-text: <?= htmlspecialchars($heroTextColor) ?>;
+      --qii-section-title: <?= htmlspecialchars($sectionTitleColor) ?>;
+      --qii-section-text: <?= htmlspecialchars($sectionTextColor) ?>;
+      --qii-button: <?= htmlspecialchars($heroButtonColor) ?>;
+    }
     html, body {
       margin: 0;
       padding: 0;
@@ -64,26 +88,26 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 .hero-text h1 {
   font-size: 2.6rem;
   font-weight: bold;
-  color: #D9488B;
+  color: var(--qii-hero-title);
   margin-bottom: 10px;
 }
 
 .hero-text h3 {
   font-size: 1.4rem;
-  color: #C43A80;
+  color: var(--qii-hero-subtitle);
   margin-bottom: 12px;
 }
 
 .hero-text p {
   font-size: 1rem;
-  color: #A0336B;
+  color: var(--qii-hero-text);
   margin-bottom: 16px;
 }
 
 .shop-btn {
   background: white;
-  color: #E5679C;
-  border: 2px solid #E5679C;
+  color: var(--qii-button);
+  border: 2px solid var(--qii-button);
   padding: 10px 22px;
   border-radius: 30px;
   cursor: pointer;
@@ -92,7 +116,7 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 }
 
 .shop-btn:hover {
-  background: #E5679C;
+  background: var(--qii-button);
   color: white;
 }
 
@@ -176,7 +200,7 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 
 .about-right h2 {
   font-size: 1.8rem;
-  color: #D9488B;
+  color: var(--qii-section-title);
   margin-bottom: 12px;
 }
 
@@ -193,7 +217,7 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 
 .about-right p {
   font-size: 1rem;
-  color: #8A2F61;
+  color: var(--qii-section-text);
   line-height: 1.6rem;
 }
 
@@ -607,7 +631,7 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
 
       <div class="hero-image" data-aos="fade-left">
         <div class="hero-circle">
-          <img src="images/qii-hero.png" alt="Qiqi with Cart">
+          <img src="images/qii-hero.png" alt="<?= htmlspecialchars($heroImageAlt) ?>">
         </div>
       </div>
     </section>
@@ -616,18 +640,14 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
     <section class="about-section">
       <div class="about">
         <div class="about-left" data-aos="fade-right">
-          <img src="images/qii-bag.png" alt="Qiqi Bag">
+          <img src="images/qii-bag.png" alt="<?= htmlspecialchars($aboutImageAlt) ?>">
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2>关于 qii.shoppp 💌</h2>
+          <h2><?= htmlspecialchars($aboutTitle) ?></h2>
 
           <div class="about-card">
-            <p>
-              qii.shoppp 是一个关于温柔与日常的小角落。<br>
-              我们相信，每个女孩都值得一点被生活宠爱的可爱。<br>
-              每件商品，都像一份心意——小小、但刚刚好。
-            </p>
+            <p><?= nl2br(htmlspecialchars($aboutText)) ?></p>
           </div>
         </div>
       </div>
@@ -637,18 +657,14 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
     <section class="about-section">
       <div class="about reverse">
         <div class="about-left" data-aos="fade-left">
-          <img src="images/qii-gift.png" alt="Qiqi Gift">
+          <img src="images/qii-gift.png" alt="<?= htmlspecialchars($giftImageAlt) ?>">
         </div>
 
         <div class="about-right" data-aos="fade-right">
-          <h2>🎁 每一份礼物</h2>
+          <h2><?= htmlspecialchars($giftTitle) ?></h2>
 
           <div class="about-card">
-            <p>
-              每一份礼物都承载着特别的心意。<br>
-              我们为你准备的，不只是商品，而是一份温柔的陪伴。<br>
-              让可爱成为生活的一部分。
-            </p>
+            <p><?= nl2br(htmlspecialchars($giftText)) ?></p>
           </div>
         </div>
       </div>
@@ -658,18 +674,14 @@ $heroButton = qii_content($pdo, 'hero_button', '立即购物');
     <section class="about-section">
       <div class="about">
         <div class="about-left" data-aos="fade-right">
-          <img src="images/2.png" alt="Qiqi Flower">
+          <img src="images/2.png" alt="<?= htmlspecialchars($dailyImageAlt) ?>">
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2>🌸 粉色的日常</h2>
+          <h2><?= htmlspecialchars($dailyTitle) ?></h2>
 
           <div class="about-card">
-            <p>
-              每一个小物件，都能让生活多一点甜。<br>
-              我们希望，在你的每一天里，都能遇见一点粉色的温柔。<br>
-              qii.shoppp — 温柔从这里开始。
-            </p>
+            <p><?= nl2br(htmlspecialchars($dailyText)) ?></p>
           </div>
         </div>
       </div>
