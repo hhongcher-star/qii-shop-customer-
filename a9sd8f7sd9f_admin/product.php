@@ -183,14 +183,16 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <p>管理所有商品，查看库存、规格和上架状态</p>
         </div>
 
-        <a href="product_editor.php" class="primary-action">
-            <i class="fa-solid fa-plus"></i>
-            新增商品
-        </a>
-        <button type="button" class="primary-action category-action" onclick="document.getElementById('categoryManager').showModal()">
-            <i class="fa-solid fa-folder-plus"></i>
-            分类管理
-        </button>
+        <div class="product-topbar-actions">
+            <a href="product_editor.php" class="primary-action">
+                <i class="fa-solid fa-plus"></i>
+                新增商品
+            </a>
+            <button type="button" class="primary-action category-action" onclick="document.getElementById('categoryManager').showModal()">
+                <i class="fa-solid fa-folder-plus"></i>
+                分类管理
+            </button>
+        </div>
     </header>
 
     <form class="product-filters glass-card" method="get">
@@ -366,19 +368,51 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </main>
 
 <style>
-.product-topbar { flex-wrap: wrap; }
-.category-action { margin-left: 12px; border: 0; cursor: pointer; }
-.category-dialog { width: min(620px, calc(100% - 32px)); border: 0; border-radius: 20px; padding: 24px; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
+.product-topbar { grid-template-columns: 1fr auto; }
+.product-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.category-action { border: 0; cursor: pointer; }
+.category-dialog { width: min(620px, calc(100% - 32px)); max-height: min(82vh, 700px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
 .category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
 .category-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .category-dialog-head h2 { margin: 0; color: #29203d; }
-.category-dialog-head button { border: 0; background: transparent; font-size: 30px; color: #796d7d; cursor: pointer; }
+.category-dialog-head button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; border: 0; border-radius: 50%; background: #fff5fa; font-size: 28px; color: #796d7d; cursor: pointer; }
 .category-add-form { display: grid; grid-template-columns: 1.3fr 1fr .7fr auto; gap: 10px; margin-bottom: 20px; }
-.category-add-form input { min-width: 0; padding: 12px; border: 1px solid #f2c9da; border-radius: 10px; }
-.category-list { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
+.category-add-form input { min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; }
+.category-add-form .primary-action { min-width: 110px; border: 0; cursor: pointer; }
+.category-list { display: grid; gap: 8px; max-height: 430px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .category-list > div { display: grid; grid-template-columns: 1fr 120px 42px; align-items: center; gap: 10px; padding: 10px 12px; background: #fff5fa; border-radius: 10px; }
+.category-list > div > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.category-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .category-list form { margin: 0; }
-@media (max-width: 700px) { .category-add-form { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .product-topbar { grid-template-columns: 1fr; }
+  .product-topbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
+  .product-topbar-actions .primary-action { width: 100%; min-width: 0; min-height: 50px; padding: 0 10px; justify-content: center; font-size: 14px; }
+  .category-dialog {
+    position: fixed;
+    inset: 12px;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 20px 16px 16px;
+    border-radius: 20px;
+  }
+  .category-dialog[open] { display: flex; flex-direction: column; }
+  .category-dialog-head { flex: 0 0 auto; margin-bottom: 14px; }
+  .category-dialog-head h2 { font-size: 24px; line-height: 1.2; }
+  .category-add-form { flex: 0 0 auto; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+  .category-add-form input { width: 100%; height: 48px; box-sizing: border-box; }
+  .category-add-form .primary-action { width: 100%; min-height: 52px; }
+  .category-list { flex: 1 1 auto; min-height: 0; max-height: none; gap: 8px; padding-right: 2px; }
+  .category-list > div { grid-template-columns: minmax(0, 1fr) 92px 42px; min-height: 58px; padding: 8px 10px; }
+  .category-list > div > span { font-size: 16px; }
+  .category-list code { font-size: 12px; text-align: left; }
+}
+@media (max-width: 390px) {
+  .category-dialog { inset: 8px; padding: 18px 12px 12px; }
+  .category-list > div { grid-template-columns: minmax(0, 1fr) 74px 40px; gap: 6px; }
+}
 </style>
 
 <script src="js/product_admin.js?v=20260605"></script>
