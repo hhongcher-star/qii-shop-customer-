@@ -96,6 +96,7 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
     .rich-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
     .rich-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid #f3c6d8; border-radius: 9px; background: #fff; color: #62576c; font-size: 12px; cursor: pointer; }
     .rich-tool input { width: 24px; height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .rich-tool select { height: 30px; border: 0; outline: 0; background: transparent; color: #62576c; font-weight: 700; cursor: pointer; }
     .rich-editor { min-height: 48px; padding: 12px 14px; border: 1px solid #f3c6d8; border-radius: 12px; background: #fffafb; color: #29203d; font-weight: 600; line-height: 1.55; outline: none; }
     .rich-editor[data-multiline="1"] { min-height: 100px; }
     .rich-editor:focus { border-color: #ff4fa3; box-shadow: 0 0 0 3px rgba(255,79,163,.1); }
@@ -151,6 +152,32 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
               <div class="rich-toolbar">
                 <label class="rich-tool"><i class="fa-solid fa-palette"></i> 字色 <input type="color" value="#d9488b" data-rich-color="foreColor"></label>
                 <label class="rich-tool"><i class="fa-solid fa-highlighter"></i> Highlight <input type="color" value="#fff0a8" data-rich-color="hiliteColor"></label>
+                <label class="rich-tool"><i class="fa-solid fa-text-height"></i>
+                  <select data-rich-style="font-size" aria-label="字号">
+                    <option value="">字号</option>
+                    <option value="12px">12</option>
+                    <option value="14px">14</option>
+                    <option value="16px">16</option>
+                    <option value="18px">18</option>
+                    <option value="20px">20</option>
+                    <option value="24px">24</option>
+                    <option value="28px">28</option>
+                    <option value="32px">32</option>
+                    <option value="40px">40</option>
+                    <option value="48px">48</option>
+                  </select>
+                </label>
+                <label class="rich-tool"><i class="fa-solid fa-bold"></i>
+                  <select data-rich-style="font-weight" aria-label="字体粗细">
+                    <option value="">粗细</option>
+                    <option value="300">细</option>
+                    <option value="400">正常</option>
+                    <option value="500">中等</option>
+                    <option value="600">半粗</option>
+                    <option value="700">粗体</option>
+                    <option value="900">特粗</option>
+                  </select>
+                </label>
               </div>
               <div class="rich-editor" contenteditable="true" data-rich-editor data-multiline="<?= str_contains($key, 'text') || str_contains($key, 'description') ? '1' : '0' ?>"><?= $values[$key] ?></div>
               <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" data-rich-input>
@@ -193,6 +220,31 @@ document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
     }
   }
 
+  function applyStyleToSelection(property, value) {
+    if (!savedRange || savedRange.collapsed) return;
+
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+
+    var span = document.createElement('span');
+    span.style.setProperty(property, value);
+    try {
+      savedRange.surroundContents(span);
+    } catch (error) {
+      var fragment = savedRange.extractContents();
+      span.appendChild(fragment);
+      savedRange.insertNode(span);
+    }
+
+    selection.removeAllRanges();
+    var nextRange = document.createRange();
+    nextRange.selectNodeContents(span);
+    selection.addRange(nextRange);
+    savedRange = nextRange.cloneRange();
+    hidden.value = editor.innerHTML;
+  }
+
   editor.addEventListener('mouseup', rememberSelection);
   editor.addEventListener('keyup', rememberSelection);
   editor.addEventListener('input', function () { hidden.value = editor.innerHTML; });
@@ -201,14 +253,17 @@ document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
     picker.addEventListener('mousedown', function () { rememberSelection(); });
     picker.addEventListener('input', function () {
       editor.focus();
-      if (savedRange) {
-        var selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(savedRange);
-      }
-      document.execCommand(picker.dataset.richColor, false, picker.value);
-      hidden.value = editor.innerHTML;
-      rememberSelection();
+      var property = picker.dataset.richColor === 'hiliteColor' ? 'background-color' : 'color';
+      applyStyleToSelection(property, picker.value);
+    });
+  });
+
+  field.querySelectorAll('[data-rich-style]').forEach(function (control) {
+    control.addEventListener('mousedown', function () { rememberSelection(); });
+    control.addEventListener('change', function () {
+      if (!control.value || !savedRange || savedRange.collapsed) return;
+      applyStyleToSelection(control.dataset.richStyle, control.value);
+      control.value = "";
     });
   });
 });

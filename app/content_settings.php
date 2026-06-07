@@ -44,10 +44,13 @@ function qii_sanitize_rich_text(string $html): string
                 [$property, $value] = array_pad(explode(':', $rule, 2), 2, '');
                 $property = strtolower(trim($property));
                 $value = trim($value);
-                if (
-                    in_array($property, ['color', 'background-color'], true) &&
-                    preg_match('/^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|[a-z]{3,20})$/i', $value)
-                ) {
+                $validColor = in_array($property, ['color', 'background-color'], true)
+                    && preg_match('/^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|[a-z]{3,20})$/i', $value);
+                $validSize = $property === 'font-size'
+                    && preg_match('/^(1[0-9]|2[0-9]|3[0-9]|4[0-8])px$/', $value);
+                $validWeight = $property === 'font-weight'
+                    && preg_match('/^(300|400|500|600|700|800|900|normal|bold)$/', $value);
+                if ($validColor || $validSize || $validWeight) {
                     $styles[] = $property . ':' . $value;
                 }
             }
