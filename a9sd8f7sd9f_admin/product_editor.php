@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../app/categories.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
 $categories = [
@@ -15,6 +16,9 @@ $categories = [
     'doll' => '娃娃',
     'stationery' => '文具',
 ];
+
+$categoryRows = qii_categories($pdo);
+$categories = array_map(fn($row) => $row['name'], $categoryRows);
 
 function ensure_product_admin_columns(PDO $pdo): void {
     $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);

@@ -1,6 +1,7 @@
 ﻿<?php
 session_start(); 
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
+require_once __DIR__ . '/../../app/categories.php';
 
 function qii_asset_path($path) {
   $path = trim((string)$path);
@@ -53,6 +54,16 @@ $categories = [
   'doll'    => '&#129528; &#23043;&#23043;',
   'stationery' => '&#9999;&#65039; &#25991;&#20855;'
 ];
+
+$categoryRows = qii_categories($pdo);
+$categories = [];
+foreach ($categoryRows as $key => $row) {
+  $categories[$key] = htmlspecialchars($row['emoji']) . ' ' . htmlspecialchars($row['name']);
+}
+
+if (!isset($categories[$cat])) {
+  $cat = array_key_first($categories) ?: 'phone';
+}
 
 // ÃƒÂ¦Ã…Â¸Ã‚Â¥ÃƒÂ¨Ã‚Â¯Ã‚Â¢ÃƒÂ¨Ã‚Â¯Ã‚Â¥ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¤Ã‚Â¸Ã¢â‚¬Â¹ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚Â
 $stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? AND COALESCE(status, 'active') = 'active' ORDER BY sort_order ASC, created_at DESC");
@@ -1162,8 +1173,8 @@ html, body {
         <ul>
           <?php foreach ($categories as $key => $label): ?>
             <li class="cat-link <?= ($cat === $key) ? 'active' : '' ?>" data-cat="<?= htmlspecialchars($key) ?>">
-              <span class="cat-emoji"><?= preg_replace('/^(&#[0-9]+;(?:&#[0-9]+;)?)\s+.*/', '$1', $label) ?></span>
-              <span class="cat-name"><?= preg_replace('/^&#[0-9]+;(?:&#[0-9]+;)?\s+/', '', $label) ?></span>
+              <span class="cat-emoji"><?= htmlspecialchars($categoryRows[$key]['emoji'] ?? '🛍️') ?></span>
+              <span class="cat-name"><?= htmlspecialchars($categoryRows[$key]['name'] ?? $key) ?></span>
             </li>
           <?php endforeach; ?>
         </ul>

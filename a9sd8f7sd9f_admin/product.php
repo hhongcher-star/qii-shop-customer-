@@ -2,20 +2,12 @@
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../app/categories.php';
 
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-$categories = [
-    'phone' => '手机配件',
-    'hair' => '发夹发饰',
-    'snack' => '零食',
-    'creative' => '文创',
-    'case' => '手机壳',
-    'nail' => '穿戴甲',
-    'scent' => '香片',
-    'doll' => '娃娃',
-    'stationery' => '文具',
-];
+$categoryRows = qii_categories($pdo, false);
+$categories = array_map(fn($row) => $row['name'], $categoryRows);
 
 function ensure_product_admin_columns(PDO $pdo): void {
     $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);
@@ -46,6 +38,41 @@ function product_img(?string $path): string {
 ensure_product_admin_columns($pdo);
 
 $deleteError = '';
+$categoryError = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_category') {
+    verify_csrf();
+    $name = trim($_POST['category_name'] ?? '');
+    $key = strtolower(trim($_POST['category_key'] ?? ''));
+    $emoji = trim($_POST['category_emoji'] ?? '') ?: '🛍️';
+    $key = trim(preg_replace('/[^a-z0-9_-]+/', '-', $key), '-');
+
+    if ($name === '' || $key === '') {
+        $categoryError = '分类名称和分类代号不能为空。';
+    } elseif (isset($categoryRows[$key])) {
+        $categoryError = '这个分类代号已经存在。';
+    } else {
+        $sortOrder = (int)$pdo->query("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM product_categories")->fetchColumn();
+        $pdo->prepare("INSERT INTO product_categories (category_key, name, emoji, sort_order) VALUES (?, ?, ?, ?)")
+            ->execute([$key, $name, $emoji, $sortOrder]);
+        header('Location: product.php?category_added=1');
+        exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_category') {
+    verify_csrf();
+    $key = $_POST['category_key'] ?? '';
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE category = ?");
+    $stmt->execute([$key]);
+    if ((int)$stmt->fetchColumn() > 0) {
+        $categoryError = '这个分类仍有商品，不能删除。';
+    } else {
+        $pdo->prepare("DELETE FROM product_categories WHERE category_key = ?")->execute([$key]);
+        header('Location: product.php?category_deleted=1');
+        exit;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_product') {
     verify_csrf();
@@ -160,6 +187,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <i class="fa-solid fa-plus"></i>
             新增商品
         </a>
+        <button type="button" class="primary-action category-action" onclick="document.getElementById('categoryManager').showModal()">
+            <i class="fa-solid fa-folder-plus"></i>
+            分类管理
+        </button>
     </header>
 
     <form class="product-filters glass-card" method="get">
@@ -206,6 +237,39 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?= htmlspecialchars($deleteError) ?>
         </div>
     <?php endif; ?>
+
+    <?php if ($categoryError): ?>
+        <div class="editor-alert"><?= htmlspecialchars($categoryError) ?></div>
+    <?php endif; ?>
+
+    <dialog id="categoryManager" class="category-dialog">
+        <div class="category-dialog-head">
+            <h2>商品分类管理</h2>
+            <button type="button" onclick="this.closest('dialog').close()" aria-label="关闭">&times;</button>
+        </div>
+        <form method="post" class="category-add-form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="add_category">
+            <input name="category_name" placeholder="分类名称，例如：包包" required>
+            <input name="category_key" placeholder="英文代号，例如：bag" pattern="[A-Za-z0-9_-]+" required>
+            <input name="category_emoji" placeholder="图标，例如：👜" maxlength="20">
+            <button type="submit" class="primary-action"><i class="fa-solid fa-plus"></i> 添加</button>
+        </form>
+        <div class="category-list">
+            <?php foreach ($categoryRows as $key => $row): ?>
+                <div>
+                    <span><?= htmlspecialchars($row['emoji']) ?> <?= htmlspecialchars($row['name']) ?></span>
+                    <code><?= htmlspecialchars($key) ?></code>
+                    <form method="post" onsubmit="return confirm('确定删除这个分类吗？');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete_category">
+                        <input type="hidden" name="category_key" value="<?= htmlspecialchars($key) ?>">
+                        <button type="submit" class="icon-button danger" title="删除"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </dialog>
 
     <?php if (isset($_GET['deleted'])): ?>
         <div class="editor-alert success">
@@ -300,6 +364,22 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </section>
 
 </main>
+
+<style>
+.product-topbar { flex-wrap: wrap; }
+.category-action { margin-left: 12px; border: 0; cursor: pointer; }
+.category-dialog { width: min(620px, calc(100% - 32px)); border: 0; border-radius: 20px; padding: 24px; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
+.category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
+.category-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.category-dialog-head h2 { margin: 0; color: #29203d; }
+.category-dialog-head button { border: 0; background: transparent; font-size: 30px; color: #796d7d; cursor: pointer; }
+.category-add-form { display: grid; grid-template-columns: 1.3fr 1fr .7fr auto; gap: 10px; margin-bottom: 20px; }
+.category-add-form input { min-width: 0; padding: 12px; border: 1px solid #f2c9da; border-radius: 10px; }
+.category-list { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
+.category-list > div { display: grid; grid-template-columns: 1fr 120px 42px; align-items: center; gap: 10px; padding: 10px 12px; background: #fff5fa; border-radius: 10px; }
+.category-list form { margin: 0; }
+@media (max-width: 700px) { .category-add-form { grid-template-columns: 1fr; } }
+</style>
 
 <script src="js/product_admin.js?v=20260605"></script>
 </body>
