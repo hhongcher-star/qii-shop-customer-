@@ -247,7 +247,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <dialog id="categoryManager" class="category-dialog">
         <div class="category-dialog-head">
             <h2>商品分类管理</h2>
-            <button type="button" onclick="this.closest('dialog').close()" aria-label="关闭">&times;</button>
+            <button type="button" class="category-dialog-close" onclick="this.closest('dialog').close()" aria-label="关闭">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
         <form method="post" class="category-add-form">
             <?= csrf_field() ?>
@@ -375,7 +377,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
 .category-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .category-dialog-head h2 { margin: 0; color: #29203d; }
-.category-dialog-head button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; border: 0; border-radius: 50%; background: #fff5fa; font-size: 28px; color: #796d7d; cursor: pointer; }
+.category-dialog-head .category-dialog-close { position: static; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: #fff5fa; box-shadow: none; font-size: 22px; color: #796d7d; cursor: pointer; }
 .category-add-form { display: grid; grid-template-columns: 1.3fr 1fr .7fr auto; gap: 10px; margin-bottom: 20px; }
 .category-add-form input { min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; }
 .category-add-form .primary-action { min-width: 110px; border: 0; cursor: pointer; }
@@ -384,6 +386,24 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .category-list > div > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .category-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .category-list form { margin: 0; }
+.category-list .icon-button {
+  position: static;
+  inset: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #ffc9dd;
+  border-radius: 12px;
+  background: #fff;
+  color: #ff3c91;
+  box-shadow: none;
+}
 @media (max-width: 700px) {
   .product-topbar { grid-template-columns: 1fr; }
   .product-topbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
