@@ -1173,7 +1173,9 @@ html, body {
         <ul>
           <?php foreach ($categories as $key => $label): ?>
             <li class="cat-link <?= ($cat === $key) ? 'active' : '' ?>" data-cat="<?= htmlspecialchars($key) ?>">
-              <span class="cat-emoji"><?= htmlspecialchars($categoryRows[$key]['emoji'] ?? '🛍️') ?></span>
+              <?php if (!empty($categoryRows[$key]['emoji'])): ?>
+                <span class="cat-emoji"><?= htmlspecialchars($categoryRows[$key]['emoji']) ?></span>
+              <?php endif; ?>
               <span class="cat-name"><?= htmlspecialchars($categoryRows[$key]['name'] ?? $key) ?></span>
             </li>
           <?php endforeach; ?>

@@ -18,7 +18,7 @@ $mobile_items = [
     ['file' => '#', 'icon' => 'fa-table-cells-large', 'label' => '更多', 'class' => 'more'],
 ];
 
-$more_pages = ['discount_center.php', 'reply.php', 'inventory.php'];
+$more_pages = ['discount_center.php', 'reply.php', 'inventory.php', 'hero_content.php'];
 ?>
 <link rel="stylesheet" href="includes/admin_layout.css?v=20260604c">
 
@@ -39,6 +39,10 @@ $more_pages = ['discount_center.php', 'reply.php', 'inventory.php'];
           <span><?= htmlspecialchars($item['label']) ?></span>
         </a>
       <?php endforeach; ?>
+      <a href="hero_content.php" class="<?= $current_page === 'hero_content.php' ? 'active' : '' ?>">
+        <span class="menu-icon"><i class="fa-solid fa-pen-to-square"></i></span>
+        <span>前台内容</span>
+      </a>
     </nav>
 
     <div class="logout">
@@ -69,6 +73,7 @@ $more_pages = ['discount_center.php', 'reply.php', 'inventory.php'];
 </nav>
 
 <div class="mobile-more-menu" data-mobile-more-menu>
+  <a href="hero_content.php"><i class="fa-solid fa-pen-to-square"></i><span>前台内容</span></a>
   <a href="discount_center.php"><i class="fa-solid fa-ticket"></i><span>优惠管理</span></a>
   <a href="reply.php"><i class="fa-solid fa-comments"></i><span>用户消息</span></a>
   <a href="inventory.php"><i class="fa-solid fa-boxes-stacked"></i><span>库存管理</span></a>

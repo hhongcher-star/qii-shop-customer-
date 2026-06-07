@@ -1,4 +1,12 @@
 ﻿<!DOCTYPE html>
+<?php
+require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
+require_once __DIR__ . '/../../app/content_settings.php';
+$heroTitle = qii_content($pdo, 'hero_title', 'Welcome to qii.shoppp');
+$heroSubtitle = qii_content($pdo, 'hero_subtitle', '发现每一份可爱的生活小物');
+$heroDescription = qii_content($pdo, 'hero_description', '让每一天，都有一点粉色的温柔与惊喜。');
+$heroButton = qii_content($pdo, 'hero_button', '立即购物');
+?>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -589,11 +597,11 @@
     <!-- 🌷 Hero Section -->
     <section class="hero">
       <div class="hero-text" data-aos="fade-right">
-        <h1>Welcome to <span>qii.shoppp</span></h1>
-        <h3>发现每一份可爱的生活小物</h3>
-        <p>让每一天，都有一点粉色的温柔与惊喜。</p>
+        <h1><?= htmlspecialchars($heroTitle) ?></h1>
+        <h3><?= htmlspecialchars($heroSubtitle) ?></h3>
+        <p><?= htmlspecialchars($heroDescription) ?></p>
         <button class="shop-btn" onclick="window.location.href='shop.php'">
-    立即购物
+    <?= htmlspecialchars($heroButton) ?>
 </button>
       </div>
 

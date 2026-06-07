@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_c
     verify_csrf();
     $name = trim($_POST['category_name'] ?? '');
     $key = strtolower(trim($_POST['category_key'] ?? ''));
-    $emoji = trim($_POST['category_emoji'] ?? '') ?: '🛍️';
+    $emoji = trim($_POST['category_emoji'] ?? '');
     $key = trim(preg_replace('/[^a-z0-9_-]+/', '-', $key), '-');
 
     if ($name === '' || $key === '') {
@@ -71,6 +71,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $pdo->prepare("DELETE FROM product_categories WHERE category_key = ?")->execute([$key]);
         header('Location: product.php?category_deleted=1');
         exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_category') {
+    verify_csrf();
+    $oldKey = trim($_POST['old_category_key'] ?? '');
+    $newKey = strtolower(trim($_POST['category_key'] ?? ''));
+    $name = trim($_POST['category_name'] ?? '');
+    $emoji = trim($_POST['category_emoji'] ?? '');
+    $newKey = trim(preg_replace('/[^a-z0-9_-]+/', '-', $newKey), '-');
+
+    if ($oldKey === '' || $newKey === '' || $name === '') {
+        $categoryError = '分类名称和分类代号不能为空。';
+    } elseif ($newKey !== $oldKey && isset($categoryRows[$newKey])) {
+        $categoryError = '新的分类代号已经存在。';
+    } else {
+        $pdo->beginTransaction();
+        try {
+            if ($newKey !== $oldKey) {
+                $pdo->prepare("UPDATE products SET category = ? WHERE category = ?")->execute([$newKey, $oldKey]);
+            }
+            $pdo->prepare("UPDATE product_categories SET category_key = ?, name = ?, emoji = ? WHERE category_key = ?")
+                ->execute([$newKey, $name, $emoji, $oldKey]);
+            $pdo->commit();
+            header('Location: product.php?category_updated=1');
+            exit;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $categoryError = '分类修改失败：' . $e->getMessage();
+        }
     }
 }
 
@@ -261,10 +293,17 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </form>
         <div class="category-list">
             <?php foreach ($categoryRows as $key => $row): ?>
-                <div>
-                    <span><?= htmlspecialchars($row['emoji']) ?> <?= htmlspecialchars($row['name']) ?></span>
-                    <code><?= htmlspecialchars($key) ?></code>
-                    <form method="post" onsubmit="return confirm('确定删除这个分类吗？');">
+                <div class="category-edit-row">
+                    <form method="post" class="category-edit-form">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="edit_category">
+                        <input type="hidden" name="old_category_key" value="<?= htmlspecialchars($key) ?>">
+                        <input class="category-emoji-input" name="category_emoji" value="<?= htmlspecialchars($row['emoji']) ?>" aria-label="分类图标">
+                        <input name="category_name" value="<?= htmlspecialchars($row['name']) ?>" aria-label="分类名称" required>
+                        <input name="category_key" value="<?= htmlspecialchars($key) ?>" pattern="[A-Za-z0-9_-]+" aria-label="分类代号" required>
+                        <button type="submit" class="category-save-button" title="保存"><i class="fa-solid fa-floppy-disk"></i></button>
+                    </form>
+                    <form method="post" class="category-delete-form" onsubmit="return confirm('确定删除这个分类吗？');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="delete_category">
                         <input type="hidden" name="category_key" value="<?= htmlspecialchars($key) ?>">
@@ -382,10 +421,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .category-add-form input { min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; }
 .category-add-form .primary-action { min-width: 110px; border: 0; cursor: pointer; }
 .category-list { display: grid; gap: 8px; max-height: 430px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
-.category-list > div { display: grid; grid-template-columns: 1fr 120px 42px; align-items: center; gap: 10px; padding: 10px 12px; background: #fff5fa; border-radius: 10px; }
-.category-list > div > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.category-list code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.category-list > div { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: center; gap: 8px; padding: 8px; background: #fff5fa; border-radius: 10px; }
 .category-list form { margin: 0; }
+.category-edit-form { display: grid; grid-template-columns: 54px minmax(120px, 1fr) 120px 42px; align-items: center; gap: 8px; min-width: 0; }
+.category-edit-form input { width: 100%; min-width: 0; height: 40px; box-sizing: border-box; padding: 0 10px; border: 1px solid #f2c9da; border-radius: 10px; background: #fff; }
+.category-edit-form .category-emoji-input { padding: 0; text-align: center; font-size: 18px; }
+.category-save-button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #bde8d2; border-radius: 12px; background: #fff; color: #23a66f; cursor: pointer; }
 .category-list .icon-button {
   position: static;
   inset: auto;
@@ -425,13 +466,15 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
   .category-add-form input { width: 100%; height: 48px; box-sizing: border-box; }
   .category-add-form .primary-action { width: 100%; min-height: 52px; }
   .category-list { flex: 1 1 auto; min-height: 0; max-height: none; gap: 8px; padding-right: 2px; }
-  .category-list > div { grid-template-columns: minmax(0, 1fr) 92px 42px; min-height: 58px; padding: 8px 10px; }
-  .category-list > div > span { font-size: 16px; }
-  .category-list code { font-size: 12px; text-align: left; }
+  .category-list > div { grid-template-columns: minmax(0, 1fr) 42px; padding: 8px; }
+  .category-edit-form { grid-template-columns: 48px minmax(0, 1fr) 42px; }
+  .category-edit-form input[name="category_key"] { grid-column: 2 / 3; }
+  .category-edit-form .category-save-button { grid-column: 3; grid-row: 1 / span 2; height: 88px; }
+  .category-edit-form .category-emoji-input { grid-row: 1 / span 2; height: 88px; }
 }
 @media (max-width: 390px) {
   .category-dialog { inset: 8px; padding: 18px 12px 12px; }
-  .category-list > div { grid-template-columns: minmax(0, 1fr) 74px 40px; gap: 6px; }
+  .category-list > div { grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
 }
 </style>
 

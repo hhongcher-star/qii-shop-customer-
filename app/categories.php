@@ -22,7 +22,7 @@ function qii_ensure_categories(PDO $pdo): void
             id INT AUTO_INCREMENT PRIMARY KEY,
             category_key VARCHAR(80) NOT NULL UNIQUE,
             name VARCHAR(120) NOT NULL,
-            emoji VARCHAR(20) NOT NULL DEFAULT '🛍️',
+            emoji VARCHAR(20) NOT NULL DEFAULT '',
             sort_order INT NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'active',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -33,6 +33,8 @@ function qii_ensure_categories(PDO $pdo): void
     foreach (qii_default_categories() as $key => [$name, $emoji]) {
         $stmt->execute([$key, $name, $emoji, $order++]);
     }
+
+    $pdo->exec("UPDATE product_categories SET emoji = '' WHERE emoji = '🛍️'");
 }
 
 function qii_categories(PDO $pdo, bool $activeOnly = true): array
