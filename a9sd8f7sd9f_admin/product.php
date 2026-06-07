@@ -106,6 +106,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'move_category') {
+    verify_csrf();
+    $key = trim($_POST['category_key'] ?? '');
+    $direction = ($_POST['direction'] ?? '') === 'up' ? 'up' : 'down';
+
+    $stmt = $pdo->prepare("SELECT id, sort_order FROM product_categories WHERE category_key = ? LIMIT 1");
+    $stmt->execute([$key]);
+    $current = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($current) {
+        $operator = $direction === 'up' ? '<' : '>';
+        $order = $direction === 'up' ? 'DESC' : 'ASC';
+        $stmt = $pdo->prepare("
+            SELECT id, sort_order
+            FROM product_categories
+            WHERE sort_order {$operator} ?
+            ORDER BY sort_order {$order}, id {$order}
+            LIMIT 1
+        ");
+        $stmt->execute([(int)$current['sort_order']]);
+        $target = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($target) {
+            $pdo->beginTransaction();
+            try {
+                $temporaryOrder = -((int)$current['id']);
+                $pdo->prepare("UPDATE product_categories SET sort_order = ? WHERE id = ?")
+                    ->execute([$temporaryOrder, (int)$current['id']]);
+                $pdo->prepare("UPDATE product_categories SET sort_order = ? WHERE id = ?")
+                    ->execute([(int)$current['sort_order'], (int)$target['id']]);
+                $pdo->prepare("UPDATE product_categories SET sort_order = ? WHERE id = ?")
+                    ->execute([(int)$target['sort_order'], (int)$current['id']]);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $categoryError = '分类排序失败：' . $e->getMessage();
+            }
+        }
+    }
+
+    if ($categoryError === '') {
+        header('Location: product.php?category_moved=1');
+        exit;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_product') {
     verify_csrf();
 
@@ -294,6 +342,22 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="category-list">
             <?php foreach ($categoryRows as $key => $row): ?>
                 <div class="category-edit-row">
+                    <div class="category-order-buttons">
+                        <form method="post">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="move_category">
+                            <input type="hidden" name="category_key" value="<?= htmlspecialchars($key) ?>">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" title="上移"><i class="fa-solid fa-chevron-up"></i></button>
+                        </form>
+                        <form method="post">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="move_category">
+                            <input type="hidden" name="category_key" value="<?= htmlspecialchars($key) ?>">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" title="下移"><i class="fa-solid fa-chevron-down"></i></button>
+                        </form>
+                    </div>
                     <form method="post" class="category-edit-form">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="edit_category">
@@ -421,8 +485,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .category-add-form input { min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; }
 .category-add-form .primary-action { min-width: 110px; border: 0; cursor: pointer; }
 .category-list { display: grid; gap: 8px; max-height: 430px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
-.category-list > div { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: center; gap: 8px; padding: 8px; background: #fff5fa; border-radius: 10px; }
+.category-list > div { display: grid; grid-template-columns: 32px minmax(0, 1fr) 42px; align-items: center; gap: 8px; padding: 8px; background: #fff5fa; border-radius: 10px; }
 .category-list form { margin: 0; }
+.category-order-buttons { display: grid; gap: 4px; }
+.category-order-buttons button { width: 30px; height: 25px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #f3c9db; border-radius: 8px; background: #fff; color: #d94b8a; cursor: pointer; }
+.category-order-buttons button:hover { border-color: #ff78b3; background: #fff0f7; }
 .category-edit-form { display: grid; grid-template-columns: 54px minmax(120px, 1fr) 120px 42px; align-items: center; gap: 8px; min-width: 0; }
 .category-edit-form input { width: 100%; min-width: 0; height: 40px; box-sizing: border-box; padding: 0 10px; border: 1px solid #f2c9da; border-radius: 10px; background: #fff; }
 .category-edit-form .category-emoji-input { padding: 0; text-align: center; font-size: 18px; }
@@ -498,7 +565,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     -webkit-overflow-scrolling: touch;
     scrollbar-gutter: stable;
   }
-  .category-list > div { grid-template-columns: minmax(0, 1fr) 42px; padding: 8px; }
+  .category-list > div { grid-template-columns: 30px minmax(0, 1fr) 42px; padding: 8px 6px; gap: 6px; }
   .category-edit-form { grid-template-columns: 46px minmax(0, 1fr) 42px; gap: 6px; }
   .category-edit-form input[name="category_key"] { grid-column: 2 / 3; }
   .category-edit-form .category-save-button { grid-column: 3; grid-row: 1 / span 2; height: 82px; }
@@ -508,7 +575,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 @media (max-width: 390px) {
   .category-dialog { inset: 8px; padding: 18px 12px 12px; }
-  .category-list > div { grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
+  .category-list > div { grid-template-columns: 28px minmax(0, 1fr) 40px; gap: 5px; }
+  .category-order-buttons button { width: 28px; }
 }
 </style>
 
