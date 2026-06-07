@@ -8,6 +8,7 @@ $shopTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_title', '🌸 可爱
 $shopPromoTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_promo_title', '新品可爱小物上线啦 ✨'));
 $shopPromoText = qii_sanitize_rich_text(qii_content($pdo, 'shop_promo_text', '可爱治愈 · 限时优惠'));
 $shopPromoButton = qii_sanitize_rich_text(qii_content($pdo, 'shop_promo_button', '立即选购 ›'));
+$shopPromoImage = qii_content($pdo, 'shop_promo_image', 'images/qii-gift.png');
 
 function qii_asset_path($path) {
   $path = trim((string)$path);
@@ -1163,7 +1164,7 @@ html, body {
   <h2 data-content-key="shop_promo_title"><?= $shopPromoTitle ?></h2>
   <p data-content-key="shop_promo_text"><?= $shopPromoText ?></p>
   <a href="#shop-products" data-content-key="shop_promo_button"><?= $shopPromoButton ?></a>
-  <img src="images/qii-gift.png" alt="Qii Gift">
+  <img src="<?= htmlspecialchars($shopPromoImage) ?>" alt="Qii Gift" data-image-key="shop_promo_image">
 </div>
     </section>
 

@@ -59,8 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .page-switch a.active { background:#ff4fa3; border-color:#ff4fa3; color:#fff; }
     .tool-control input { width:25px; height:25px; padding:0; border:0; background:transparent; cursor:pointer; }
     .tool-control select { border:0; outline:0; background:transparent; color:#695b70; font-weight:800; }
-    .save-visual { border:0; background:#f5368d; color:#fff; cursor:pointer; opacity:.55; }
-    .save-visual.dirty { opacity:1; box-shadow:0 8px 20px rgba(245,54,141,.25); }
+    .autosave-state { min-height:40px; display:inline-flex; align-items:center; gap:7px; padding:0 13px; border-radius:10px; background:#effbf4; color:#25845b; font-weight:800; }
     .canvas-shell { overflow:hidden; border:1px solid #f2c9da; border-radius:16px; background:#fff; box-shadow:0 16px 38px rgba(185,75,126,.1); }
     .canvas-head { min-height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-bottom:1px solid #f4d5e2; font-weight:800; color:#3b3044; }
     .canvas-head span { color:#9a7b8a; font-size:13px; }
@@ -82,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" id="visualForm">
     <?= csrf_field() ?>
     <input type="hidden" name="page" value="<?= htmlspecialchars($page) ?>">
+    <input type="file" id="visualImagePicker" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
     <?php foreach ($pageConfig['keys'] as $key): ?>
       <input type="hidden" name="<?= htmlspecialchars($key) ?>" data-key="<?= htmlspecialchars($key) ?>">
     <?php endforeach; ?>
@@ -96,7 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label class="tool-control"><i class="fa-solid fa-highlighter"></i><input type="color" value="#fff0a8" data-style="background-color"></label>
       <label class="tool-control"><select data-style="font-size"><option value="">字号</option><option value="12px">12</option><option value="14px">14</option><option value="16px">16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option><option value="48px">48</option></select></label>
       <label class="tool-control"><select data-style="font-weight"><option value="">粗细</option><option value="300">细</option><option value="400">正常</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select></label>
-      <button class="save-visual" type="submit" data-save><i class="fa-solid fa-floppy-disk"></i> 保存</button>
+      <button class="tool-control" type="button" data-align="left" title="靠左"><i class="fa-solid fa-align-left"></i></button>
+      <button class="tool-control" type="button" data-align="center" title="居中"><i class="fa-solid fa-align-center"></i></button>
+      <button class="tool-control" type="button" data-align="right" title="靠右"><i class="fa-solid fa-align-right"></i></button>
+      <span class="autosave-state" data-autosave-state><i class="fa-solid fa-cloud-check"></i> 已自动保存</span>
     </div>
 
     <section class="canvas-shell">
@@ -109,11 +112,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 var frame = document.getElementById('visualFrame');
 var form = document.getElementById('visualForm');
-var saveButton = document.querySelector('[data-save]');
+var saveState = document.querySelector('[data-autosave-state]');
 var activeElement = null;
 var savedRange = null;
+var saveTimer = null;
 
-function markDirty() { saveButton.classList.add('dirty'); }
+function setSaveState(text, saving) {
+  saveState.innerHTML = '<i class="fa-solid ' + (saving ? 'fa-cloud-arrow-up' : 'fa-cloud-check') + '"></i> ' + text;
+}
+function autoSaveElement(el) {
+  clearTimeout(saveTimer);
+  setSaveState('正在保存...', true);
+  saveTimer = setTimeout(function () {
+    var data = new FormData();
+    data.append('csrf_token', form.querySelector('[name="csrf_token"]').value);
+    data.append('key', el.dataset.contentKey);
+    data.append('value', el.innerHTML);
+    fetch('api_content_autosave.php', { method:'POST', body:data })
+      .then(function (response) { return response.json(); })
+      .then(function (result) { setSaveState(result.success ? '已自动保存' : '保存失败', false); })
+      .catch(function () { setSaveState('保存失败', false); });
+  }, 550);
+}
+function markDirty() {
+  if (activeElement) autoSaveElement(activeElement);
+}
 function rememberSelection() {
   var win = frame.contentWindow;
   var selection = win.getSelection();
@@ -147,11 +170,50 @@ frame.addEventListener('load', function () {
     el.addEventListener('keyup', rememberSelection);
     el.addEventListener('input', markDirty);
   });
+  doc.querySelectorAll('[data-image-key]').forEach(function (img) {
+    img.style.outline='3px dashed rgba(72,155,255,.7)';
+    img.style.outlineOffset='4px';
+    img.style.cursor='pointer';
+    img.title='点击更换图片';
+    img.addEventListener('click', function (event) {
+      event.preventDefault(); event.stopPropagation();
+      document.getElementById('visualImagePicker').dataset.key=img.dataset.imageKey;
+      document.getElementById('visualImagePicker').click();
+    });
+  });
+});
+document.getElementById('visualImagePicker').addEventListener('change', function () {
+  if (!this.files[0] || !this.dataset.key) return;
+  setSaveState('正在上传图片...', true);
+  var data=new FormData();
+  data.append('csrf_token', form.querySelector('[name="csrf_token"]').value);
+  data.append('key', this.dataset.key);
+  data.append('image', this.files[0]);
+  fetch('api_content_image.php', {method:'POST', body:data})
+    .then(function(r){return r.json();})
+    .then(function(result){
+      if(result.success){ frame.contentWindow.location.reload(); setSaveState('图片已更新', false); }
+      else setSaveState('图片上传失败', false);
+    }).catch(function(){setSaveState('图片上传失败', false);});
+  this.value='';
 });
 document.querySelectorAll('[data-style]').forEach(function (control) {
   control.addEventListener('mousedown', rememberSelection);
   control.addEventListener('input', function () { applyStyle(control.dataset.style, control.value); });
   control.addEventListener('change', function () { applyStyle(control.dataset.style, control.value); if (control.tagName==='SELECT') control.value=''; });
+});
+document.querySelectorAll('[data-align]').forEach(function (button) {
+  button.addEventListener('click', function () {
+    if (!activeElement) return;
+    var doc=frame.contentDocument;
+    var wrapper=doc.createElement('span');
+    wrapper.style.display='block';
+    wrapper.style.textAlign=button.dataset.align;
+    wrapper.innerHTML=activeElement.innerHTML;
+    activeElement.innerHTML='';
+    activeElement.appendChild(wrapper);
+    markDirty();
+  });
 });
 form.addEventListener('submit', function () {
   frame.contentDocument.querySelectorAll('[data-content-key]').forEach(function (el) {

@@ -50,7 +50,9 @@ function qii_sanitize_rich_text(string $html): string
                     && preg_match('/^(1[0-9]|2[0-9]|3[0-9]|4[0-8])px$/', $value);
                 $validWeight = $property === 'font-weight'
                     && preg_match('/^(300|400|500|600|700|800|900|normal|bold)$/', $value);
-                if ($validColor || $validSize || $validWeight) {
+                $validAlign = $property === 'text-align' && in_array($value, ['left', 'center', 'right'], true);
+                $validDisplay = $property === 'display' && $value === 'block';
+                if ($validColor || $validSize || $validWeight || $validAlign || $validDisplay) {
                     $styles[] = $property . ':' . $value;
                 }
             }
