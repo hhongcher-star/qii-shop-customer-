@@ -172,8 +172,17 @@ frame.addEventListener('load', function () {
   <?php if ($page === 'announcement'): ?>
   if (typeof frame.contentWindow.showAnnouncementPopup === 'function') frame.contentWindow.showAnnouncementPopup();
   <?php elseif ($page === 'variant'): ?>
-  var firstProductButton = doc.querySelector('.choose-btn:not([disabled])');
-  if (firstProductButton) firstProductButton.click();
+  var openFirstVariant = function () {
+    var firstProductButton = doc.querySelector('.choose-btn:not([disabled])');
+    if (firstProductButton) {
+      firstProductButton.click();
+      return true;
+    }
+    return false;
+  };
+  if (!openFirstVariant()) {
+    setTimeout(openFirstVariant, 700);
+  }
   <?php endif; ?>
   setTimeout(function () {
   doc.addEventListener('click', function (event) {
@@ -211,7 +220,7 @@ frame.addEventListener('load', function () {
       document.getElementById('visualImagePicker').click();
     });
   });
-  }, <?= in_array($page, ['announcement', 'variant'], true) ? '500' : '0' ?>);
+  }, <?= $page === 'variant' ? '1200' : ($page === 'announcement' ? '500' : '0') ?>);
 });
 document.getElementById('visualImagePicker').addEventListener('change', function () {
   if (!this.files[0] || !this.dataset.key) return;

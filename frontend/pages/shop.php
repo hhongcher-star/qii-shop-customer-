@@ -48,6 +48,22 @@ function qii_product_payload($p) {
 // ÃƒÂ¥Ã‚Â½Ã¢â‚¬Å“ÃƒÂ¥Ã¢â‚¬Â°Ã‚ÂÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ©Ã‚Â»Ã‹Å“ÃƒÂ¨Ã‚Â®Ã‚Â¤ÃƒÂ§Ã‚Â¬Ã‚Â¬ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ¤Ã‚Â¸Ã‚ÂªÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â°
 $cat = $_GET['cat'] ?? 'phone';
 
+if (($_GET['edit_popup'] ?? '') === 'variant') {
+  $previewProductStmt = $pdo->query("
+    SELECT category
+    FROM products
+    WHERE COALESCE(status, 'active') = 'active'
+      AND stock > 0
+      AND has_variant = 1
+    ORDER BY id ASC
+    LIMIT 1
+  ");
+  $previewCategory = $previewProductStmt->fetchColumn();
+  if (is_string($previewCategory) && $previewCategory !== '') {
+    $cat = $previewCategory;
+  }
+}
+
 
 // ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¦Ã‹Å“Ã‚Â ÃƒÂ¥Ã‚Â°Ã¢â‚¬Å¾
 $categories = [
