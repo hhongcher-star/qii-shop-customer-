@@ -1,3 +1,15 @@
+<?php
+require_once __DIR__ . '/../../app/content_settings.php';
+$variantEditableContent = [
+  'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '🎀 选择规格')),
+  'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量 (Quantity)')),
+  'variant_max_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_max_text', '💗 最多可购买')),
+  'variant_shipping_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_shipping_text', '🚚 西马满 RM60 / 东马满 RM80 免运费')),
+  'variant_quality_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quality_text', '✨ 100% 正品保证')),
+  'variant_return_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_return_text', '💖 24小时以内 退换保障')),
+  'variant_cart_button' => qii_sanitize_rich_text(qii_content($pdo, 'variant_cart_button', '🛍 加入购物袋')),
+];
+?>
 <!-- ===============================
       ðŸ’— Qii.shoppp å•†å“è§„æ ¼å¼¹çª—
 ================================ -->
@@ -98,6 +110,32 @@
 </div>
 
 <script>
+const qiiVariantEditableContent = <?= json_encode($variantEditableContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+document.addEventListener("DOMContentLoaded", function () {
+  const titles = document.querySelectorAll("#variantModal .variant-section-title");
+  const maxNote = document.querySelector("#variantModal .variant-stock-note");
+  const benefits = document.querySelectorAll("#variantModal .variant-benefit strong");
+  const cartButton = document.querySelector("#variantModal .addToCartFinal");
+  const bindings = [
+    [titles[0], "variant_choose_title"],
+    [titles[1], "variant_quantity_title"],
+    [benefits[0], "variant_shipping_text"],
+    [benefits[1], "variant_quality_text"],
+    [benefits[2], "variant_return_text"],
+    [cartButton, "variant_cart_button"]
+  ];
+  bindings.forEach(([element, key]) => {
+    if (!element) return;
+    element.dataset.contentKey = key;
+    element.innerHTML = qiiVariantEditableContent[key];
+  });
+  if (maxNote) {
+    const maxLabel = document.createElement("span");
+    maxLabel.dataset.contentKey = "variant_max_text";
+    maxLabel.innerHTML = qiiVariantEditableContent.variant_max_text;
+    maxNote.replaceChildren(maxLabel, document.createTextNode(" "), document.getElementById("variantMaxQty"), document.createTextNode(" 件"));
+  }
+});
 function qiiAssetPath(path) {
     path = (path || "").trim();
     if (!path) return "images/logo.png";

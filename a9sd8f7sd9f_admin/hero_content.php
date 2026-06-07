@@ -23,6 +23,16 @@ $pages = [
         'url' => '../contact.php',
         'keys' => ['contact_title', 'contact_description', 'contact_button', 'contact_social_text'],
     ],
+    'announcement' => [
+        'label' => '公告弹窗',
+        'url' => '../index.php?edit_popup=announcement',
+        'keys' => ['announcement_title', 'announcement_intro', 'announcement_quality', 'announcement_storage', 'announcement_shipping', 'announcement_dispatch', 'announcement_warning', 'announcement_button'],
+    ],
+    'variant' => [
+        'label' => '商品弹窗',
+        'url' => '../shop.php?edit_popup=variant',
+        'keys' => ['variant_choose_title', 'variant_quantity_title', 'variant_max_text', 'variant_shipping_text', 'variant_quality_text', 'variant_return_text', 'variant_cart_button'],
+    ],
 ];
 
 $page = $_GET['page'] ?? $_POST['page'] ?? 'index';
@@ -104,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <section class="canvas-shell">
       <div class="canvas-head">用户端编辑画布 <span>点击带粉色边框的文字即可编辑</span></div>
-      <iframe id="visualFrame" src="<?= htmlspecialchars($pageConfig['url']) ?>?visual_edit=1&t=<?= time() ?>"></iframe>
+      <iframe id="visualFrame" src="<?= htmlspecialchars($pageConfig['url']) ?><?= str_contains($pageConfig['url'], '?') ? '&' : '?' ?>visual_edit=1&t=<?= time() ?>"></iframe>
     </section>
   </form>
   <div class="mobile-block"><i class="fa-solid fa-desktop"></i><br><br>请使用电脑打开此功能进行前台编辑。</div>
@@ -159,6 +169,26 @@ function applyStyle(property, value) {
 }
 frame.addEventListener('load', function () {
   var doc = frame.contentDocument;
+  <?php if ($page === 'announcement'): ?>
+  if (typeof frame.contentWindow.showAnnouncementPopup === 'function') frame.contentWindow.showAnnouncementPopup();
+  <?php elseif ($page === 'variant'): ?>
+  var firstProductButton = doc.querySelector('.choose-btn:not([disabled])');
+  if (firstProductButton) firstProductButton.click();
+  <?php endif; ?>
+  setTimeout(function () {
+  doc.addEventListener('click', function (event) {
+    var editable = event.target.closest('[data-content-key], [data-image-key]');
+    if (!editable) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+  doc.querySelectorAll('a, button, input, select, textarea, .cat-link, .product-card').forEach(function (element) {
+    if (!element.closest('[data-content-key]')) {
+      element.style.pointerEvents='none';
+      element.setAttribute('tabindex','-1');
+    }
+  });
   doc.querySelectorAll('[data-content-key]').forEach(function (el) {
     el.contentEditable = 'true';
     el.style.outline = '2px dashed rgba(245,54,141,.45)';
@@ -181,6 +211,7 @@ frame.addEventListener('load', function () {
       document.getElementById('visualImagePicker').click();
     });
   });
+  }, <?= in_array($page, ['announcement', 'variant'], true) ? '500' : '0' ?>);
 });
 document.getElementById('visualImagePicker').addEventListener('change', function () {
   if (!this.files[0] || !this.dataset.key) return;

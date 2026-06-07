@@ -480,7 +480,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 </style>
 
+<?php
+require_once __DIR__ . '/../../app/content_settings.php';
+$announcementEditableContent = [
+  'announcement_title' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_title', '💕 请阅读完毕~')),
+  'announcement_intro' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_intro', '本店以直播间过款为主，有卖各种可爱商品💕')),
+  'announcement_quality' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_quality', '价格优惠，质量不错')),
+  'announcement_storage' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_storage', '💛 可存单（需付款即可）付款后存多久都没问题')),
+  'announcement_shipping' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_shipping', '西马10满65 🍞 东马15满80 🍞')),
+  'announcement_dispatch' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_dispatch', '发货时间：1-3-6（有发货都会先在群通知）')),
+  'announcement_warning' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_warning', '未满18岁（需父母同意购买✅）<br>如发现逃单一律公开＋拉黑‼')),
+  'announcement_button' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_button', '我已阅读完毕')),
+];
+?>
 <script>
+const qiiAnnouncementEditableContent = <?= json_encode($announcementEditableContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 function qiiCsrfHeaders(extra = {}) {
   const token = document.querySelector('meta[name="qii-csrf-token"]')?.content || "";
   return token ? { ...extra, "X-QII-CSRF-Token": token } : extra;
@@ -522,6 +536,22 @@ function showAnnouncementPopup() {
   `;
 
   document.body.appendChild(popup);
+
+  const announcementBindings = [
+    [popup.querySelector(".popup-title"), "announcement_title"],
+    [popup.querySelectorAll(".popup-text p")[0], "announcement_intro"],
+    [popup.querySelectorAll(".popup-text p")[1], "announcement_quality"],
+    [popup.querySelector(".popup-text .highlight"), "announcement_storage"],
+    [popup.querySelectorAll(".popup-text p")[3], "announcement_shipping"],
+    [popup.querySelectorAll(".popup-text p")[4], "announcement_dispatch"],
+    [popup.querySelector(".popup-text .warn"), "announcement_warning"],
+    [popup.querySelector("#closeSpeakerPopup"), "announcement_button"]
+  ];
+  announcementBindings.forEach(([element, key]) => {
+    if (!element) return;
+    element.dataset.contentKey = key;
+    element.innerHTML = qiiAnnouncementEditableContent[key];
+  });
 
   document.getElementById("closeSpeakerPopup").onclick = () => popup.remove();
 }
