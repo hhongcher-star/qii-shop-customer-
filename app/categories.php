@@ -34,7 +34,14 @@ function qii_ensure_categories(PDO $pdo): void
         $stmt->execute([$key, $name, $emoji, $order++]);
     }
 
-    $pdo->exec("UPDATE product_categories SET emoji = '' WHERE emoji = '🛍️'");
+    $restoreIcon = $pdo->prepare("
+        UPDATE product_categories
+        SET emoji = ?
+        WHERE category_key = ? AND emoji = ''
+    ");
+    foreach (qii_default_categories() as $key => [$name, $emoji]) {
+        $restoreIcon->execute([$emoji, $key]);
+    }
 }
 
 function qii_categories(PDO $pdo, bool $activeOnly = true): array

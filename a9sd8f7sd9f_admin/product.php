@@ -458,19 +458,39 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     margin: 0;
     padding: 20px 16px 16px;
     border-radius: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
-  .category-dialog[open] { display: flex; flex-direction: column; }
-  .category-dialog-head { flex: 0 0 auto; margin-bottom: 14px; }
+  .category-dialog[open] { display: block; }
+  .category-dialog-head {
+    position: sticky;
+    top: -20px;
+    z-index: 5;
+    margin: -20px -16px 14px;
+    padding: 20px 16px 12px;
+    background: #fff;
+  }
   .category-dialog-head h2 { font-size: 24px; line-height: 1.2; }
-  .category-add-form { flex: 0 0 auto; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+  .category-add-form { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
   .category-add-form input { width: 100%; height: 48px; box-sizing: border-box; }
   .category-add-form .primary-action { width: 100%; min-height: 52px; }
-  .category-list { flex: 1 1 auto; min-height: 0; max-height: none; gap: 8px; padding-right: 2px; }
+  .category-list {
+    display: grid;
+    max-height: none;
+    overflow: visible;
+    gap: 8px;
+    padding: 0 0 8px;
+    touch-action: pan-y;
+  }
   .category-list > div { grid-template-columns: minmax(0, 1fr) 42px; padding: 8px; }
-  .category-edit-form { grid-template-columns: 48px minmax(0, 1fr) 42px; }
+  .category-edit-form { grid-template-columns: 46px minmax(0, 1fr) 42px; gap: 6px; }
   .category-edit-form input[name="category_key"] { grid-column: 2 / 3; }
-  .category-edit-form .category-save-button { grid-column: 3; grid-row: 1 / span 2; height: 88px; }
-  .category-edit-form .category-emoji-input { grid-row: 1 / span 2; height: 88px; }
+  .category-edit-form .category-save-button { grid-column: 3; grid-row: 1 / span 2; height: 82px; }
+  .category-edit-form .category-emoji-input { grid-row: 1 / span 2; height: 82px; }
+  .category-edit-form input:not(.category-emoji-input) { height: 38px; }
+  .category-list .icon-button { width: 38px; min-width: 38px; height: 38px; min-height: 38px; }
 }
 @media (max-width: 390px) {
   .category-dialog { inset: 8px; padding: 18px 12px 12px; }
