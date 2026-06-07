@@ -2,6 +2,12 @@
 session_start(); 
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/categories.php';
+require_once __DIR__ . '/../../app/content_settings.php';
+
+$shopTitle = qii_content($pdo, 'shop_title', '🌸 可爱生活选物');
+$shopPromoTitle = qii_content($pdo, 'shop_promo_title', '新品可爱小物上线啦 ✨');
+$shopPromoText = qii_content($pdo, 'shop_promo_text', '可爱治愈 · 限时优惠');
+$shopPromoButton = qii_content($pdo, 'shop_promo_button', '立即选购 ›');
 
 function qii_asset_path($path) {
   $path = trim((string)$path);
@@ -1154,16 +1160,16 @@ html, body {
     <section class="mobile-shop-top" aria-label="æ‰‹æœºç«¯å•†åº—å…¥å£">
 
       <div class="mobile-promo">
-  <h2>新品可爱小物上线啦 ✨</h2>
-  <p>可爱治愈 · 限时优惠</p>
-  <a href="#shop-products">立即选购 ›</a>
+  <h2><?= htmlspecialchars($shopPromoTitle) ?></h2>
+  <p><?= htmlspecialchars($shopPromoText) ?></p>
+  <a href="#shop-products"><?= htmlspecialchars($shopPromoButton) ?></a>
   <img src="images/qii-gift.png" alt="Qii Gift">
 </div>
     </section>
 
     <header class="shop-header" data-aos="fade-down">
       <img src="images/4.png" alt="è´­ç‰©å¥³å­©" />
-      <h1>🌸 可爱生活选物</h1>
+      <h1><?= htmlspecialchars($shopTitle) ?></h1>
     </header>
 
     <section class="shop-layout" id="shop-products">

@@ -2,7 +2,13 @@
 require_once __DIR__ . '/../../app/bootstrap.php';
 qii_start_session();
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
+require_once __DIR__ . '/../../app/content_settings.php';
 date_default_timezone_set("Asia/Kuala_Lumpur");
+
+$contactTitle = qii_content($pdo, 'contact_title', '联系我们 📬');
+$contactDescription = qii_content($pdo, 'contact_description', "如果你对我们的商品有任何疑问，\n或者只是想聊聊生活里的小确幸，\n欢迎随时来和我们说说话 🌷\n\n有时候，一句“嗨～”也能让一天变得更可爱。");
+$contactButton = qii_content($pdo, 'contact_button', '发送');
+$contactSocialText = qii_content($pdo, 'contact_social_text', '或在社交平台找到我们 🌸');
 
 /* 💌 表单提交逻辑 */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -307,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <div class="contact-right" data-aos="fade-left">
-        <h2>联系我们 📬</h2>
+        <h2><?= htmlspecialchars($contactTitle) ?></h2>
 
         <?php if (isset($success)): ?>
           <div class="msg-success"><?= htmlspecialchars($success) ?></div>
@@ -315,23 +321,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="msg-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <p>
-          如果你对我们的商品有任何疑问，<br>
-          或者只是想聊聊生活里的小确幸，<br>
-          欢迎随时来和我们说说话 🌷<br><br>
-          有时候，一句“嗨～”也能让一天变得更可爱。
-        </p>
+        <p><?= nl2br(htmlspecialchars($contactDescription)) ?></p>
 
         <form method="post">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
           <input type="text" name="name" placeholder="姓名" required>
           <input type="email" name="email" placeholder="Email" required>
           <textarea name="message" placeholder="想对我们说的话..." required></textarea>
-          <button type="submit">发送</button>
+          <button type="submit"><?= htmlspecialchars($contactButton) ?></button>
         </form>
 
         <div class="social">
-          <p style="margin-top:16px; color:#E5679C;">或在社交平台找到我们 🌸</p>
+          <p style="margin-top:16px; color:#E5679C;"><?= htmlspecialchars($contactSocialText) ?></p>
           <a href="https://www.instagram.com/qii.shoppp?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank">Instagram</a>
         </div>
       </div>
