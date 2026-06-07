@@ -621,10 +621,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
     <!-- 🌷 Hero Section -->
     <section class="hero">
       <div class="hero-text" data-aos="fade-right">
-        <h1><?= $heroTitle ?></h1>
-        <h3><?= $heroSubtitle ?></h3>
-        <p><?= $heroDescription ?></p>
-        <button class="shop-btn" onclick="window.location.href='shop.php'">
+        <h1 data-content-key="hero_title"><?= $heroTitle ?></h1>
+        <h3 data-content-key="hero_subtitle"><?= $heroSubtitle ?></h3>
+        <p data-content-key="hero_description"><?= $heroDescription ?></p>
+        <button class="shop-btn" data-content-key="hero_button" onclick="window.location.href='shop.php'">
     <?= $heroButton ?>
 </button>
       </div>
@@ -644,10 +644,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2><?= $aboutTitle ?></h2>
+          <h2 data-content-key="about_title"><?= $aboutTitle ?></h2>
 
           <div class="about-card">
-            <p><?= $aboutText ?></p>
+            <p data-content-key="about_text"><?= $aboutText ?></p>
           </div>
         </div>
       </div>
@@ -661,10 +661,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-right">
-          <h2><?= $giftTitle ?></h2>
+          <h2 data-content-key="gift_title"><?= $giftTitle ?></h2>
 
           <div class="about-card">
-            <p><?= $giftText ?></p>
+            <p data-content-key="gift_text"><?= $giftText ?></p>
           </div>
         </div>
       </div>
@@ -678,10 +678,10 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
         </div>
 
         <div class="about-right" data-aos="fade-left">
-          <h2><?= $dailyTitle ?></h2>
+          <h2 data-content-key="daily_title"><?= $dailyTitle ?></h2>
 
           <div class="about-card">
-            <p><?= $dailyText ?></p>
+            <p data-content-key="daily_text"><?= $dailyText ?></p>
           </div>
         </div>
       </div>

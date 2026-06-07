@@ -8,68 +8,38 @@ $pages = [
     'index' => [
         'label' => '首页 Index',
         'url' => '../index.php',
-        'fields' => [
-            'hero_title' => ['主标题', 'Welcome to qii.shoppp', 'rich'],
-            'hero_subtitle' => ['副标题', '发现每一份可爱的生活小物', 'rich'],
-            'hero_description' => ['说明文字', '让每一天，都有一点粉色的温柔与惊喜。', 'rich'],
-            'hero_button' => ['按钮文字', '立即购物', 'rich'],
-            'hero_image_alt' => ['Hero 图片说明', 'Qiqi with Cart', 'input'],
-            'about_title' => ['关于区标题', '关于 qii.shoppp 💌', 'rich'],
-            'about_text' => ['关于区正文', "qii.shoppp 是一个关于温柔与日常的小角落。<br>我们相信，每个女孩都值得一点被生活宠爱的可爱。<br>每件商品，都像一份心意——小小、但刚刚好。", 'rich'],
-            'about_image_alt' => ['关于区图片说明', 'Qiqi Bag', 'input'],
-            'gift_title' => ['礼物区标题', '🎁 每一份礼物', 'rich'],
-            'gift_text' => ['礼物区正文', "每一份礼物都承载着特别的心意。<br>我们为你准备的，不只是商品，而是一份温柔的陪伴。<br>让可爱成为生活的一部分。", 'rich'],
-            'gift_image_alt' => ['礼物区图片说明', 'Qiqi Gift', 'input'],
-            'daily_title' => ['日常区标题', '🌸 粉色的日常', 'rich'],
-            'daily_text' => ['日常区正文', "每一个小物件，都能让生活多一点甜。<br>我们希望，在你的每一天里，都能遇见一点粉色的温柔。<br>qii.shoppp — 温柔从这里开始。", 'rich'],
-            'daily_image_alt' => ['日常区图片说明', 'Qiqi Flower', 'input'],
-            'hero_button_color' => ['按钮颜色', '#E5679C', 'color'],
+        'keys' => [
+            'hero_title', 'hero_subtitle', 'hero_description', 'hero_button',
+            'about_title', 'about_text', 'gift_title', 'gift_text', 'daily_title', 'daily_text',
         ],
     ],
     'shop' => [
         'label' => '商店 Shop',
         'url' => '../shop.php',
-        'fields' => [
-            'shop_title' => ['商店主标题', '🌸 可爱生活选物', 'input'],
-            'shop_promo_title' => ['手机横幅标题', '新品可爱小物上线啦 ✨', 'input'],
-            'shop_promo_text' => ['手机横幅说明', '可爱治愈 · 限时优惠', 'input'],
-            'shop_promo_button' => ['手机横幅按钮', '立即选购 ›', 'input'],
-        ],
+        'keys' => ['shop_title', 'shop_promo_title', 'shop_promo_text', 'shop_promo_button'],
     ],
     'contact' => [
         'label' => '联系 Contact',
         'url' => '../contact.php',
-        'fields' => [
-            'contact_title' => ['页面标题', '联系我们 📬', 'input'],
-            'contact_description' => ['介绍文字', "如果你对我们的商品有任何疑问，\n或者只是想聊聊生活里的小确幸，\n欢迎随时来和我们说说话 🌷\n\n有时候，一句“嗨～”也能让一天变得更可爱。", 'textarea'],
-            'contact_button' => ['发送按钮文字', '发送', 'input'],
-            'contact_social_text' => ['社交平台说明', '或在社交平台找到我们 🌸', 'input'],
-        ],
+        'keys' => ['contact_title', 'contact_description', 'contact_button', 'contact_social_text'],
     ],
 ];
 
 $page = $_GET['page'] ?? $_POST['page'] ?? 'index';
-if (!isset($pages[$page])) {
-    $page = 'index';
-}
+if (!isset($pages[$page])) $page = 'index';
 $pageConfig = $pages[$page];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $settings = [];
-    foreach ($pageConfig['fields'] as $key => [$label, $default, $type]) {
-        $value = trim((string)($_POST[$key] ?? ''));
-        $value = $value !== '' ? $value : $default;
-        $settings[$key] = $type === 'rich' ? qii_sanitize_rich_text($value) : $value;
+    foreach ($pageConfig['keys'] as $key) {
+        if (isset($_POST[$key])) {
+            $settings[$key] = qii_sanitize_rich_text((string)$_POST[$key]);
+        }
     }
     qii_save_content($pdo, $settings);
     header('Location: hero_content.php?page=' . rawurlencode($page) . '&saved=1');
     exit;
-}
-
-$values = [];
-foreach ($pageConfig['fields'] as $key => [$label, $default]) {
-    $values[$key] = qii_content($pdo, $key, $default);
 }
 ?>
 <!DOCTYPE html>
@@ -77,200 +47,116 @@ foreach ($pageConfig['fields'] as $key => [$label, $default]) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>前台内容 | Qii.shop Admin</title>
+  <title>前台可视化编辑 | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/product_admin.css?v=20260607">
   <style>
-    .content-editor-page { max-width: none; }
-    .page-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .page-tabs a { min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #f4c9db; border-radius: 12px; background: #fff; color: #6d6173; text-decoration: none; font-weight: 800; }
-    .page-tabs a.active { border-color: #ff4fa3; background: #ff4fa3; color: #fff; box-shadow: 0 10px 22px rgba(255,79,163,.2); }
-    .content-workspace { display: grid; grid-template-columns: minmax(360px, .78fr) minmax(520px, 1.22fr); gap: 20px; align-items: start; }
-    .content-editor-card, .preview-panel { border: 1px solid #f5cddd; border-radius: 18px; background: #fff; box-shadow: 0 14px 34px rgba(205,77,137,.08); overflow: hidden; }
-    .content-editor-card { padding: 24px; }
-    .content-editor-card h2, .preview-head h2 { margin: 0; color: #29203d; font-size: 21px; }
-    .content-fields { display: grid; gap: 16px; margin-top: 20px; }
-    .content-field { display: grid; gap: 7px; color: #62576c; font-weight: 800; }
-    .content-field input, .content-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #f3c6d8; border-radius: 12px; padding: 12px 14px; background: #fffafb; color: #29203d; font: inherit; outline: none; }
-    .content-field input[type="color"] { height: 48px; padding: 5px; cursor: pointer; }
-    .rich-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-    .rich-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid #f3c6d8; border-radius: 9px; background: #fff; color: #62576c; font-size: 12px; cursor: pointer; }
-    .rich-tool input { width: 24px; height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
-    .rich-tool select { height: 30px; border: 0; outline: 0; background: transparent; color: #62576c; font-weight: 700; cursor: pointer; }
-    .rich-editor { min-height: 48px; padding: 12px 14px; border: 1px solid #f3c6d8; border-radius: 12px; background: #fffafb; color: #29203d; font-weight: 600; line-height: 1.55; outline: none; }
-    .rich-editor[data-multiline="1"] { min-height: 100px; }
-    .rich-editor:focus { border-color: #ff4fa3; box-shadow: 0 0 0 3px rgba(255,79,163,.1); }
-    .content-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
-    .content-save-row { display: flex; justify-content: flex-end; margin-top: 20px; }
-    .content-save-row button { border: 0; cursor: pointer; }
-    .preview-panel { position: sticky; top: 20px; }
-    .preview-head { min-height: 58px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f5d9e4; }
-    .preview-head a { color: #f5368d; text-decoration: none; font-weight: 800; }
-    .preview-frame { display: block; width: 100%; height: 680px; border: 0; background: #fff7fb; }
-    @media (max-width: 1050px) {
-      .content-workspace { grid-template-columns: 1fr; }
-      .preview-panel { position: static; }
-      .preview-frame { height: 620px; }
-    }
-    @media (max-width: 760px) {
-      .page-tabs { display: grid; grid-template-columns: repeat(3, 1fr); }
-      .page-tabs a { min-width: 0; padding: 0 8px; justify-content: center; font-size: 12px; }
-      .content-editor-card { padding: 18px 14px; }
-      .content-save-row .primary-action { width: 100%; justify-content: center; }
-      .preview-frame { height: 560px; }
+    .visual-page { max-width: none; padding-bottom: 40px; }
+    .desktop-only-note { display:flex; align-items:center; gap:10px; margin-bottom:16px; padding:13px 16px; border:1px solid #f2c9da; border-radius:12px; background:#fff6fa; color:#8a6175; font-weight:800; }
+    .visual-toolbar { position:sticky; top:0; z-index:1200; display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px; margin-bottom:16px; border:1px solid #f3c8da; border-radius:14px; background:rgba(255,255,255,.96); box-shadow:0 10px 26px rgba(205,77,137,.1); backdrop-filter:blur(10px); }
+    .page-switch { display:flex; gap:8px; margin-right:auto; }
+    .page-switch a, .tool-control, .save-visual { min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 13px; border:1px solid #f1c4d7; border-radius:10px; background:#fff; color:#695b70; text-decoration:none; font-weight:800; }
+    .page-switch a.active { background:#ff4fa3; border-color:#ff4fa3; color:#fff; }
+    .tool-control input { width:25px; height:25px; padding:0; border:0; background:transparent; cursor:pointer; }
+    .tool-control select { border:0; outline:0; background:transparent; color:#695b70; font-weight:800; }
+    .save-visual { border:0; background:#f5368d; color:#fff; cursor:pointer; opacity:.55; }
+    .save-visual.dirty { opacity:1; box-shadow:0 8px 20px rgba(245,54,141,.25); }
+    .canvas-shell { overflow:hidden; border:1px solid #f2c9da; border-radius:16px; background:#fff; box-shadow:0 16px 38px rgba(185,75,126,.1); }
+    .canvas-head { min-height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-bottom:1px solid #f4d5e2; font-weight:800; color:#3b3044; }
+    .canvas-head span { color:#9a7b8a; font-size:13px; }
+    #visualFrame { display:block; width:100%; height:calc(100vh - 285px); min-height:650px; border:0; background:#fff7fb; }
+    .mobile-block { display:none; }
+    @media(max-width:900px) {
+      .visual-toolbar, .canvas-shell { display:none; }
+      .mobile-block { display:block; padding:28px 20px; border:1px solid #f3c8da; border-radius:16px; background:#fff; color:#6f6171; text-align:center; font-weight:800; }
     }
   </style>
 </head>
 <body>
 <?php include 'includes/admin_header.php'; ?>
-<main class="main content-editor-page">
-  <header class="product-topbar">
-    <div><h1>前台内容</h1><p>选择页面，在左边修改，并在右边查看真实用户页面</p></div>
-  </header>
+<main class="main visual-page">
+  <header class="product-topbar"><div><h1>前台可视化编辑</h1><p>直接点击网页文字修改，像 WordPress 或 PPT 一样操作</p></div></header>
+  <div class="desktop-only-note"><i class="fa-solid fa-desktop"></i> 前端编辑功能只可以在电脑端使用</div>
+  <?php if (isset($_GET['saved'])): ?><div class="editor-alert success">内容已保存</div><?php endif; ?>
 
-  <nav class="page-tabs" aria-label="选择前台页面">
-    <?php foreach ($pages as $key => $config): ?>
-      <a href="hero_content.php?page=<?= urlencode($key) ?>" class="<?= $page === $key ? 'active' : '' ?>">
-        <i class="fa-solid <?= $key === 'index' ? 'fa-house' : ($key === 'shop' ? 'fa-store' : 'fa-envelope') ?>"></i>
-        <?= htmlspecialchars($config['label']) ?>
-      </a>
+  <form method="post" id="visualForm">
+    <?= csrf_field() ?>
+    <input type="hidden" name="page" value="<?= htmlspecialchars($page) ?>">
+    <?php foreach ($pageConfig['keys'] as $key): ?>
+      <input type="hidden" name="<?= htmlspecialchars($key) ?>" data-key="<?= htmlspecialchars($key) ?>">
     <?php endforeach; ?>
-  </nav>
 
-  <?php if (isset($_GET['saved'])): ?><div class="editor-alert success">内容已保存，右侧预览已更新</div><?php endif; ?>
-
-  <section class="content-workspace">
-    <form method="post" class="content-editor-card">
-      <?= csrf_field() ?>
-      <input type="hidden" name="page" value="<?= htmlspecialchars($page) ?>">
-      <h2><i class="fa-solid fa-pen-to-square"></i> 修改 <?= htmlspecialchars($pageConfig['label']) ?></h2>
-      <div class="content-fields">
-        <?php foreach ($pageConfig['fields'] as $key => [$label, $default, $type]): ?>
-          <?php if ($type === 'rich'): ?>
-            <div class="content-field">
-              <span><?= htmlspecialchars($label) ?></span>
-              <div class="rich-toolbar">
-                <label class="rich-tool"><i class="fa-solid fa-palette"></i> 字色 <input type="color" value="#d9488b" data-rich-color="foreColor"></label>
-                <label class="rich-tool"><i class="fa-solid fa-highlighter"></i> Highlight <input type="color" value="#fff0a8" data-rich-color="hiliteColor"></label>
-                <label class="rich-tool"><i class="fa-solid fa-text-height"></i>
-                  <select data-rich-style="font-size" aria-label="字号">
-                    <option value="">字号</option>
-                    <option value="12px">12</option>
-                    <option value="14px">14</option>
-                    <option value="16px">16</option>
-                    <option value="18px">18</option>
-                    <option value="20px">20</option>
-                    <option value="24px">24</option>
-                    <option value="28px">28</option>
-                    <option value="32px">32</option>
-                    <option value="40px">40</option>
-                    <option value="48px">48</option>
-                  </select>
-                </label>
-                <label class="rich-tool"><i class="fa-solid fa-bold"></i>
-                  <select data-rich-style="font-weight" aria-label="字体粗细">
-                    <option value="">粗细</option>
-                    <option value="300">细</option>
-                    <option value="400">正常</option>
-                    <option value="500">中等</option>
-                    <option value="600">半粗</option>
-                    <option value="700">粗体</option>
-                    <option value="900">特粗</option>
-                  </select>
-                </label>
-              </div>
-              <div class="rich-editor" contenteditable="true" data-rich-editor data-multiline="<?= str_contains($key, 'text') || str_contains($key, 'description') ? '1' : '0' ?>"><?= $values[$key] ?></div>
-              <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" data-rich-input>
-            </div>
-          <?php else: ?>
-            <label class="content-field"><?= htmlspecialchars($label) ?>
-            <?php if ($type === 'textarea'): ?>
-              <textarea name="<?= htmlspecialchars($key) ?>" required><?= htmlspecialchars($values[$key]) ?></textarea>
-            <?php elseif ($type === 'color'): ?>
-              <input type="color" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
-            <?php else: ?>
-              <input name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($values[$key]) ?>" required>
-            <?php endif; ?>
-            </label>
-          <?php endif; ?>
+    <div class="visual-toolbar">
+      <nav class="page-switch">
+        <?php foreach ($pages as $key => $config): ?>
+          <a href="hero_content.php?page=<?= urlencode($key) ?>" class="<?= $page === $key ? 'active' : '' ?>"><?= htmlspecialchars($config['label']) ?></a>
         <?php endforeach; ?>
-      </div>
-      <div class="content-save-row"><button class="primary-action" type="submit"><i class="fa-solid fa-floppy-disk"></i> 保存此页面</button></div>
-    </form>
+      </nav>
+      <label class="tool-control"><i class="fa-solid fa-palette"></i><input type="color" value="#d9488b" data-style="color"></label>
+      <label class="tool-control"><i class="fa-solid fa-highlighter"></i><input type="color" value="#fff0a8" data-style="background-color"></label>
+      <label class="tool-control"><select data-style="font-size"><option value="">字号</option><option value="12px">12</option><option value="14px">14</option><option value="16px">16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option><option value="48px">48</option></select></label>
+      <label class="tool-control"><select data-style="font-weight"><option value="">粗细</option><option value="300">细</option><option value="400">正常</option><option value="600">半粗</option><option value="700">粗体</option><option value="900">特粗</option></select></label>
+      <button class="save-visual" type="submit" data-save><i class="fa-solid fa-floppy-disk"></i> 保存</button>
+    </div>
 
-    <aside class="preview-panel">
-      <div class="preview-head">
-        <h2>用户端预览</h2>
-        <a href="<?= htmlspecialchars($pageConfig['url']) ?>" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> 打开</a>
-      </div>
-      <iframe class="preview-frame" src="<?= htmlspecialchars($pageConfig['url']) ?>?preview=<?= time() ?>" title="<?= htmlspecialchars($pageConfig['label']) ?> 用户端预览"></iframe>
-    </aside>
-  </section>
+    <section class="canvas-shell">
+      <div class="canvas-head">用户端编辑画布 <span>点击带粉色边框的文字即可编辑</span></div>
+      <iframe id="visualFrame" src="<?= htmlspecialchars($pageConfig['url']) ?>?visual_edit=1&t=<?= time() ?>"></iframe>
+    </section>
+  </form>
+  <div class="mobile-block"><i class="fa-solid fa-desktop"></i><br><br>请使用电脑打开此功能进行前台编辑。</div>
 </main>
 <script>
-document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
-  var field = editor.closest('.content-field');
-  var hidden = field.querySelector('[data-rich-input]');
-  var savedRange = null;
+var frame = document.getElementById('visualFrame');
+var form = document.getElementById('visualForm');
+var saveButton = document.querySelector('[data-save]');
+var activeElement = null;
+var savedRange = null;
 
-  function rememberSelection() {
-    var selection = window.getSelection();
-    if (selection.rangeCount && editor.contains(selection.anchorNode)) {
-      savedRange = selection.getRangeAt(0).cloneRange();
-    }
+function markDirty() { saveButton.classList.add('dirty'); }
+function rememberSelection() {
+  var win = frame.contentWindow;
+  var selection = win.getSelection();
+  if (selection.rangeCount && activeElement && activeElement.contains(selection.anchorNode)) {
+    savedRange = selection.getRangeAt(0).cloneRange();
   }
-
-  function applyStyleToSelection(property, value) {
-    if (!savedRange || savedRange.collapsed) return;
-
-    var selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(savedRange);
-
-    var span = document.createElement('span');
-    span.style.setProperty(property, value);
-    try {
-      savedRange.surroundContents(span);
-    } catch (error) {
-      var fragment = savedRange.extractContents();
-      span.appendChild(fragment);
-      savedRange.insertNode(span);
-    }
-
-    selection.removeAllRanges();
-    var nextRange = document.createRange();
-    nextRange.selectNodeContents(span);
-    selection.addRange(nextRange);
-    savedRange = nextRange.cloneRange();
-    hidden.value = editor.innerHTML;
-  }
-
-  editor.addEventListener('mouseup', rememberSelection);
-  editor.addEventListener('keyup', rememberSelection);
-  editor.addEventListener('input', function () { hidden.value = editor.innerHTML; });
-
-  field.querySelectorAll('[data-rich-color]').forEach(function (picker) {
-    picker.addEventListener('mousedown', function () { rememberSelection(); });
-    picker.addEventListener('input', function () {
-      editor.focus();
-      var property = picker.dataset.richColor === 'hiliteColor' ? 'background-color' : 'color';
-      applyStyleToSelection(property, picker.value);
-    });
-  });
-
-  field.querySelectorAll('[data-rich-style]').forEach(function (control) {
-    control.addEventListener('mousedown', function () { rememberSelection(); });
-    control.addEventListener('change', function () {
-      if (!control.value || !savedRange || savedRange.collapsed) return;
-      applyStyleToSelection(control.dataset.richStyle, control.value);
-      control.value = "";
-    });
+}
+function applyStyle(property, value) {
+  if (!activeElement || !savedRange || savedRange.collapsed || !value) return;
+  var doc = frame.contentDocument;
+  var win = frame.contentWindow;
+  var selection = win.getSelection();
+  selection.removeAllRanges(); selection.addRange(savedRange);
+  var span = doc.createElement('span'); span.style.setProperty(property, value);
+  try { savedRange.surroundContents(span); }
+  catch (e) { var fragment=savedRange.extractContents(); span.appendChild(fragment); savedRange.insertNode(span); }
+  var range=doc.createRange(); range.selectNodeContents(span);
+  selection.removeAllRanges(); selection.addRange(range); savedRange=range.cloneRange();
+  markDirty();
+}
+frame.addEventListener('load', function () {
+  var doc = frame.contentDocument;
+  doc.querySelectorAll('[data-content-key]').forEach(function (el) {
+    el.contentEditable = 'true';
+    el.style.outline = '2px dashed rgba(245,54,141,.45)';
+    el.style.outlineOffset = '4px';
+    el.style.cursor = 'text';
+    el.addEventListener('focus', function () { activeElement=el; });
+    el.addEventListener('click', function (event) { event.preventDefault(); event.stopPropagation(); });
+    el.addEventListener('mouseup', rememberSelection);
+    el.addEventListener('keyup', rememberSelection);
+    el.addEventListener('input', markDirty);
   });
 });
-
-document.querySelector('.content-editor-card').addEventListener('submit', function () {
-  document.querySelectorAll('[data-rich-editor]').forEach(function (editor) {
-    editor.closest('.content-field').querySelector('[data-rich-input]').value = editor.innerHTML;
+document.querySelectorAll('[data-style]').forEach(function (control) {
+  control.addEventListener('mousedown', rememberSelection);
+  control.addEventListener('input', function () { applyStyle(control.dataset.style, control.value); });
+  control.addEventListener('change', function () { applyStyle(control.dataset.style, control.value); if (control.tagName==='SELECT') control.value=''; });
+});
+form.addEventListener('submit', function () {
+  frame.contentDocument.querySelectorAll('[data-content-key]').forEach(function (el) {
+    var input=form.querySelector('[data-key="'+el.dataset.contentKey+'"]');
+    if (input) input.value=el.innerHTML;
   });
 });
 </script>
