@@ -446,43 +446,57 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
   box-shadow: none;
 }
 @media (max-width: 700px) {
+  html:has(.category-dialog[open]),
+  body:has(.category-dialog[open]) {
+    overflow: hidden !important;
+  }
   .product-topbar { grid-template-columns: 1fr; }
   .product-topbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
   .product-topbar-actions .primary-action { width: 100%; min-width: 0; min-height: 50px; padding: 0 10px; justify-content: center; font-size: 14px; }
   .category-dialog {
     position: fixed;
-    inset: 12px;
-    width: auto;
-    max-width: none;
-    max-height: none;
-    margin: 0;
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
     padding: 20px 16px 16px;
     border-radius: 20px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden !important;
   }
-  .category-dialog[open] { display: block; }
+  .category-dialog[open] {
+    display: flex !important;
+    flex-direction: column;
+  }
   .category-dialog-head {
-    position: sticky;
-    top: -20px;
+    position: static;
+    flex: 0 0 auto;
     z-index: 5;
-    margin: -20px -16px 14px;
-    padding: 20px 16px 12px;
+    margin: 0 0 14px;
+    padding: 0;
     background: #fff;
   }
   .category-dialog-head h2 { font-size: 24px; line-height: 1.2; }
-  .category-add-form { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+  .category-add-form { flex: 0 0 auto; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
   .category-add-form input { width: 100%; height: 48px; box-sizing: border-box; }
   .category-add-form .primary-action { width: 100%; min-height: 52px; }
   .category-list {
     display: grid;
-    max-height: none;
-    overflow: visible;
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: scroll !important;
     gap: 8px;
-    padding: 0 0 8px;
+    padding: 0 3px 24px 0;
     touch-action: pan-y;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
   }
   .category-list > div { grid-template-columns: minmax(0, 1fr) 42px; padding: 8px; }
   .category-edit-form { grid-template-columns: 46px minmax(0, 1fr) 42px; gap: 6px; }

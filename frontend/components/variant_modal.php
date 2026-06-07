@@ -19,8 +19,8 @@
 .variant-like { margin-top: 8px; color: #f5a8c9; font-size: 32px; text-align: right; line-height: 1; }
 .variant-section { padding: 14px 0 0; }
 .variant-section-title { margin: 0 0 10px; color: #7f6873; font-size: 12px; font-weight: 800; }
-.variant-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; margin-top: 0; }
-.variant-card { min-height: 42px; background: #fffafd; border: 1px solid #f3d3e0; border-radius: 10px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: .2s; position: relative; }
+.variant-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; margin-top: 0; }
+.variant-card { min-height: 46px; background: #fffafd; border: 1px solid #f3d3e0; border-radius: 12px; padding: 5px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: .2s; position: relative; }
 .variant-card:hover { background: #fff0f7; }
 .variant-card img { display: none; width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 0; }
 .variant-name { color: #9b536f; font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; }
@@ -37,6 +37,12 @@
 .variant-benefit { text-align: center; color: #9b536f; font-size: 10px; line-height: 1.45; }
 .variant-benefit strong { display: block; color: #d94b8a; font-size: 11px; }
 .addToCartFinal { width: 100%; min-height: 48px; padding: 0 16px; background: linear-gradient(180deg,#ff62aa 0%,#f5368d 100%); color: #fff; border-radius: 999px; border: none; margin-top: 12px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 18px rgba(245,54,141,.28); }
+.variant-pagination { margin-top: 12px; display: none; align-items: center; justify-content: center; gap: 12px; }
+.variant-page-button { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #f4c7da; border-radius: 50%; background: #fff; color: #e43f88; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 5px 12px rgba(213,72,137,.1); }
+.variant-page-button:disabled { opacity: .3; cursor: default; box-shadow: none; }
+.variant-page-status { min-width: 68px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.variant-page-dot { width: 7px; height: 7px; border-radius: 50%; background: #f3c6da; }
+.variant-page-dot.active { width: 20px; border-radius: 999px; background: #f5368d; }
 
 </style>
 
@@ -61,10 +67,10 @@
       <div id="variantBox">Loading...</div>
     </div>
 
-    <div id="variantPagination" style="margin-top:12px; display:none; text-align:center;">
-      <button id="prevVariantPage" style="padding:6px 14px; border-radius:10px; border:none; background:#FFC1D8; color:#fff; margin-right:10px;">Prev</button>
-      <span id="variantPageInfo" style="color:#C94B82; font-weight:600;"></span>
-      <button id="nextVariantPage" style="padding:6px 14px; border-radius:10px; border:none; background:#FF9EC7; color:#fff; margin-left:10px;">Next</button>
+    <div id="variantPagination" class="variant-pagination">
+      <button id="prevVariantPage" class="variant-page-button" type="button" aria-label="上一页">&#8249;</button>
+      <span id="variantPageInfo" class="variant-page-status" aria-label="规格页码"></span>
+      <button id="nextVariantPage" class="variant-page-button" type="button" aria-label="下一页">&#8250;</button>
     </div>
 
     <div class="variant-section">
@@ -307,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 ================================================== */
 let variantList = [];
 let variantPage = 1;
-const variantPerPage = 5;
+const variantPerPage = 6;
 
 /* åœ¨è½½å…¥ variant_box_front.php åŽè§¦å‘ */
 function setupVariantPagination() {
@@ -320,7 +326,7 @@ function setupVariantPagination() {
         return;
     }
 
-    document.getElementById("variantPagination").style.display = "block";
+    document.getElementById("variantPagination").style.display = "flex";
     renderVariantPage();
 }
 
@@ -333,8 +339,10 @@ function renderVariantPage() {
     });
 
     let totalPage = Math.ceil(variantList.length / variantPerPage);
-    document.getElementById("variantPageInfo").textContent =
-        variantPage + " / " + totalPage;
+    document.getElementById("variantPageInfo").innerHTML = Array.from(
+        { length: totalPage },
+        (_, index) => '<span class="variant-page-dot' + (index + 1 === variantPage ? ' active' : '') + '"></span>'
+    ).join("");
 
     document.getElementById("prevVariantPage").disabled = variantPage === 1;
     document.getElementById("nextVariantPage").disabled = variantPage === totalPage;
