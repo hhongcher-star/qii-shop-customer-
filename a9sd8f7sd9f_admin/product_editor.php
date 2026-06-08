@@ -1,4 +1,4 @@
-<?php
+in_array<?php
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
@@ -17,11 +17,11 @@ $categories = [
     'stationery' => '文具',
 ];
 
-$categoryRows = qii_categories($pdo);
+$categoryRows = qii_categories($pdo, false);
 
 $categories = [];
-foreach ($categoryRows as $row) {
-    $categories[$row['code']] = $row['name'];
+foreach ($categoryRows as $key => $row) {
+    $categories[$key] = $row['name'];
 }
 
 function ensure_product_admin_columns(PDO $pdo): void {
