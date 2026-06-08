@@ -57,6 +57,7 @@ if (isset($_SESSION['pending_order']) && $_SESSION['pending_order']['order_numbe
         "addr_address" => $order['addr_address'],
         "addr_postcode"=> $order['addr_postcode'],
         "addr_state"   => $order['addr_state'],
+        "order_note"   => $order['order_note'] ?? '',
         "items"        => []
     ];
 
@@ -572,6 +573,7 @@ function submitAddress(){
     let address = document.getElementById("addr_address").value.trim();
     let postcode = document.getElementById("addr_postcode").value.trim();
     let state = document.getElementById("addr_state").value.trim();
+    let orderNote = document.getElementById("order_note").value.trim();
 
     if (!name || !phone || !address || !postcode || !state) {
         alert("请填写完整收货地址");
@@ -586,6 +588,7 @@ function submitAddress(){
     fd.append("address", address);
     fd.append("postcode", postcode);
     fd.append("state", state);
+    fd.append("order_note", orderNote);
 
     fetch("api/submit_order.php", {
         method:"POST",
@@ -675,6 +678,9 @@ function closePay(){
 
       <input id="addr_state" type="text" placeholder="州属（如：Selangor）"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
+
+      <textarea id="order_note" maxlength="500" rows="3" placeholder="订单备注（选填）"
+                style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd; resize:vertical; font:inherit;"></textarea>
 
       <button class="btn btn-pink" onclick="submitAddress()">确认付款</button>
       <button class="btn btn-pink" onclick="closeAddress()">取消</button>

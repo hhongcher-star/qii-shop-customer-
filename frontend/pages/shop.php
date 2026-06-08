@@ -46,7 +46,7 @@ function qii_product_payload($p) {
 }
 
 // ÃƒÂ¥Ã‚Â½Ã¢â‚¬Å“ÃƒÂ¥Ã¢â‚¬Â°Ã‚ÂÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ©Ã‚Â»Ã‹Å“ÃƒÂ¨Ã‚Â®Ã‚Â¤ÃƒÂ§Ã‚Â¬Ã‚Â¬ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ¤Ã‚Â¸Ã‚ÂªÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â°
-$cat = $_GET['cat'] ?? 'phone';
+$cat = isset($_GET['cat']) ? trim((string)$_GET['cat']) : '';
 
 if (($_GET['edit_popup'] ?? '') === 'variant') {
   $previewProductStmt = $pdo->query("
@@ -84,7 +84,7 @@ foreach ($categoryRows as $key => $row) {
   $categories[$key] = htmlspecialchars($row['emoji']) . ' ' . htmlspecialchars($row['name']);
 }
 
-if (!isset($categories[$cat])) {
+if ($cat === '' || !isset($categories[$cat])) {
   $cat = array_key_first($categories) ?: 'phone';
 }
 

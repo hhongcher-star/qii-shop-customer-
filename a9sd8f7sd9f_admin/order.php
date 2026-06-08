@@ -74,7 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
 $search = trim($_GET['search'] ?? '');
 $orderStatus = $_GET['order_status'] ?? '';
 $payStatus = $_GET['pay_status'] ?? '';
-$delivery = $_GET['delivery'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -194,12 +193,6 @@ $msg = $_GET['msg'] ?? '';
           <option value="paid" <?= $payStatus==='paid'?'selected':'' ?>>已支付</option>
           <option value="unpaid" <?= $payStatus==='unpaid'?'selected':'' ?>>待付款</option>
         </select>
-        <select name="delivery">
-          <option value="">配送方式</option>
-          <option value="jt" <?= $delivery==='jt'?'selected':'' ?>>J&T Express</option>
-          <option value="poslaju" <?= $delivery==='poslaju'?'selected':'' ?>>Poslaju</option>
-          <option value="shopee" <?= $delivery==='shopee'?'selected':'' ?>>Shopee Express</option>
-        </select>
         <a href="order.php" class="reset-btn"><i class="fa-solid fa-rotate-right"></i> 重置</a>
       </div>
       <button type="submit" class="visually-hidden" aria-hidden="true"></button>
@@ -220,7 +213,7 @@ $msg = $_GET['msg'] ?? '';
           <th>金额 (RM)</th>
           <th>支付状态</th>
           <th>订单状态</th>
-          <th>配送方式</th>
+          <th>地址 / 备注</th>
           <th>操作</th>
         </tr>
       </thead>
@@ -229,8 +222,12 @@ $msg = $_GET['msg'] ?? '';
         <?php foreach ($orders as $o): ?>
           <?php
             $paid = in_array($o['order_status'], ['paid', 'shipped', 'completed'], true);
-            $deliveryName = ($o['addr_state'] ?? '') === 'Johor' ? 'J&T Express' : 'Shopee Express';
             $amount = (float)($o['grand_total'] ?: $o['total']);
+            $fullAddress = trim(implode(' ', array_filter([
+                $o['addr_address'] ?? '',
+                $o['addr_postcode'] ?? '',
+                $o['addr_state'] ?? '',
+            ])));
           ?>
           <tr class="order-row">
             <td class="check-cell"><input form="bulkForm" type="checkbox" name="order_ids[]" value="<?= (int)$o['id'] ?>"></td>
@@ -240,7 +237,10 @@ $msg = $_GET['msg'] ?? '';
             <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
             <td><span class="state-pill <?= $paid ? 'paid' : 'unpaid' ?>"><?= $paid ? '已支付' : '待付款' ?></span></td>
             <td><span class="state-pill <?= status_class($o['order_status']) ?>"><?= status_label($o['order_status']) ?></span></td>
-            <td class="delivery-cell"><strong><?= $deliveryName ?></strong><small><?= htmlspecialchars(($o['addr_postcode'] ?? '') . ' ' . ($o['addr_state'] ?? '')) ?></small></td>
+            <td class="delivery-cell">
+              <strong><?= htmlspecialchars($fullAddress ?: '未填写地址') ?></strong>
+              <small>备注：<?= htmlspecialchars(trim((string)($o['order_note'] ?? '')) ?: '无') ?></small>
+            </td>
             <td>
               <div class="order-actions">
                 <a href="../receipt.php?order_number=<?= urlencode($o['order_number']) ?><?= !empty($o['receipt_token']) ? '&token=' . urlencode($o['receipt_token']) : '' ?>" target="_blank">查看</a>

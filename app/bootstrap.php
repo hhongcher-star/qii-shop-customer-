@@ -164,6 +164,9 @@ function qii_ensure_order_security_columns(PDO $pdo): void
     if (!in_array('coupon_code', $columns, true)) {
         $pdo->exec('ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(80) NULL AFTER discount');
     }
+    if (!in_array('order_note', $columns, true)) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN order_note TEXT NULL AFTER addr_state');
+    }
 }
 }
 ?>

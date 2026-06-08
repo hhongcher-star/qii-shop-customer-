@@ -12,6 +12,12 @@ $phone = trim((string)($_POST['phone'] ?? ''));
 $address = trim((string)($_POST['address'] ?? ''));
 $postcode = trim((string)($_POST['postcode'] ?? ''));
 $state = trim((string)($_POST['state'] ?? ''));
+$orderNote = trim((string)($_POST['order_note'] ?? ''));
+if (function_exists('mb_substr')) {
+    $orderNote = mb_substr($orderNote, 0, 500, 'UTF-8');
+} else {
+    $orderNote = substr($orderNote, 0, 500);
+}
 
 if ($order_number === '') exit('NO_ORDER');
 if ($name === '' || $phone === '' || $address === '' || $postcode === '' || $state === '') exit('NO_ADDRESS');
@@ -115,20 +121,20 @@ try {
         $stmt = $pdo->prepare("
             UPDATE orders SET
                 total=?, shipping=?, discount=?, coupon_code=?, grand_total=?, region=?,
-                addr_name=?, addr_phone=?, addr_address=?, addr_postcode=?, addr_state=?,
+                addr_name=?, addr_phone=?, addr_address=?, addr_postcode=?, addr_state=?, order_note=?,
                 order_status='pending', updated_at=NOW()
             WHERE id=?
         ");
-        $stmt->execute([$subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderId]);
+        $stmt->execute([$subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $orderId]);
     } else {
         $stmt = $pdo->prepare("
             INSERT INTO orders (
                 order_number, receipt_token, total, shipping, discount, coupon_code, grand_total, region,
-                addr_name, addr_phone, addr_address, addr_postcode, addr_state,
+                addr_name, addr_phone, addr_address, addr_postcode, addr_state, order_note,
                 order_status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
         ");
-        $stmt->execute([$order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state]);
+        $stmt->execute([$order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null]);
         $orderId = (int)$pdo->lastInsertId();
     }
 

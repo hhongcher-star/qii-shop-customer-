@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS orders (
   addr_address TEXT NULL,
   addr_postcode VARCHAR(20) NULL,
   addr_state VARCHAR(80) NULL,
+  order_note TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_orders_created (created_at),

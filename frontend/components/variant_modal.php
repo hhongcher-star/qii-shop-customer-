@@ -69,7 +69,7 @@ $variantEditableContent = [
         <h3 id="modalName"></h3>
         <div class="variant-product-code">SKU: <span id="modalSku">-</span></div>
         <div class="price-line">RM <span id="modalPrice"></span></div>
-        <div id="modalStock">Stock: -</div>
+        <div id="modalStock">库存：-</div>
         <div class="variant-like">♡</div>
       </div>
     </div>
@@ -86,7 +86,7 @@ $variantEditableContent = [
     </div>
 
     <div class="variant-section">
-      <div class="variant-section-title">🛒 数量 (Quantity)</div>
+      <div class="variant-section-title">🛒 数量</div>
       <div class="variant-qty-row">
         <button type="button" class="variant-qty-btn" onclick="changeVariantQty(-1)">−</button>
         <input id="variantQty" type="number" value="1" min="1" inputmode="numeric">
@@ -174,7 +174,7 @@ function openVariantModal(p) {
     document.getElementById("selectedVariantId").value = "";
     document.getElementById("selectedVariantName").value = "";
     document.getElementById("modalStock").textContent =
-        p.stock ? ("Stock: " + p.stock) : "Stock: -";
+        p.stock ? ("库存：" + p.stock) : "库存：-";
     setVariantMaxQty(p.stock || 1);
 
     if (String(p.has_variant) === "0") {
@@ -197,7 +197,7 @@ function openVariantModal(p) {
                 document.getElementById("selectedVariantName").value = "";
                 document.getElementById("modalImg").src = qiiAssetPath(noVariantEl.dataset.img);
                 document.getElementById("modalPrice").textContent = noVariantEl.dataset.price;
-                document.getElementById("modalStock").textContent = "Stock: " + noVariantEl.dataset.stock;
+                document.getElementById("modalStock").textContent = "库存：" + noVariantEl.dataset.stock;
                 setVariantMaxQty(noVariantEl.dataset.stock || 1);
                 document.getElementById("variantPagination").style.display = "none";
                 return;
@@ -232,14 +232,14 @@ function finalAddToCart(goCheckout = false) {
     // æœ‰è§„æ ¼å•†å“æ‰è¦æ±‚é€‰æ‹©
     if (!noVariantEl && vid === "") {
         if (typeof qiiToast === "function") {
-            qiiToast("Please choose a variant first.");
+            qiiToast("请先选择商品规格");
         } else {
-            alert("Please choose a variant first.");
+            alert("请先选择商品规格");
         }
         return;
     }
     if (!pid) {
-        alert("Product ID is missing.");
+        alert("商品资料异常，请刷新后重试");
         return;
     }
 
@@ -267,15 +267,15 @@ function finalAddToCart(goCheckout = false) {
             }
             document.getElementById("variantQty").value = 1;
             if (typeof qiiToast === "function") {
-                qiiToast("Added to cart. You can keep choosing.");
+                qiiToast("已加入购物袋，可以继续选购");
             } else {
-                alert("Added to cart. You can keep choosing.");
+                alert("已加入购物袋，可以继续选购");
             }
         } else {
-            const msg = data.message || "Add failed. Please try again.";
+            const msg = data.message || "加入购物袋失败，请稍后再试";
             if (typeof qiiToast === "function") {
                 if (msg.includes("库存") || msg.includes("stock")) {
-                    qiiToast("This variant has reached the stock limit.");
+                    qiiToast("此规格已达到库存上限");
                 } else {
                     qiiToast(msg);
                 }
@@ -317,7 +317,7 @@ document.addEventListener("click", function(e){
 
     // æ›´æ–°åº“å­˜
     document.getElementById("modalStock").textContent =
-        "Stock: " + card.dataset.vstock;
+        "库存：" + card.dataset.vstock;
     setVariantMaxQty(card.dataset.vstock || 1);
 });
 
@@ -336,7 +336,7 @@ function autoSelectFirstCard(){
         document.getElementById("modalPrice").textContent =
             parseFloat(first.dataset.vprice).toFixed(2);
         document.getElementById("modalStock").textContent =
-            "Stock: " + first.dataset.vstock;
+            "库存：" + first.dataset.vstock;
         setVariantMaxQty(first.dataset.vstock || 1);
     }
 }
