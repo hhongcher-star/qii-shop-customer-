@@ -18,7 +18,11 @@ $categories = [
 ];
 
 $categoryRows = qii_categories($pdo);
-$categories = array_map(fn($row) => $row['name'], $categoryRows);
+
+$categories = [];
+foreach ($categoryRows as $row) {
+    $categories[$row['code']] = $row['name'];
+}
 
 function ensure_product_admin_columns(PDO $pdo): void {
     $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);
@@ -121,13 +125,16 @@ if (!$variants) {
 }
 
 $initialProductType = ((int)($product['has_variant'] ?? 0) === 1 || ($id > 0 && count($variants) > 1)) ? 'variant' : 'single';
-
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) 
+    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $id = (int)($_POST['id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
     $category = $_POST['category'] ?? 'phone';
-    if (!isset($categories[$category])) $category = 'phone';
+    if (!in_array($category, $categories, true)) {
+    $category = $categories[0] ?? '默认分类';
+}
     $brand = trim($_POST['brand'] ?? '');
     $status = isset($_POST['status']) ? 'active' : 'inactive';
     $productType = ($_POST['product_type'] ?? 'single') === 'variant' ? 'variant' : 'single';
@@ -192,8 +199,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($errors) {
-        $error = implode('；', $errors);
-    } else {
+
+    $error = implode('；', $errors);
+
+    if ($isAjax) {
+        header('Content-Type: application/json');
+
+        echo json_encode([
+            'success' => false,
+            'message' => $error
+        ]);
+
+        exit;
+    }
+} else {
 
     $firstPrice = $productType === 'single' ? (float)$singlePrice : $cleanVariants[0]['price'];
     $totalStock = $productType === 'single' ? (int)$singleStock : array_sum(array_column($cleanVariants, 'stock'));
@@ -248,11 +267,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
-        header('Location: product_editor.php?id=' . $id . '&saved=1');
-        exit;
+        if ($isAjax) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'message' => '规格保存成功',
+        'id' => $id
+    ]);
+    exit;
+}
+
+header('Location: product_editor.php?id=' . $id . '&saved=1');
+exit;
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $error = '保存失败：' . $e->getMessage();
+        if ($isAjax) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'message' => $error
+    ]);
+    exit;
+}
     }
 }
 }
@@ -347,7 +384,12 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
               <span>商品分类 <b>*</b></span>
               <select data-preview-category name="category" required>
                 <?php foreach ($categories as $key => $label): ?>
-                  <option value="<?= htmlspecialchars($key) ?>" <?= ($product['category'] ?? '') === $key ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                  <option
+                    value="<?= htmlspecialchars($key) ?>"
+                    <?= ($product['category'] ?? '') === $key ? 'selected' : '' ?>
+                  >
+                    <?= htmlspecialchars($label) ?>
+                  </option>
                 <?php endforeach; ?>
               </select>
             </label>
@@ -402,7 +444,7 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
             <?php endforeach; ?>
           </div>
           <div class="variant-save-row">
-            <button type="submit" name="save_variants" value="1" class="save-action"><i class="fa-solid fa-floppy-disk"></i> 保存规格</button>
+            <button type="button" id="saveVariantBtn" class="save-action"><i class="fa-solid fa-floppy-disk"></i> 保存规格</button>
           </div>
         </section>
       </div>
@@ -460,5 +502,60 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
 </template>
 
 <script src="js/product_admin.js?v=20260604"></script>
+<script>
+document.getElementById('saveVariantBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('saveVariantBtn');
+    btn.disabled = true;
+    btn.innerHTML = '保存中...';
+
+    const form = document.getElementById('productEditorForm');
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message || '保存成功');
+        } else {
+            showToast(data.message || '保存失败', true);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('网络错误', true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 保存规格';
+    }
+});
+
+function showToast(message, isError = false) {
+    const toast = document.createElement('div');
+    toast.innerText = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: ${isError ? '#ff4d6d' : '#ff4fa3'};
+        color: white;
+        padding: 14px 20px;
+        border-radius: 14px;
+        z-index: 9999;
+        font-weight: 700;
+        box-shadow: 0 10px 30px rgba(0,0,0,.12);
+        animation: fadeIn .2s ease;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 2500);
+}
+</script>
 </body>
 </html>

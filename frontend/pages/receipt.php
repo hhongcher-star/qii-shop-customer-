@@ -575,10 +575,10 @@ function submitAddress(){
     let state = document.getElementById("addr_state").value.trim();
     let orderNote = document.getElementById("order_note").value.trim();
 
-    if (!name || !phone || !address || !postcode || !state) {
-        alert("请填写完整收货地址");
-        return;
-    }
+ if (!name || !phone) {
+    alert("请填写收件人姓名和联系电话");
+    return;
+}
 
     let fd = new URLSearchParams();
     fd.append("order_number", "<?= $order_data['order_number'] ?>");
@@ -670,13 +670,13 @@ function closePay(){
       <input id="addr_phone" type="text" placeholder="联系电话"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
-      <input id="addr_address" type="text" placeholder="详细地址"
+      <input id="addr_address" type="text" placeholder="详细地址（选填）"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
-      <input id="addr_postcode" type="text" placeholder="邮编"
+      <input id="addr_postcode" type="text" placeholder="邮编（选填）"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
-      <input id="addr_state" type="text" placeholder="州属（如：Selangor）"
+      <input id="addr_state" type="text" placeholder="州属（选填）"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
       <textarea id="order_note" maxlength="500" rows="3" placeholder="订单备注（选填）"
