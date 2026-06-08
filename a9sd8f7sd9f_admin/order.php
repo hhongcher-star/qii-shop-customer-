@@ -25,8 +25,8 @@ function status_class(string $status): string {
         'paid' => 'ship',
         'shipped' => 'sent',
         'completed' => 'done',
-        'stored_uncombined' => 'pending',
-        'stored_combined' => 'done',
+        'stored_uncombined' => 'hold',
+        'stored_combined' => 'combined',
         'cancelled' => 'cancel',
         default => 'pending',
     };
@@ -244,7 +244,7 @@ $msg = $_GET['msg'] ?? '';
             <td><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></td>
             <td class="receiver-cell"><strong><?= htmlspecialchars($o['addr_name'] ?? '-') ?></strong><small><?= htmlspecialchars($o['addr_phone'] ?? '') ?></small></td>
             <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
-            <td><span class="state-pill <?= $isHoldOrder ? 'pending' : ($paid ? 'paid' : 'unpaid') ?>"><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
+            <td><span class="state-pill <?= $isHoldOrder ? 'hold' : ($paid ? 'paid' : 'unpaid') ?>"><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
             <td><span class="state-pill <?= status_class($o['order_status']) ?>"><?= status_label($o['order_status']) ?></span></td>
             <td class="delivery-cell">
               <strong><?= htmlspecialchars($fullAddress ?: '未填写地址') ?></strong>
