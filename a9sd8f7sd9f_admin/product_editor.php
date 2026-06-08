@@ -544,6 +544,45 @@ document.getElementById('saveVariantBtn')?.addEventListener('click', async () =>
     }
 });
 
+document.getElementById('productEditorForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const btn = form.querySelector('.editor-actions button[type="submit"]');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
+    }
+
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            const targetId = data.id || form.querySelector('input[name="id"]')?.value || '';
+            window.location.href = targetId ? `product_editor.php?id=${encodeURIComponent(targetId)}&saved=1` : 'product.php';
+            return;
+        }
+
+        showToast(data.message || '保存失败，请检查必填资料', true);
+    } catch (err) {
+        console.error(err);
+        showToast('保存失败，请稍后再试', true);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+});
+
 function showToast(message, isError = false) {
     const toast = document.createElement('div');
     toast.innerText = message;
