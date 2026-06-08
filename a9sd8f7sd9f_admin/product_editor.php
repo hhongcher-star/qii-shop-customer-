@@ -522,6 +522,15 @@ document.getElementById('saveVariantBtn')?.addEventListener('click', async () =>
 
         const data = await response.json();
         if (data.success) {
+            if (data.id) {
+                const idInput = form.querySelector('input[name="id"]');
+                if (idInput) idInput.value = data.id;
+
+                const url = new URL(window.location.href);
+                url.searchParams.set('id', data.id);
+                url.searchParams.delete('saved');
+                window.history.replaceState({}, '', url.toString());
+            }
             showToast(data.message || '保存成功');
         } else {
             showToast(data.message || '保存失败', true);
