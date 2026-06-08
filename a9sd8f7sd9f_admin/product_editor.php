@@ -132,8 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
     $category = $_POST['category'] ?? 'phone';
-    if (!in_array($category, $categories, true)) {
-    $category = $categories[0] ?? '默认分类';
+    if (!isset($categories[$category])) {
+    $category = array_key_first($categories) ?? 'phone';
 }
     $brand = trim($_POST['brand'] ?? '');
     $status = isset($_POST['status']) ? 'active' : 'inactive';
