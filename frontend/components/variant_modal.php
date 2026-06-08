@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/content_settings.php';
 $variantEditableContent = [
   'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '🎀 选择规格')),
-  'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量 (Quantity)')),
+  'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量')),
   'variant_max_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_max_text', '💗 最多可购买')),
   'variant_shipping_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_shipping_text', '🚚 西马满 RM60 / 东马满 RM80 免运费')),
   'variant_quality_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quality_text', '✨ 100% 正品保证')),

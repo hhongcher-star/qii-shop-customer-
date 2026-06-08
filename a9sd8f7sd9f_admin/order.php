@@ -4,7 +4,7 @@ require_admin();
 require_once __DIR__ . '/config.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-$allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'cancelled'];
+$allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'stored_uncombined', 'stored_combined', 'cancelled'];
 
 function status_label(string $status): string {
     return [
@@ -13,6 +13,8 @@ function status_label(string $status): string {
         'paid' => '待发货',
         'shipped' => '已发货',
         'completed' => '已完成',
+        'stored_uncombined' => '存单未合单',
+        'stored_combined' => '存单已合单',
         'cancelled' => '已取消',
         'draft' => '草稿',
     ][$status] ?? $status;
@@ -23,6 +25,8 @@ function status_class(string $status): string {
         'paid' => 'ship',
         'shipped' => 'sent',
         'completed' => 'done',
+        'stored_uncombined' => 'pending',
+        'stored_combined' => 'done',
         'cancelled' => 'cancel',
         default => 'pending',
     };
@@ -90,7 +94,9 @@ if ($orderStatus !== '' && in_array($orderStatus, $allowedStatuses, true)) {
     $where[] = "o.order_status=?";
     $params[] = $orderStatus;
 }
-if ($payStatus === 'paid') {
+if ($payStatus === 'hold') {
+    $where[] = "o.order_status IN ('stored_uncombined','stored_combined')";
+} elseif ($payStatus === 'paid') {
     $where[] = "o.order_status IN ('paid','shipped','completed')";
 } elseif ($payStatus === 'unpaid') {
     $where[] = "o.order_status IN ('pending','awaiting_payment')";
@@ -129,6 +135,7 @@ $stats = [
     'paid' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='paid'")->fetchColumn(),
     'shipped' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='shipped'")->fetchColumn(),
     'completed' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='completed'")->fetchColumn(),
+    'stored' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('stored_uncombined','stored_combined')")->fetchColumn(),
 ];
 
 $msg = $_GET['msg'] ?? '';
@@ -189,9 +196,10 @@ $msg = $_GET['msg'] ?? '';
           <?php foreach ($allowedStatuses as $status): ?><option value="<?= htmlspecialchars($status) ?>" <?= $orderStatus===$status?'selected':'' ?>><?= status_label($status) ?></option><?php endforeach; ?>
         </select>
         <select name="pay_status">
-          <option value="">支付状态</option>
+          <option value="">邮费 / 支付状态</option>
           <option value="paid" <?= $payStatus==='paid'?'selected':'' ?>>已支付</option>
           <option value="unpaid" <?= $payStatus==='unpaid'?'selected':'' ?>>待付款</option>
+          <option value="hold" <?= $payStatus==='hold'?'selected':'' ?>>存单</option>
         </select>
         <a href="order.php" class="reset-btn"><i class="fa-solid fa-rotate-right"></i> 重置</a>
       </div>
@@ -221,6 +229,7 @@ $msg = $_GET['msg'] ?? '';
         <?php if (!$orders): ?><tr><td colspan="9" class="empty">暂无订单记录。</td></tr><?php endif; ?>
         <?php foreach ($orders as $o): ?>
           <?php
+            $isHoldOrder = in_array($o['order_status'], ['stored_uncombined', 'stored_combined'], true);
             $paid = in_array($o['order_status'], ['paid', 'shipped', 'completed'], true);
             $amount = (float)($o['grand_total'] ?: $o['total']);
             $fullAddress = trim(implode(' ', array_filter([
@@ -235,7 +244,7 @@ $msg = $_GET['msg'] ?? '';
             <td><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></td>
             <td class="receiver-cell"><strong><?= htmlspecialchars($o['addr_name'] ?? '-') ?></strong><small><?= htmlspecialchars($o['addr_phone'] ?? '') ?></small></td>
             <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
-            <td><span class="state-pill <?= $paid ? 'paid' : 'unpaid' ?>"><?= $paid ? '已支付' : '待付款' ?></span></td>
+            <td><span class="state-pill <?= $isHoldOrder ? 'pending' : ($paid ? 'paid' : 'unpaid') ?>"><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
             <td><span class="state-pill <?= status_class($o['order_status']) ?>"><?= status_label($o['order_status']) ?></span></td>
             <td class="delivery-cell">
               <strong><?= htmlspecialchars($fullAddress ?: '未填写地址') ?></strong>

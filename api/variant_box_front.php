@@ -92,7 +92,7 @@ foreach ($variants as $v):
     <img src="<?= htmlspecialchars(qii_asset_path($v['image_url'])) ?>" alt="">
     <div>
         <div class="variant-name"><?= htmlspecialchars(qii_text($v['variant_name'])) ?></div>
-        <div class="variant-stock">Stock: <?= (int)$v['stock'] ?></div>
+        <div class="variant-stock">库存：<?= (int)$v['stock'] ?></div>
     </div>
 </div>
 
@@ -113,7 +113,7 @@ function updateModal(card){
         parseFloat(card.dataset.vprice).toFixed(2);
 
     parent.document.getElementById('modalStock').textContent =
-        'Stock: ' + card.dataset.vstock;
+        '库存：' + card.dataset.vstock;
 
     parent.document.getElementById('modalImg').src = parent.qiiAssetPath
         ? parent.qiiAssetPath(card.dataset.vimg)

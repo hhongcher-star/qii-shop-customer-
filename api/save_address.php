@@ -19,11 +19,14 @@ $phone       = trim($_POST['phone'] ?? '');
 $address     = trim($_POST['address'] ?? '');
 $postcode    = trim($_POST['postcode'] ?? '');
 $state       = trim($_POST['state'] ?? '');
+$orderNote   = trim($_POST['order_note'] ?? '');
 
 // 必填检查
-if (!$order_number || !$name || !$phone || !$address || !$postcode || !$state) {
-    exit("❌ Missing required fields");
+if (!$order_number || !$name || !$phone) {
+    exit("❌ 请填写收件人姓名和联系电话");
 }
+
+qii_ensure_order_security_columns($pdo);
 
 // 额外安全验证：订单必须属于当前 session
 if (!isset($_SESSION['pending_order']) || 
@@ -49,7 +52,12 @@ try {
             addr_address = ?,
             addr_postcode = ?,
             addr_state = ?,
-            order_status = 'pending'
+            order_note = ?,
+            order_status = CASE
+                WHEN region = 'hold' AND order_status = 'stored_combined' THEN 'stored_combined'
+                WHEN region = 'hold' THEN 'stored_uncombined'
+                ELSE 'pending'
+            END
         WHERE order_number = ?
         LIMIT 1
     ");
@@ -60,6 +68,7 @@ try {
         $address,
         $postcode,
         $state,
+        $orderNote ?: null,
         $order_number
     ]);
 
@@ -69,6 +78,7 @@ try {
     $_SESSION['pending_order']['addr_address']  = $address;
     $_SESSION['pending_order']['addr_postcode'] = $postcode;
     $_SESSION['pending_order']['addr_state']    = $state;
+    $_SESSION['pending_order']['order_note']    = $orderNote;
 
     echo "OK";
 

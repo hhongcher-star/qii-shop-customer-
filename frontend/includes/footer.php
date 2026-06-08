@@ -642,17 +642,23 @@ function updateCartUI(data) {
     <div class="region-select">
       <label>
         <input type="radio" name="region" value="west" ${currentRegion === 'west' ? 'checked' : ''}>
-        &#35199;&#39532; (West MY)
+        西马 RM10
       </label>
       <label style="margin-left:15px;">
         <input type="radio" name="region" value="east" ${currentRegion === 'east' ? 'checked' : ''}>
-        &#19996;&#39532; (East MY)
+        东马 RM15
+      </label>
+      <label style="margin-left:15px;">
+        <input type="radio" name="region" value="hold" ${currentRegion === 'hold' ? 'checked' : ''}>
+        存单 RM0
       </label>
     </div>`;
 
   // æŒ‰åœ°åŒºè®¡ç®—è¿è´¹ä¸Žå…é‚®é—¨æ§›
   let shipping_cost = 0;
-  if (currentRegion === 'west') {
+  if (currentRegion === 'hold') {
+    shipping_cost = 0;
+  } else if (currentRegion === 'west') {
     shipping_cost = total >= 65 ? 0 : 10;
   } else {
     shipping_cost = total >= 80 ? 0 : 15;
@@ -717,7 +723,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const region = document.querySelector('input[name="region"]:checked')?.value;
 
       if (!region) {
-        alert("Please choose West MY or East MY before checkout.");
+        alert("请选择邮费方式（西马 / 东马 / 存单）后再结账");
         return;
       }
 

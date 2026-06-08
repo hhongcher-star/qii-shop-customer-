@@ -430,7 +430,20 @@ td {
       <h3 style="color:#E5679C;">收货信息 📦</h3>
       <p>👤 <?= htmlspecialchars($order_data['addr_name']) ?></p>
       <p>📱 <?= htmlspecialchars($order_data['addr_phone']) ?></p>
-      <p>🏡 <?= htmlspecialchars($order_data['addr_address']) ?>, <?= htmlspecialchars($order_data['addr_postcode']) ?> <?= htmlspecialchars($order_data['addr_state']) ?></p>
+      <?php
+        $receiptAddress = trim(implode(' ', array_filter([
+            $order_data['addr_address'] ?? '',
+            $order_data['addr_postcode'] ?? '',
+            $order_data['addr_state'] ?? '',
+        ])));
+        $receiptNote = trim((string)($order_data['order_note'] ?? ''));
+      ?>
+      <?php if ($receiptAddress !== ''): ?>
+        <p>🏡 <?= htmlspecialchars($receiptAddress) ?></p>
+      <?php endif; ?>
+      <?php if ($receiptNote !== ''): ?>
+        <p>📝 <?= htmlspecialchars($receiptNote) ?></p>
+      <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -458,7 +471,9 @@ td {
 
       // 运费规则
       $region = $order_data['region'] ?? 'west';
-      if ($region === 'west')
+      if ($region === 'hold')
+          $shipping = 0;
+      elseif ($region === 'west')
           $shipping = $total >= 65 ? 0 : 10;
       else
           $shipping = $total >= 80 ? 0 : 15;
@@ -489,9 +504,11 @@ td {
     <p class="total">总价：RM <?= number_format($grand_total,2) ?></p>
 
     <div class="shipping-box">
-      <?= ($region === 'west')
-          ? "📦 西马：RM10 满 RM65 免邮"
-          : "📦 东马：RM15 满 RM80 免邮" ?>
+      <?= ($region === 'hold')
+          ? "📦 存单：运费 RM0.00"
+          : (($region === 'west')
+              ? "📦 西马：RM10 满 RM65 免邮"
+              : "📦 东马：RM15 满 RM80 免邮") ?>
 </div>
 
 <!-- Coupon Modal -->

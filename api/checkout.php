@@ -23,8 +23,8 @@ if (empty($_SESSION['cart'])) {
 }
 
 $region = $_POST['region'] ?? null;
-if (!in_array($region, ['west', 'east'], true)) {
-    echo json_encode(['success' => false, 'msg' => '请选择地区（西马 / 东马）才能结账'], JSON_UNESCAPED_UNICODE);
+if (!in_array($region, ['west', 'east', 'hold'], true)) {
+    echo json_encode(['success' => false, 'msg' => '请选择邮费方式（西马 / 东马 / 存单）才能结账'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
