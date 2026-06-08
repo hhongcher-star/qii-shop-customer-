@@ -20,7 +20,7 @@ if (function_exists('mb_substr')) {
 }
 
 if ($order_number === '') exit('NO_ORDER');
-if ($name === '' || $phone === '' || $address === '' || $postcode === '' || $state === '') exit('NO_ADDRESS');
+if ($name === '' || $phone === '') exit('NO_ADDRESS');
 
 $po = $_SESSION['pending_order'] ?? null;
 if (!$po || ($po['order_number'] ?? '') !== $order_number || empty($po['items']) || !is_array($po['items'])) {

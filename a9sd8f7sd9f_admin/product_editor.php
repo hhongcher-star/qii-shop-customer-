@@ -1,4 +1,4 @@
-in_array<?php
+<?php
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
@@ -131,10 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $id = (int)($_POST['id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
-    $category = $_POST['category'] ?? 'phone';
+    $category = trim((string)($_POST['category'] ?? ''));
     if (!isset($categories[$category])) {
-    $category = array_key_first($categories) ?? 'phone';
-}
+        $category = array_key_first($categories) ?? 'phone';
+    }
     $brand = trim($_POST['brand'] ?? '');
     $status = isset($_POST['status']) ? 'active' : 'inactive';
     $productType = ($_POST['product_type'] ?? 'single') === 'variant' ? 'variant' : 'single';
