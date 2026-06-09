@@ -22,8 +22,8 @@ $state       = trim($_POST['state'] ?? '');
 $orderNote   = trim($_POST['order_note'] ?? '');
 
 // 必填检查
-if (!$order_number || !$name || !$phone) {
-    exit("❌ 请填写收件人姓名和联系电话");
+if (!$order_number || !$name) {
+    exit("❌ 请填写收件人姓名");
 }
 
 qii_ensure_order_security_columns($pdo);

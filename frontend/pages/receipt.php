@@ -592,8 +592,8 @@ function submitAddress(){
     let state = document.getElementById("addr_state").value.trim();
     let orderNote = document.getElementById("order_note").value.trim();
 
- if (!name || !phone) {
-    alert("请填写收件人姓名和联系电话");
+ if (!name) {
+    alert("请填写收件人姓名");
     return;
 }
 
@@ -684,7 +684,7 @@ function closePay(){
       <input id="addr_name" type="text" placeholder="收件人姓名"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
-      <input id="addr_phone" type="text" placeholder="联系电话"
+      <input id="addr_phone" type="text" placeholder="联系电话（选填）"
              style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
 
       <input id="addr_address" type="text" placeholder="详细地址（选填）"
