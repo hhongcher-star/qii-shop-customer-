@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/content_settings.php';
 require_once __DIR__ . '/../../app/customers.php';
+$favoritesEnabled = defined('QII_FAVORITES_ENABLED') && QII_FAVORITES_ENABLED;
 $variantEditableContent = [
   'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '🎀 选择规格')),
   'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量')),
@@ -59,7 +60,7 @@ $variantEditableContent = [
 .variant-page-dot.active { width: 20px; border-radius: 999px; background: #f5368d; }
 .variant-action-row {
   display: grid;
-  grid-template-columns: 1fr 110px;
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 12px;
 }
@@ -141,7 +142,7 @@ $variantEditableContent = [
     🛍 加入购物袋
   </button>
 
-  <?php if (qii_customer_id()): ?>
+  <?php if ($favoritesEnabled && qii_customer_id()): ?>
     <button 
       type="button"
       id="variantFavoriteButton"

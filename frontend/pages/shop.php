@@ -4,10 +4,13 @@ require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/categories.php';
 require_once __DIR__ . '/../../app/content_settings.php';
 require_once __DIR__ . '/../../app/customers.php';
-qii_ensure_customer_tables($pdo);
+$favoritesEnabled = defined('QII_FAVORITES_ENABLED') && QII_FAVORITES_ENABLED;
+if ($favoritesEnabled) {
+  qii_ensure_customer_tables($pdo);
+}
 
 $favoriteProductIds = [];
-if (qii_customer_id()) {
+if ($favoritesEnabled && qii_customer_id()) {
   $favoriteStmt = $pdo->prepare('SELECT product_id FROM customer_favorites WHERE customer_id=?');
   $favoriteStmt->execute([qii_customer_id()]);
   $favoriteProductIds = array_map('intval', $favoriteStmt->fetchAll(PDO::FETCH_COLUMN));
@@ -43,7 +46,7 @@ function qii_text($text) {
 }
 
 function qii_product_payload($p) {
-  global $favoriteProductIds;
+  global $favoriteProductIds, $favoritesEnabled;
   return htmlspecialchars(json_encode([
     'id' => (int)$p['id'],
     'name' => qii_text($p['name']),
@@ -51,7 +54,7 @@ function qii_product_payload($p) {
     'stock' => (int)$p['stock'],
     'sku' => $p['sku'] ?? '',
     'has_variant' => isset($p['has_variant']) ? (int)$p['has_variant'] : 0,
-    'favorite' => in_array((int)$p['id'], $favoriteProductIds, true),
+    'favorite' => $favoritesEnabled && in_array((int)$p['id'], $favoriteProductIds, true),
     'img' => qii_asset_path($p['image_url'] ?? ''),
   ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 }

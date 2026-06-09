@@ -1,5 +1,6 @@
 <?php
 $current_page = basename($_SERVER['PHP_SELF']);
+$customerFeaturesEnabled = defined('QII_CUSTOMER_FEATURES_ENABLED') && QII_CUSTOMER_FEATURES_ENABLED;
 
 $menu_items = [
     ['file' => 'dashboard.php', 'icon' => 'fa-chart-line', 'label' => '仪表盘 Dashboard'],
@@ -20,8 +21,21 @@ $mobile_items = [
 ];
 
 $more_pages = ['discount_center.php', 'reply.php', 'inventory.php', 'hero_content.php', 'customers.php'];
+if (!$customerFeaturesEnabled) {
+    $menu_items = array_values(array_filter(
+        $menu_items,
+        static fn(array $item): bool => $item['file'] !== 'customers.php'
+    ));
+    $more_pages = array_values(array_filter(
+        $more_pages,
+        static fn(string $file): bool => $file !== 'customers.php'
+    ));
+}
 ?>
 <link rel="stylesheet" href="includes/admin_layout.css?v=20260604c">
+<?php if (!$customerFeaturesEnabled): ?>
+<style>.mobile-more-menu a[href="customers.php"] { display: none !important; }</style>
+<?php endif; ?>
 
 <header class="admin-shell">
   <aside class="admin-sidebar">

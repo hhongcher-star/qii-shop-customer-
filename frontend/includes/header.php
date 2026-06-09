@@ -2,7 +2,8 @@
 $currentPage = basename($_SERVER['PHP_SELF']);
 require_once __DIR__ . '/../../app/customers.php';
 $cartCount = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'qty')) : 0;
-$customer = qii_customer();
+$customerFeaturesEnabled = defined('QII_CUSTOMER_FEATURES_ENABLED') && QII_CUSTOMER_FEATURES_ENABLED;
+$customer = $customerFeaturesEnabled ? qii_customer() : null;
 ?>
 
 <header class="mobile-app-header">
@@ -29,7 +30,9 @@ $customer = qii_customer();
     <a href="index.php" class="<?= $currentPage === 'index.php' ? 'active' : '' ?>">首页 Home</a>
     <a href="shop.php" class="<?= $currentPage === 'shop.php' ? 'active' : '' ?>">商店 Shop</a>
     <a href="contact.php" class="<?= $currentPage === 'contact.php' ? 'active' : '' ?>">联系我们 Contact</a>
-    <a href="<?= $customer ? 'account.php' : 'login.php' ?>" class="<?= in_array($currentPage, ['account.php', 'login.php', 'register.php'], true) ? 'active' : '' ?>"><?= $customer ? '我的订单 Account' : '登录 Login' ?></a>
+    <?php if ($customerFeaturesEnabled): ?>
+      <a href="<?= $customer ? 'account.php' : 'login.php' ?>" class="<?= in_array($currentPage, ['account.php', 'login.php', 'register.php'], true) ? 'active' : '' ?>"><?= $customer ? '我的订单 Account' : '登录 Login' ?></a>
+    <?php endif; ?>
   </nav>
 
   <div class="nav-right">
@@ -50,7 +53,9 @@ $customer = qii_customer();
     <a href="index.php">首页 Home</a>
     <a href="shop.php">商店 Shop</a>
     <a href="contact.php">联系我们 Contact</a>
-    <a href="<?= $customer ? 'account.php' : 'login.php' ?>"><?= $customer ? '我的订单 Account' : '登录 Login' ?></a>
+    <?php if ($customerFeaturesEnabled): ?>
+      <a href="<?= $customer ? 'account.php' : 'login.php' ?>"><?= $customer ? '我的订单 Account' : '登录 Login' ?></a>
+    <?php endif; ?>
   </div>
 </div>
 

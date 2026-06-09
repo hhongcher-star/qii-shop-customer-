@@ -214,12 +214,39 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 /* åœ°åŒºé€‰æ‹©ï¼ˆè¥¿é©¬ / ä¸œé©¬ï¼‰ */
 .region-select {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:10px;
   text-align:right;
   margin-top: 10px;
   color:#e5679c;
   font-size:14px;
 }
-.region-select input { accent-color: #e5679c; }
+.region-select label {
+  display:inline-flex !important;
+  align-items:center;
+  gap:6px;
+  width:auto !important;
+  margin:0 !important;
+  font-weight:700;
+  white-space:nowrap;
+}
+.region-select input[type="radio"] {
+  appearance:auto !important;
+  -webkit-appearance:radio !important;
+  width:16px !important;
+  min-width:16px !important;
+  max-width:16px !important;
+  height:16px !important;
+  min-height:16px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  box-shadow:none !important;
+  accent-color:#e5679c;
+}
 
 .cart-footer {
   margin-top: 15px;

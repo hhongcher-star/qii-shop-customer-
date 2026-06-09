@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 const QII_APP_ENV = 'production';
+// Temporarily hide customer accounts and favorites without removing their code.
+const QII_CUSTOMER_FEATURES_ENABLED = false;
+const QII_FAVORITES_ENABLED = false;
 
 if (QII_APP_ENV === 'production') {
     error_reporting(E_ALL);
