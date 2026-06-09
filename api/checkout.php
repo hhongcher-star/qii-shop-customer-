@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
+require_once __DIR__ . '/../app/customers.php';
 qii_start_session();
 require_once __DIR__ . '/../a9sd8f7sd9f_admin/config.php';
 
@@ -27,7 +28,6 @@ if (!in_array($region, ['west', 'east', 'hold'], true)) {
     echo json_encode(['success' => false, 'msg' => '请选择邮费方式（西马 / 东马 / 存单）才能结账'], JSON_UNESCAPED_UNICODE);
     exit;
 }
-
 $total = 0.0;
 foreach ($_SESSION['cart'] as $item) {
     $variantId = (int)($item['variant_id'] ?? 0);

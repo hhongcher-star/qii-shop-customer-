@@ -2,6 +2,8 @@
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../app/customers.php';
+qii_ensure_customer_tables($pdo);
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
 $allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'stored_uncombined', 'stored_combined', 'cancelled'];
@@ -118,9 +120,10 @@ $totalOrders = (int)$stmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalOrders / $limit));
 
 $stmt = $pdo->prepare("
-    SELECT o.*, COUNT(oi.id) AS item_count
+    SELECT o.*, c.name AS customer_name, c.email AS customer_email, COUNT(oi.id) AS item_count
     FROM orders o
     LEFT JOIN order_items oi ON oi.order_id=o.id
+    LEFT JOIN customers c ON c.id=o.customer_id
     $whereSql
     GROUP BY o.id
     ORDER BY o.created_at DESC
@@ -160,6 +163,33 @@ $msg = $_GET['msg'] ?? '';
       cursor: pointer;
     }
     .delete-order-btn:hover { background: #ffe7ef; }
+   .table-top-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 18px;
+  margin: 0 0 8px 0;
+}
+
+.table-top-scroll div {
+  height: 1px;
+}
+
+.order-table-card {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scrollbar-width: none; /* Firefox */
+}
+
+.order-table-card::-webkit-scrollbar {
+  display: none; /* Chrome */
+}
+
+.order-table-card table {
+  min-width: 1500px;
+  width: max-content;
+}
   </style>
 </head>
 <body>
@@ -208,8 +238,11 @@ $msg = $_GET['msg'] ?? '';
 
     
   </section>
+  <div class="table-top-scroll" id="tableTopScroll">
+    <div id="tableTopScrollInner"></div>
+  </div>
 
-  <section class="order-table-card">
+  <section class="order-table-card" id="orderTableScroll">
     <div class="mobile-list-head"><strong>共 <?= $totalOrders ?> 条记录</strong><span>每页显示 <?= $limit ?> 条</span></div>
     <table>
       <thead>
@@ -242,7 +275,13 @@ $msg = $_GET['msg'] ?? '';
             <td class="check-cell"><input form="bulkForm" type="checkbox" name="order_ids[]" value="<?= (int)$o['id'] ?>"></td>
             <td class="order-info"><strong><?= htmlspecialchars($o['order_number']) ?></strong><small>共 <?= (int)$o['item_count'] ?> 件商品</small></td>
             <td><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></td>
-            <td class="receiver-cell"><strong><?= htmlspecialchars($o['addr_name'] ?? '-') ?></strong><small><?= htmlspecialchars($o['addr_phone'] ?? '') ?></small></td>
+            <td class="receiver-cell">
+              <strong><?= htmlspecialchars($o['addr_name'] ?? '-') ?></strong>
+              <small><?= htmlspecialchars($o['addr_phone'] ?? '') ?></small>
+              <small style="color:<?= $o['customer_id'] ? '#d94b8a' : '#9a8d95' ?>;font-weight:800;">
+                <?= $o['customer_id'] ? '会员：' . htmlspecialchars($o['customer_name'] ?: ('用户 #' . $o['customer_id'])) : '游客订单（无登录账号）' ?>
+              </small>
+            </td>
             <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
             <td><span class="state-pill <?= $isHoldOrder ? 'hold' : ($paid ? 'paid' : 'unpaid') ?>"><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
             <td><span class="state-pill <?= status_class($o['order_status']) ?>"><?= status_label($o['order_status']) ?></span></td>
@@ -314,6 +353,22 @@ $msg = $_GET['msg'] ?? '';
     event.preventDefault();
     toggleBtn.closest('form')?.submit();
   });
+  const topScroll = document.getElementById('tableTopScroll');
+const topInner = document.getElementById('tableTopScrollInner');
+const tableScroll = document.getElementById('orderTableScroll');
+const table = tableScroll?.querySelector('table');
+
+if (topScroll && topInner && tableScroll && table) {
+  topInner.style.width = table.offsetWidth + 'px';
+
+  topScroll.addEventListener('scroll', () => {
+    tableScroll.scrollLeft = topScroll.scrollLeft;
+  });
+
+  tableScroll.addEventListener('scroll', () => {
+    topScroll.scrollLeft = tableScroll.scrollLeft;
+  });
+}
 </script>
 <script src="js/product_admin.js?v=20260604"></script>
 </body>

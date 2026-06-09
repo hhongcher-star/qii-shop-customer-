@@ -3,6 +3,15 @@ session_start();
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/categories.php';
 require_once __DIR__ . '/../../app/content_settings.php';
+require_once __DIR__ . '/../../app/customers.php';
+qii_ensure_customer_tables($pdo);
+
+$favoriteProductIds = [];
+if (qii_customer_id()) {
+  $favoriteStmt = $pdo->prepare('SELECT product_id FROM customer_favorites WHERE customer_id=?');
+  $favoriteStmt->execute([qii_customer_id()]);
+  $favoriteProductIds = array_map('intval', $favoriteStmt->fetchAll(PDO::FETCH_COLUMN));
+}
 
 $shopTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_title', '🌸 可爱生活选物'));
 $shopPromoTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_promo_title', '新品可爱小物上线啦 ✨'));
@@ -34,6 +43,7 @@ function qii_text($text) {
 }
 
 function qii_product_payload($p) {
+  global $favoriteProductIds;
   return htmlspecialchars(json_encode([
     'id' => (int)$p['id'],
     'name' => qii_text($p['name']),
@@ -41,6 +51,7 @@ function qii_product_payload($p) {
     'stock' => (int)$p['stock'],
     'sku' => $p['sku'] ?? '',
     'has_variant' => isset($p['has_variant']) ? (int)$p['has_variant'] : 0,
+    'favorite' => in_array((int)$p['id'], $favoriteProductIds, true),
     'img' => qii_asset_path($p['image_url'] ?? ''),
   ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 }
@@ -316,6 +327,30 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   transition: transform 0.25s ease;
 }
 .product-card:hover { transform: translateY(-3px); }
+.favorite-btn {
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:8;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:1px solid #f5bfd5;
+  border-radius:50%;
+  background:rgba(255,255,255,.94);
+  color:#d8a1b8;
+  font-size:17px;
+  cursor:pointer;
+  box-shadow:0 5px 14px rgba(218,74,139,.12);
+}
+.favorite-btn:hover,
+.favorite-btn.active {
+  color:#ed2f87;
+  background:#fff0f7;
+  border-color:#ed78ab;
+}
 .brand-badge {
   position: absolute;
   top: 10px;
@@ -1303,6 +1338,40 @@ document.querySelectorAll(".sakura").forEach((el, i) => {
 });
 // ÃƒÂ°Ã…Â¸Ã¢â‚¬â€œÃ‚Â¼ÃƒÂ¯Ã‚Â¸Ã‚Â ÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â»ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚ÂÃƒÂ¥Ã¢â‚¬ÂºÃ‚Â¾ÃƒÂ§Ã¢â‚¬Â°Ã¢â‚¬Â¡ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ÃƒÂ¦Ã¢â‚¬ÂÃ‚Â¾ÃƒÂ¥Ã‚Â¤Ã‚Â§ÃƒÂ©Ã‚Â¢Ã¢â‚¬Å¾ÃƒÂ¨Ã‚Â§Ã‹â€ 
 document.addEventListener("click", function(e) {
+  const favoriteButton = e.target.closest("[data-favorite-product]");
+  if (favoriteButton) {
+    e.preventDefault();
+    e.stopPropagation();
+    const token = document.querySelector('meta[name="qii-csrf-token"]')?.content || "";
+    const body = new URLSearchParams({ product_id: favoriteButton.dataset.favoriteProduct });
+    fetch("api/toggle_favorite.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-QII-CSRF-Token": token
+      },
+      body
+    }).then(async response => {
+      const data = await response.json();
+      if (response.status === 401 || data.login_required) {
+        location.href = "login.php?next=" + encodeURIComponent(location.pathname + location.search);
+        return;
+      }
+      if (!data.success) throw new Error(data.message || "Favorite failed");
+      favoriteButton.classList.toggle("active", data.favorite);
+      const icon = favoriteButton.querySelector("i");
+      if (icon) {
+        icon.classList.toggle("fa-solid", data.favorite);
+        icon.classList.toggle("fa-regular", !data.favorite);
+      } else {
+        favoriteButton.textContent = data.favorite ? "已收藏" : "收藏";
+      }
+    }).catch(() => {
+      alert("收藏失败，请稍后再试。");
+    });
+    return;
+  }
+
   // ÃƒÂ¥Ã‚ÂÃ‚ÂªÃƒÂ¦Ã¢â‚¬ÂÃ‚Â¾ÃƒÂ¥Ã‚Â¤Ã‚Â§ product-card ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¥Ã¢â‚¬ÂºÃ‚Â¾ÃƒÂ§Ã¢â‚¬Â°Ã¢â‚¬Â¡ÃƒÂ¯Ã‚Â¼Ã…â€™ÃƒÂ¤Ã‚Â¸Ã‚ÂÃƒÂ¦Ã¢â‚¬ÂÃ‚Â¾ÃƒÂ¥Ã‚Â¤Ã‚Â§ header/footer/logo
   if (e.target.matches(".product-card img")) {
     const modal = document.getElementById("imgPreview");

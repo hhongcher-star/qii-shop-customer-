@@ -1,11 +1,22 @@
 <?php
-// Local database connection for XAMPP/Laragon.
-// Database name: qi_shop
+// Database connection.
+// Local development automatically uses the XAMPP/Laragon database.
+// Production keeps the Hostinger database values unless environment variables are set.
 
-$host = "localhost";
-$db   = "u751690829_qi_shop";
-$user = "u751690829_qi_shop_user";
-$pass = "#M!uYL8y";
+$isLocal = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', 'localhost:8000', '127.0.0.1:8000'], true)
+    || PHP_SAPI === 'cli';
+
+if ($isLocal) {
+    $host = getenv('QII_DB_HOST') ?: '127.0.0.1';
+    $db   = getenv('QII_DB_NAME') ?: 'qi_shop';
+    $user = getenv('QII_DB_USER') ?: 'root';
+    $pass = getenv('QII_DB_PASS') ?: '';
+} else {
+    $host = getenv('QII_DB_HOST') ?: 'localhost';
+    $db   = getenv('QII_DB_NAME') ?: 'u751690829_qi_shop';
+    $user = getenv('QII_DB_USER') ?: 'u751690829_qi_shop_user';
+    $pass = getenv('QII_DB_PASS') ?: '#M!uYL8y';
+}
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/bootstrap.php';
+require_once __DIR__ . '/../../app/customers.php';
 qii_start_session();
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
@@ -553,7 +554,10 @@ function showAnnouncementPopup() {
     element.innerHTML = qiiAnnouncementEditableContent[key];
   });
 
-  document.getElementById("closeSpeakerPopup").onclick = () => popup.remove();
+  document.getElementById("closeSpeakerPopup").onclick = () => {
+    popup.remove();
+    document.dispatchEvent(new CustomEvent("qii:announcement-closed"));
+  };
 }
 
 // èŽ·å–è´­ç‰©è¢‹å†…å®¹å¹¶æ›´æ–°

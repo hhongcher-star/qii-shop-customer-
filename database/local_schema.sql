@@ -46,6 +46,53 @@ INSERT INTO admin_users (username, password_hash, status)
 SELECT 'admin', '$2y$10$1DWMXD.Tox4JL6EESUICE.fx8JQ16de15xbBKtI84t1uKq2oKDUwm', 'active'
 WHERE NOT EXISTS (SELECT 1 FROM admin_users WHERE username = 'admin');
 
+CREATE TABLE IF NOT EXISTS customers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(160) NOT NULL,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  email_verified_at DATETIME NULL,
+  phone VARCHAR(80) NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  last_login_at DATETIME NULL,
+  admin_notes TEXT NULL,
+  admin_tags VARCHAR(500) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_customers_status (status),
+  KEY idx_customers_phone (phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS customer_favorites (
+  customer_id INT NOT NULL,
+  product_id INT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (customer_id, product_id),
+  KEY idx_favorites_product (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS customer_remember_tokens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  selector VARCHAR(64) NOT NULL UNIQUE,
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_remember_customer (customer_id),
+  KEY idx_remember_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS customer_action_tokens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  purpose VARCHAR(30) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_action_customer (customer_id),
+  KEY idx_action_purpose (purpose)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS product_groups (
   id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT NOT NULL,
@@ -72,6 +119,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
 
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NULL,
   order_number VARCHAR(80) NOT NULL UNIQUE,
   receipt_token VARCHAR(128) NULL,
   total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -90,7 +138,8 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_orders_created (created_at),
-  KEY idx_orders_status (order_status)
+  KEY idx_orders_status (order_status),
+  KEY idx_orders_customer (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS order_items (

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/content_settings.php';
+require_once __DIR__ . '/../../app/customers.php';
 $variantEditableContent = [
   'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '🎀 选择规格')),
   'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量')),
@@ -28,7 +29,8 @@ $variantEditableContent = [
 .variant-product-code { margin-bottom: 7px; color: #9b8790; font-size: 11px; }
 #variantModal .price-line { margin-bottom: 7px; color: #f5368d; font-size: 20px; font-weight: 900; }
 #variantModal #modalStock { color: #8d7c85; font-size: 11px; }
-.variant-like { margin-top: 8px; color: #f5a8c9; font-size: 32px; text-align: right; line-height: 1; }
+.variant-like { margin-top:8px; margin-left:auto; width:42px; height:42px; display:grid; place-items:center; border:1px solid #f5bfd5; border-radius:50%; background:#fff; color:#f5a8c9; font-size:22px; cursor:pointer; }
+.variant-like.active { color:#ed2f87; background:#fff0f7; border-color:#ed78ab; }
 .variant-section { padding: 14px 0 0; }
 .variant-section-title { margin: 0 0 10px; color: #7f6873; font-size: 12px; font-weight: 800; }
 .variant-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 0; }
@@ -55,7 +57,35 @@ $variantEditableContent = [
 .variant-page-status { min-width: 68px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .variant-page-dot { width: 7px; height: 7px; border-radius: 50%; background: #f3c6da; }
 .variant-page-dot.active { width: 20px; border-radius: 999px; background: #f5368d; }
+.variant-action-row {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 10px;
+  margin-top: 12px;
+}
 
+.variant-action-row .addToCartFinal {
+  margin-top: 0;
+}
+
+.variant-fav-final {
+  width: 110px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid #f5368d;
+  background: #fff;
+  color: #f5368d;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(245,54,141,.12);
+}
+
+.variant-fav-final.active {
+  background: linear-gradient(180deg,#ff62aa 0%,#f5368d 100%);
+  color: #fff;
+  border-color: #f5368d;
+}
 </style>
 
 <!-- Variant bottom sheet -->
@@ -70,7 +100,7 @@ $variantEditableContent = [
         <div class="variant-product-code">SKU: <span id="modalSku">-</span></div>
         <div class="price-line">RM <span id="modalPrice"></span></div>
         <div id="modalStock">库存：-</div>
-        <div class="variant-like">♡</div>
+        
       </div>
     </div>
 
@@ -105,8 +135,25 @@ $variantEditableContent = [
     <input type="hidden" id="selectedVariantName">
     <input type="hidden" id="selectedProductId">
 
-    <button class="addToCartFinal" onclick="finalAddToCart(false)">🛍 加入购物袋</button>
-  </div>
+    <div class="variant-action-row">
+  
+  <button class="addToCartFinal" onclick="finalAddToCart(false)">
+    🛍 加入购物袋
+  </button>
+
+  <?php if (qii_customer_id()): ?>
+    <button 
+      type="button"
+      id="variantFavoriteButton"
+      class="variant-fav-final"
+      data-favorite-product=""
+      aria-label="收藏商品"
+    >
+      收藏
+    </button>
+  <?php endif; ?>
+
+</div>
 </div>
 
 <script>
@@ -171,6 +218,12 @@ function openVariantModal(p) {
     document.getElementById("variantQty").value = 1;
 
     document.getElementById("selectedProductId").value = p.id;
+    const favoriteButton = document.getElementById("variantFavoriteButton");
+    if (favoriteButton) {
+        favoriteButton.dataset.favoriteProduct = p.id;
+        favoriteButton.classList.toggle("active", Boolean(p.favorite));
+        favoriteButton.textContent = p.favorite ? "已收藏" : "收藏";
+    }
     document.getElementById("selectedVariantId").value = "";
     document.getElementById("selectedVariantName").value = "";
     document.getElementById("modalStock").textContent =

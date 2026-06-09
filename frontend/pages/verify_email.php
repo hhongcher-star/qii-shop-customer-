@@ -1,0 +1,4 @@
+<?php
+require_once __DIR__ . '/../../app/customers.php'; require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php'; qii_ensure_customer_tables($pdo);
+$token=(string)($_GET['token']??'');$stmt=$pdo->prepare("SELECT * FROM customer_action_tokens WHERE token_hash=? AND purpose='verify_email' AND expires_at>NOW() LIMIT 1");$stmt->execute([hash('sha256',$token)]);$row=$stmt->fetch(PDO::FETCH_ASSOC);$ok=false;if($row){$pdo->prepare('UPDATE customers SET email_verified_at=NOW() WHERE id=?')->execute([$row['customer_id']]);$pdo->prepare('DELETE FROM customer_action_tokens WHERE id=?')->execute([$row['id']]);$ok=true;}
+?><!doctype html><html lang="zh-CN"><meta charset="UTF-8"><body style="font-family:Arial;text-align:center;padding:70px;background:#fff5fa"><h1><?=$ok?'邮箱验证成功':'验证链接无效或已过期'?></h1><a href="login.php">返回登录</a></body></html>

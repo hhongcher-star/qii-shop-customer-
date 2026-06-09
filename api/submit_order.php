@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
+require_once __DIR__ . '/../app/customers.php';
 qii_start_session();
 require __DIR__ . '/../a9sd8f7sd9f_admin/config.php';
 
@@ -39,6 +40,7 @@ if (!empty($_SESSION['coupon_code'][$order_number])) {
 }
 
 qii_ensure_order_security_columns($pdo);
+qii_ensure_customer_tables($pdo);
 $pdo->beginTransaction();
 
 try {
@@ -119,23 +121,25 @@ try {
 
     if ($existingOrderId) {
         $orderId = (int)$existingOrderId;
+        $customerId = qii_customer_id();
         $stmt = $pdo->prepare("
             UPDATE orders SET
+                customer_id=COALESCE(customer_id, ?),
                 total=?, shipping=?, discount=?, coupon_code=?, grand_total=?, region=?,
                 addr_name=?, addr_phone=?, addr_address=?, addr_postcode=?, addr_state=?, order_note=?,
                 order_status=?, updated_at=NOW()
             WHERE id=?
         ");
-        $stmt->execute([$subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus, $orderId]);
+        $stmt->execute([$customerId, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus, $orderId]);
     } else {
         $stmt = $pdo->prepare("
             INSERT INTO orders (
-                order_number, receipt_token, total, shipping, discount, coupon_code, grand_total, region,
+                customer_id, order_number, receipt_token, total, shipping, discount, coupon_code, grand_total, region,
                 addr_name, addr_phone, addr_address, addr_postcode, addr_state, order_note,
                 order_status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([$order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus]);
+        $stmt->execute([qii_customer_id(), $order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus]);
         $orderId = (int)$pdo->lastInsertId();
     }
 
