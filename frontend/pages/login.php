@@ -27,9 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $error = '邮箱或密码不正确';
 }
-
-$googleClientId = trim((string)(getenv('QII_GOOGLE_CLIENT_ID') ?: ''));
 ?>
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -54,13 +53,7 @@ $googleClientId = trim((string)(getenv('QII_GOOGLE_CLIENT_ID') ?: ''));
     input { width:100%; height:46px; border:1px solid #efccd9; border-radius:6px; padding:0 13px; outline:none; }
     input:focus { border-color:#ed4d94; box-shadow:0 0 0 3px rgba(237,77,148,.1); }
     .auth-error { background:#fff0f4; color:#c42e68; padding:10px 12px; border-radius:6px; margin-bottom:14px; font-size:13px; }
-    .auth-btn, .google-btn { width:100%; min-height:46px; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:6px; font-weight:900; cursor:pointer; }
-    .auth-btn { border:0; background:#ed4d94; color:#fff; margin-top:20px; }
-    .divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:#b29eaa; font-size:12px; }
-    .divider::before,.divider::after { content:""; height:1px; flex:1; background:#f0dce5; }
-    .google-btn { border:1px solid #dfdfe3; background:#fff; color:#4b4650; }
-    .google-btn[disabled] { cursor:not-allowed; color:#9a9097; background:#fafafa; }
-    .google-note { margin:8px 0 0; text-align:center; color:#aa8f9c; font-size:11px; }
+    .auth-btn { width:100%; min-height:46px; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:6px; font-weight:900; cursor:pointer; border:0; background:#ed4d94; color:#fff; margin-top:20px; }
     .auth-links { display:flex; justify-content:space-between; gap:12px; margin-top:20px; font-size:13px; }
     .auth-links a { color:#d93880; text-decoration:none; font-weight:800; }
     @media (max-width:760px) {
@@ -93,15 +86,6 @@ $googleClientId = trim((string)(getenv('QII_GOOGLE_CLIENT_ID') ?: ''));
       <label for="password">密码</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required>
       <button class="auth-btn" type="submit"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
-
-      <div class="divider">或</div>
-      <?php if ($googleClientId !== ''): ?>
-        <button class="google-btn" type="button" data-google-login><i class="fa-brands fa-google"></i> 使用 Google 登录</button>
-        <p class="google-note">Google Client ID 已读取，还需要连接后端 token 验证接口。</p>
-      <?php else: ?>
-        <button class="google-btn" type="button" disabled><i class="fa-brands fa-google"></i> 使用 Google 登录</button>
-        <p class="google-note">配置 QII_GOOGLE_CLIENT_ID 后启用。</p>
-      <?php endif; ?>
 
       <div class="auth-links">
         <a href="register.php">还没有账号？注册</a>
