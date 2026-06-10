@@ -9,18 +9,6 @@ date_default_timezone_set('Asia/Kuala_Lumpur');
 $categoryRows = qii_categories($pdo, false);
 $categories = array_map(fn($row) => $row['name'], $categoryRows);
 
-function ensure_product_admin_columns(PDO $pdo): void {
-    $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);
-
-    if (!in_array('brand', $columns, true)) {
-        $pdo->exec("ALTER TABLE products ADD COLUMN brand VARCHAR(120) NULL AFTER category");
-    }
-
-    if (!in_array('status', $columns, true)) {
-        $pdo->exec("ALTER TABLE products ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'active' AFTER brand");
-    }
-}
-
 function product_img(?string $path): string {
     $path = trim((string)$path);
 
@@ -34,8 +22,6 @@ function product_img(?string $path): string {
 
     return '../' . ltrim($path, '/');
 }
-
-ensure_product_admin_columns($pdo);
 
 $deleteError = '';
 $categoryError = '';
@@ -101,7 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $categoryError = '分类修改失败：' . $e->getMessage();
+            error_log('Category update failed: ' . $e->getMessage());
+            $categoryError = '分类修改失败，请稍后重试。';
         }
     }
 }
@@ -143,7 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'move_
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                $categoryError = '分类排序失败：' . $e->getMessage();
+                error_log('Category reorder failed: ' . $e->getMessage());
+                $categoryError = '分类排序失败，请稍后重试。';
             }
         }
     }
@@ -181,7 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
                 $pdo->rollBack();
             }
 
-            $deleteError = '删除失败：' . $e->getMessage();
+            error_log(sprintf('Product delete failed (product_id=%d): %s', $deleteId, $e->getMessage()));
+            $deleteError = '删除失败，请稍后重试。';
         }
     }
 }

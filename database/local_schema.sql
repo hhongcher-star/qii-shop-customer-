@@ -6,13 +6,15 @@ CREATE TABLE IF NOT EXISTS products (
   stock INT NOT NULL DEFAULT 0,
   warning_level INT NOT NULL DEFAULT 5,
   category VARCHAR(80) NOT NULL DEFAULT 'phone',
+  brand VARCHAR(120) NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
   image_url VARCHAR(255) NULL,
   has_variant TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_products_category (category),
-  KEY idx_products_sku (sku)
+  UNIQUE KEY uq_products_sku (sku)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS product_categories (
@@ -107,6 +109,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
   id INT AUTO_INCREMENT PRIMARY KEY,
   group_id INT NOT NULL,
   variant_name VARCHAR(160) NOT NULL,
+  sku VARCHAR(100) NULL,
   price DECIMAL(10,2) NULL,
   stock INT NOT NULL DEFAULT 0,
   image_url VARCHAR(255) NULL,
@@ -114,6 +117,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_variants_group (group_id),
+  UNIQUE KEY uq_variants_sku (sku),
   CONSTRAINT fk_variants_group FOREIGN KEY (group_id) REFERENCES product_groups(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

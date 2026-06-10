@@ -5,67 +5,61 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../app/categories.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-$categories = [
-    'phone' => '手机配件',
-    'hair' => '发夹发饰',
-    'snack' => '零食',
-    'creative' => '文创',
-    'case' => '手机壳',
-    'nail' => '穿戴甲',
-    'scent' => '香片',
-    'doll' => '娃娃',
-    'stationery' => '文具',
-];
-
 $categoryRows = qii_categories($pdo, false);
-
 $categories = [];
 foreach ($categoryRows as $key => $row) {
     $categories[$key] = $row['name'];
 }
 
-function ensure_product_admin_columns(PDO $pdo): void {
-    $columns = $pdo->query("SHOW COLUMNS FROM products")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('brand', $columns, true)) {
-        $pdo->exec("ALTER TABLE products ADD COLUMN brand VARCHAR(120) NULL AFTER category");
-    }
-    if (!in_array('status', $columns, true)) {
-        $pdo->exec("ALTER TABLE products ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'active' AFTER brand");
-    }
-    $variantColumns = $pdo->query("SHOW COLUMNS FROM product_variants")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('sku', $variantColumns, true)) {
-        $pdo->exec("ALTER TABLE product_variants ADD COLUMN sku VARCHAR(100) NULL AFTER variant_name");
-    }
+function qii_text($text): string {
+    return (string)$text;
 }
 
-function qii_text($text) {
-    $text = (string)$text;
-    if ($text === '') return '';
-    if (preg_match('/[ÂµÃžÃ•ÃšÃÃ¾â•”â•â•‘â•£â•â•—â–“â–‘â”¤â”â””â”´â”¬â”œâ”¼]/u', $text)) {
-        $fixed = @iconv('UTF-8', 'CP850//IGNORE', $text);
-        if (is_string($fixed) && $fixed !== '' && preg_match('/[\x{4E00}-\x{9FFF}]/u', $fixed)) {
-            return $fixed;
-        }
+function image_upload_error(string $field): ?string {
+    if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
     }
-    return $text;
+
+    $file = $_FILES[$field];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return match ($file['error']) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => '图片超过服务器允许的大小',
+            UPLOAD_ERR_PARTIAL => '图片上传不完整，请重试',
+            default => '图片上传失败，请重试',
+        };
+    }
+
+    if (($file['size'] ?? 0) > 3 * 1024 * 1024) {
+        return '图片不能超过 3MB';
+    }
+
+    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+    $type = uploaded_mime_type($file['tmp_name']);
+    if (!isset($allowed[$type]) || getimagesize($file['tmp_name']) === false) {
+        return '只支持 JPG、PNG、GIF 或 WebP 图片';
+    }
+
+    return null;
 }
 
 function upload_admin_image(string $field, ?string $existing = null): ?string {
-    if (empty($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+    if (!has_uploaded_file($field)) {
         return $existing;
     }
+
     $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-    $type = mime_content_type($_FILES[$field]['tmp_name']);
-    if (!isset($allowed[$type]) || $_FILES[$field]['size'] > 3 * 1024 * 1024 || getimagesize($_FILES[$field]['tmp_name']) === false) {
-        return $existing;
-    }
+    $type = uploaded_mime_type($_FILES[$field]['tmp_name']);
     $dir = dirname(__DIR__) . '/images/products';
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
-    $filename = uniqid('product_', true) . '.' . $allowed[$type];
-    if (move_uploaded_file($_FILES[$field]['tmp_name'], $dir . '/' . $filename)) {
-        return 'images/products/' . $filename;
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        throw new RuntimeException('无法创建图片目录');
     }
-    return $existing;
+
+    $filename = bin2hex(random_bytes(16)) . '.' . $allowed[$type];
+    if (!move_uploaded_file($_FILES[$field]['tmp_name'], $dir . '/' . $filename)) {
+        throw new RuntimeException('无法保存上传图片');
+    }
+
+    return 'images/products/' . $filename;
 }
 
 function asset_url(?string $path): string {
@@ -79,7 +73,56 @@ function has_uploaded_file(string $field): bool {
     return !empty($_FILES[$field]) && ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
 }
 
-ensure_product_admin_columns($pdo);
+function uploaded_mime_type(string $tmpName): string {
+  $finfo = finfo_open(FILEINFO_MIME_TYPE);
+  if (!$finfo) return '';
+  $type = finfo_file($finfo, $tmpName);
+  finfo_close($finfo);
+  return is_string($type) ? $type : '';
+}
+
+function is_non_negative_integer(string $value): bool {
+    return filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]) !== false;
+}
+
+function sku_exists(PDO $pdo, string $sku, int $productId, int $variantId = 0): bool {
+
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM products
+        WHERE sku = ?
+          AND id <> ?
+
+        UNION ALL
+
+        SELECT 1
+        FROM product_variants v
+        INNER JOIN product_groups g ON g.id = v.group_id
+        WHERE v.sku = ?
+          AND NOT (
+              g.product_id = ?
+              AND v.id = ?
+          )
+
+        LIMIT 1
+    ");
+
+    $stmt->execute([
+        $sku,
+        $productId,
+        $sku,
+        $productId,
+        $variantId
+    ]);
+
+    return (bool)$stmt->fetchColumn();
+}
+
+function json_response(bool $success, string $message, array $extra = []): never {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(array_merge(['success' => $success, 'message' => $message], $extra), JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $id = (int)($_GET['id'] ?? 0);
 $product = [
@@ -100,7 +143,11 @@ if ($id > 0) {
     $stmt = $pdo->prepare("SELECT * FROM products WHERE id=? LIMIT 1");
     $stmt->execute([$id]);
     $found = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($found) $product = array_merge($product, $found);
+    if (!$found) {
+        http_response_code(404);
+        exit('商品不存在');
+    }
+    $product = array_merge($product, $found);
 
     $stmt = $pdo->prepare("
         SELECT v.*
@@ -142,14 +189,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $singlePrice = trim((string)($_POST['single_price'] ?? '0.00'));
     $singleStock = trim((string)($_POST['single_stock'] ?? '0'));
 
-    $currentImage = $_POST['current_image'] ?? '';
-    $imageUrl = upload_admin_image('image', $currentImage);
+    if ($id > 0) {
+        $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        if (!$stmt->fetchColumn()) {
+            if ($isAjax) {
+                json_response(false, '商品不存在或已被删除');
+            }
+            exit('商品不存在或已被删除');
+        }
+    }
+
+    $currentImage = trim((string)($_POST['current_image'] ?? ''));
 
     $variantNames = $_POST['variant_name'] ?? [];
     $variantSkus = $_POST['variant_sku'] ?? [];
     $variantPrices = $_POST['variant_price'] ?? [];
     $variantStocks = $_POST['variant_stock'] ?? [];
     $variantExistingImages = $_POST['variant_existing_image'] ?? [];
+    $variantIds = $_POST['variant_id'] ?? [];
 
     $errors = [];
     if ($name === '') {
@@ -158,61 +216,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($currentImage === '' && !has_uploaded_file('image')) {
         $errors[] = '商品主图必须上传';
     }
+    if ($uploadError = image_upload_error('image')) {
+        $errors[] = '商品主图：' . $uploadError;
+    }
 
     $cleanVariants = [];
     if ($productType === 'single') {
         if ($singleSku === '') $errors[] = '单一商品必须填写 SKU';
         if ($singlePrice === '' || !is_numeric($singlePrice) || (float)$singlePrice < 0) $errors[] = '单一商品价格不正确';
-        if ($singleStock === '' || !is_numeric($singleStock) || (int)$singleStock < 0) $errors[] = '单一商品库存不正确';
+        if (!is_non_negative_integer($singleStock)) $errors[] = '单一商品库存必须是非负整数';
+        if ($singleSku !== '' && sku_exists($pdo, $singleSku, $id)) $errors[] = 'SKU 已被其他商品或规格使用';
     } else {
-    $variantCount = max(count($variantNames), count($variantSkus), count($variantPrices), count($variantStocks), count($variantExistingImages));
-    for ($i = 0; $i < $variantCount; $i++) {
-        $variantName = trim((string)($variantNames[$i] ?? ''));
-        $variantSku = trim((string)($variantSkus[$i] ?? ''));
-        $variantPrice = trim((string)($variantPrices[$i] ?? ''));
-        $variantStock = trim((string)($variantStocks[$i] ?? ''));
-        $variantImage = trim((string)($variantExistingImages[$i] ?? ''));
-        $field = 'variant_image_' . $i;
-        $hasAnyInput = $variantName !== '' || $variantSku !== '' || $variantPrice !== '' || $variantStock !== '' || $variantImage !== '' || has_uploaded_file($field);
-        if (!$hasAnyInput) continue;
+        $variantCount = max(count($variantNames), count($variantSkus), count($variantPrices), count($variantStocks), count($variantExistingImages), count($variantIds));
+        $submittedSkus = [];
+        for ($i = 0; $i < $variantCount; $i++) {
+            $variantId = (int)($variantIds[$i] ?? 0);
+            $variantName = trim((string)($variantNames[$i] ?? ''));
+            $variantSku = trim((string)($variantSkus[$i] ?? ''));
+            $variantPrice = trim((string)($variantPrices[$i] ?? ''));
+            $variantStock = trim((string)($variantStocks[$i] ?? ''));
+            $variantImage = trim((string)($variantExistingImages[$i] ?? ''));
+            $field = 'variant_image_' . $i;
+            $hasAnyInput = $variantName !== '' || $variantSku !== '' || $variantPrice !== '' || $variantStock !== '' || $variantImage !== '' || has_uploaded_file($field);
+            if (!$hasAnyInput) continue;
 
-        if ($variantName === '') $errors[] = '第 ' . ($i + 1) . ' 个规格缺少名称';
-        if ($variantSku === '') $errors[] = '第 ' . ($i + 1) . ' 个规格缺少 SKU';
-        if ($variantPrice === '' || !is_numeric($variantPrice) || (float)$variantPrice < 0) $errors[] = '第 ' . ($i + 1) . ' 个规格价格不正确';
-        if ($variantStock === '' || !is_numeric($variantStock) || (int)$variantStock < 0) $errors[] = '第 ' . ($i + 1) . ' 个规格库存不正确';
-        if ($variantImage === '' && !has_uploaded_file($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格必须上传图片';
+            if ($variantName === '') $errors[] = '第 ' . ($i + 1) . ' 个规格缺少名称';
+            if ($variantSku === '') $errors[] = '第 ' . ($i + 1) . ' 个规格缺少 SKU';
+            if ($variantPrice === '' || !is_numeric($variantPrice) || (float)$variantPrice < 0) $errors[] = '第 ' . ($i + 1) . ' 个规格价格不正确';
+            if (!is_non_negative_integer($variantStock)) $errors[] = '第 ' . ($i + 1) . ' 个规格库存必须是非负整数';
+            if ($variantImage === '' && !has_uploaded_file($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格必须上传图片';
+            if ($uploadError = image_upload_error($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格：' . $uploadError;
+            if ($variantSku !== '') {
+                $normalizedSku = strtolower($variantSku);
+                if (isset($submittedSkus[$normalizedSku])) {
+                    $errors[] = '规格 SKU 不能重复：' . $variantSku;
+                } elseif (sku_exists($pdo, $variantSku, $id, $variantId)) {
+                    $errors[] = 'SKU 已被其他商品或规格使用：' . $variantSku;
+                }
+                $submittedSkus[$normalizedSku] = true;
+            }
 
-        $cleanVariants[] = [
-            'index' => $i,
-            'name' => $variantName,
-            'sku' => $variantSku,
-            'price' => (float)$variantPrice,
-            'stock' => (int)$variantStock,
-            'image' => $variantImage,
-            'field' => $field,
-        ];
-    }
-    if (!$cleanVariants) {
-        $errors[] = '至少需要一个完整规格';
-    }
+            $cleanVariants[] = [
+                'id' => $variantId,
+                'index' => $i,
+                'name' => $variantName,
+                'sku' => $variantSku,
+                'price' => (float)$variantPrice,
+                'stock' => (int)$variantStock,
+                'image' => $variantImage,
+                'field' => $field,
+            ];
+        }
 
+        if (!$cleanVariants) {
+            $errors[] = '至少需要一个完整规格';
+        }
     }
 
     if ($errors) {
-
-    $error = implode('；', $errors);
-
-    if ($isAjax) {
-        header('Content-Type: application/json');
-
-        echo json_encode([
-            'success' => false,
-            'message' => $error
-        ]);
-
-        exit;
-    }
-} else {
+        $error = implode('；', array_unique($errors));
+        if ($isAjax) json_response(false, $error);
+    } else {
 
     $firstPrice = $productType === 'single' ? (float)$singlePrice : $cleanVariants[0]['price'];
     $totalStock = $productType === 'single' ? (int)$singleStock : array_sum(array_column($cleanVariants, 'stock'));
@@ -221,6 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $pdo->beginTransaction();
     try {
+        $imageUrl = upload_admin_image('image', $currentImage);
         if ($id > 0) {
             $stmt = $pdo->prepare("
                 UPDATE products
@@ -240,58 +305,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)$pdo->lastInsertId();
         }
 
-        $pdo->prepare("DELETE v FROM product_variants v INNER JOIN product_groups g ON g.id=v.group_id WHERE g.product_id=?")->execute([$id]);
-        $pdo->prepare("DELETE FROM product_groups WHERE product_id=?")->execute([$id]);
         if ($productType === 'variant') {
-        $stmt = $pdo->prepare("INSERT INTO product_groups (product_id, group_name, sort_order) VALUES (?, '规格', 1)");
-        $stmt->execute([$id]);
-        $groupId = (int)$pdo->lastInsertId();
+            $stmt = $pdo->prepare("SELECT id FROM product_groups WHERE product_id = ? ORDER BY sort_order, id LIMIT 1");
+            $stmt->execute([$id]);
+            $groupId = (int)$stmt->fetchColumn();
+            if ($groupId === 0) {
+                $stmt = $pdo->prepare("INSERT INTO product_groups (product_id, group_name, sort_order) VALUES (?, '规格', 1)");
+                $stmt->execute([$id]);
+                $groupId = (int)$pdo->lastInsertId();
+            }
 
-        foreach ($cleanVariants as $variant) {
-            $variantImage = upload_admin_image($variant['field'], $variant['image']);
-            $stmt = $pdo->prepare("
-                INSERT INTO product_variants (group_id, variant_name, sku, price, stock, image_url, sort_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $groupId,
-                $variant['name'],
-                $variant['sku'],
-                $variant['price'],
-                $variant['stock'],
-                $variantImage,
-                $variant['index'] + 1,
-            ]);
-        }
+            $keptVariantIds = [];
+            foreach ($cleanVariants as $variant) {
+                $variantImage = upload_admin_image($variant['field'], $variant['image']);
+                if ($variant['id'] > 0) {
+                    $stmt = $pdo->prepare("
+                        UPDATE product_variants v
+                        INNER JOIN product_groups g ON g.id = v.group_id
+                        SET v.group_id=?, v.variant_name=?, v.sku=?, v.price=?, v.stock=?, v.image_url=?, v.sort_order=?
+                        WHERE v.id=? AND g.product_id=?
+                    ");
+                    $stmt->execute([$groupId, $variant['name'], $variant['sku'], $variant['price'], $variant['stock'], $variantImage, $variant['index'] + 1, $variant['id'], $id]);
+                    if ($stmt->rowCount() === 0) {
+                        $check = $pdo->prepare("SELECT 1 FROM product_variants v INNER JOIN product_groups g ON g.id=v.group_id WHERE v.id=? AND g.product_id=?");
+                        $check->execute([$variant['id'], $id]);
+                        if (!$check->fetchColumn()) throw new RuntimeException('规格不存在或不属于当前商品');
+                    }
+                    $keptVariantIds[] = $variant['id'];
+                } else {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO product_variants (group_id, variant_name, sku, price, stock, image_url, sort_order)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$groupId, $variant['name'], $variant['sku'], $variant['price'], $variant['stock'], $variantImage, $variant['index'] + 1]);
+                    $keptVariantIds[] = (int)$pdo->lastInsertId();
+                }
+            }
 
+            if ($keptVariantIds) {
+              $placeholders = implode(',', array_fill(0, count($keptVariantIds), '?'));
+              $params = array_merge([$id], $keptVariantIds);
+
+              $pdo->prepare("
+                DELETE v FROM product_variants v
+                INNER JOIN product_groups g ON g.id=v.group_id
+                WHERE g.product_id=? AND v.id NOT IN ($placeholders)
+              ")->execute($params);
+            } else {
+              $pdo->prepare("
+                DELETE v FROM product_variants v
+                INNER JOIN product_groups g ON g.id=v.group_id
+                WHERE g.product_id=?
+              ")->execute([$id]);
+            }
+        } else {
+          $pdo->prepare("
+            DELETE v FROM product_variants v
+            INNER JOIN product_groups g ON g.id = v.group_id
+            WHERE g.product_id=?
+          ")->execute([$id]);
+
+          $pdo->prepare("
+            DELETE FROM product_groups
+            WHERE product_id=?
+          ")->execute([$id]);
         }
 
         $pdo->commit();
-        if ($isAjax) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => true,
-        'message' => '规格保存成功',
-        'id' => $id
-    ]);
-    exit;
-}
+        if ($isAjax) json_response(true, '商品保存成功', ['id' => $id]);
 
-header('Location: product_editor.php?id=' . $id . '&saved=1');
-exit;
+        header('Location: product_editor.php?id=' . $id . '&saved=1');
+        exit;
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        $error = '保存失败：' . $e->getMessage();
-        if ($isAjax) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'message' => $error
-    ]);
-    exit;
-}
+        error_log(sprintf('Product save failed (product_id=%d): %s', $id, $e->getMessage()));
+        $error = '保存失败，请稍后重试';
+        if ($isAjax) json_response(false, $error);
     }
-}
+    }
 }
 
 $isEdit = (int)$product['id'] > 0;
@@ -305,6 +396,10 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
   <title><?= $isEdit ? '编辑商品' : '新增商品' ?> | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/product_admin.css?v=20260604">
+  <link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
   <style>
     .product-type-card { margin-bottom: 24px; }
     .single-product-fields { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -431,6 +526,7 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
                 <button type="button" class="drag-handle"><i class="fa-solid fa-grip-vertical"></i></button>
                 <label class="variant-image">
                   <input data-image-input data-preview-target="#variantPreview<?= $i ?>" type="file" name="variant_image_<?= $i ?>" accept="image/*">
+                  <input type="hidden" name="variant_id[]" value="<?= (int)($v['id'] ?? 0) ?>">
                   <input type="hidden" name="variant_existing_image[]" value="<?= htmlspecialchars($v['image_url'] ?? '') ?>">
                   <img id="variantPreview<?= $i ?>" src="<?= htmlspecialchars(($v['image_url'] ?? '') !== '' ? asset_url($v['image_url']) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' rx='16' fill='%23fff4fa'/%3E%3C/svg%3E") ?>" alt="">
                   <i class="fa-solid fa-upload"></i>
@@ -443,10 +539,12 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
               </div>
             <?php endforeach; ?>
           </div>
-          <div class="variant-save-row">
-            <button type="button" id="saveVariantBtn" class="save-action"><i class="fa-solid fa-floppy-disk"></i> 保存规格</button>
-          </div>
         </section>
+        <div class="variant-save-row">
+  <button type="button" id="saveVariantBtn" class="save-action">
+    <i class="fa-solid fa-floppy-disk"></i> 保存规格
+  </button>
+</div>
       </div>
 
       <aside class="editor-side">
@@ -459,7 +557,9 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
               <h3 id="cardPreviewName"><?= htmlspecialchars(qii_text($product['name'] ?: '商品名称将显示在这里')) ?></h3>
               <span id="cardPreviewTag"><?= htmlspecialchars($categories[$product['category']] ?? '多种规格可选') ?></span>
               <strong id="cardPreviewPrice">RM <?= number_format((float)($variants[0]['price'] ?? $product['price'] ?? 0), 2) ?></strong>
-              <button type="button"><i class="fa-regular fa-eye"></i> 查看商品详情</button>
+              <button type="button" id="adjustPreviewImageBtn">
+  <i class="fa-regular fa-image"></i> 调整图片
+</button>
             </div>
           </div>
         </section>
@@ -482,6 +582,43 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
       <button type="submit" class="save-action"><i class="fa-solid fa-lock"></i> 保存商品</button>
     </div>
   </form>
+  <div id="cropperModal" style="
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,.7);
+display: none;
+align-items: center;
+justify-content: center;
+z-index: 99999;
+padding: 24px;
+">
+  <div style="
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    max-width: 900px;
+    width: 100%;
+  ">
+    <div style="max-height:70vh;overflow:auto;">
+      <img id="cropperImage" style="max-width:100%;">
+    </div>
+
+    <div style="
+      display:flex;
+      justify-content:flex-end;
+      gap:12px;
+      margin-top:18px;
+    ">
+      <button type="button" id="cancelCropBtn" class="cancel-action">
+        取消
+      </button>
+
+      <button type="button" id="applyCropBtn" class="save-action">
+        使用图片
+      </button>
+    </div>
+  </div>
+</div>
 </main>
 
 <template id="variantTemplate">
@@ -489,6 +626,7 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
     <button type="button" class="drag-handle"><i class="fa-solid fa-grip-vertical"></i></button>
     <label class="variant-image">
       <input data-image-input type="file" name="__IMAGE_NAME__" accept="image/*">
+      <input type="hidden" name="variant_id[]" value="0">
       <input type="hidden" name="variant_existing_image[]" value="">
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' rx='16' fill='%23fff4fa'/%3E%3C/svg%3E" alt="">
       <i class="fa-solid fa-upload"></i>
@@ -503,47 +641,6 @@ $selectedProductType = ($_POST['product_type'] ?? $initialProductType) === 'vari
 
 <script src="js/product_admin.js?v=20260604"></script>
 <script>
-document.getElementById('saveVariantBtn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('saveVariantBtn');
-    btn.disabled = true;
-    btn.innerHTML = '保存中...';
-
-    const form = document.getElementById('productEditorForm');
-    const formData = new FormData(form);
-
-    try {
-        const response = await fetch(window.location.href, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (data.id) {
-                const idInput = form.querySelector('input[name="id"]');
-                if (idInput) idInput.value = data.id;
-
-                const url = new URL(window.location.href);
-                url.searchParams.set('id', data.id);
-                url.searchParams.delete('saved');
-                window.history.replaceState({}, '', url.toString());
-            }
-            showToast(data.message || '保存成功');
-        } else {
-            showToast(data.message || '保存失败', true);
-        }
-    } catch (err) {
-        console.error(err);
-        showToast('网络错误', true);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 保存规格';
-    }
-});
-
 document.getElementById('productEditorForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -604,6 +701,217 @@ function showToast(message, isError = false) {
         toast.remove();
     }, 2500);
 }
+document.getElementById('saveVariantBtn')?.addEventListener('click', async () => {
+    const form = document.getElementById('productEditorForm');
+    const btn = document.getElementById('saveVariantBtn');
+
+    if (!form || !btn) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
+
+    try {
+        const formData = new FormData(form);
+
+        const response = await fetch('api_product_variants_save.php', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+    showToast(data.message || '规格保存成功');
+
+    if (data.draft) {
+        return;
+    }
+
+    setTimeout(() => {
+        location.reload();
+    }, 700);
+} else {
+            showToast(data.message || '规格保存失败', true);
+        }
+
+    } catch (err) {
+        console.error(err);
+        showToast('规格保存失败，请稍后再试', true);
+
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 保存规格';
+    }
+});
+
+function toggleVariantSaveButton() {
+    const productType = document.querySelector('[name="product_type"]')?.value;
+    const saveVariantBtn = document.getElementById('saveVariantBtn');
+
+    if (!saveVariantBtn) return;
+
+    const row = saveVariantBtn.closest('.variant-save-row');
+
+    if (row) {
+        row.style.display = productType === 'variant' ? 'flex' : 'none';
+    }
+}
+
+document.querySelector('[name="product_type"]')?.addEventListener('change', toggleVariantSaveButton);
+toggleVariantSaveButton();
+let cropper = null;
+let activeInput = null;
+
+const cropperModal =
+    document.getElementById('cropperModal');
+
+const cropperImage =
+    document.getElementById('cropperImage');
+
+document.querySelectorAll('[data-image-input]')
+.forEach(input => {
+
+    input.addEventListener('change', e => {
+
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        activeInput = input;
+
+        const reader = new FileReader();
+
+        reader.onload = ev => {
+
+            cropperImage.src = ev.target.result;
+
+            cropperModal.style.display = 'flex';
+
+            if (cropper) {
+                cropper.destroy();
+            }
+
+            cropper = new Cropper(cropperImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                responsive: true,
+                background: false,
+            });
+        };
+
+        reader.readAsDataURL(file);
+    });
+});
+
+document.getElementById('cancelCropBtn')
+?.addEventListener('click', () => {
+
+    cropperModal.style.display = 'none';
+
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+
+    if (activeInput) {
+        activeInput.value = '';
+    }
+});
+
+document.getElementById('applyCropBtn')
+?.addEventListener('click', () => {
+
+    if (!cropper || !activeInput) return;
+
+    cropper.getCroppedCanvas({
+        width: 800,
+        height: 800,
+        imageSmoothingQuality: 'high'
+    }).toBlob(blob => {
+
+        const croppedFile = new File(
+            [blob],
+            'cropped.jpg',
+            {
+                type: 'image/jpeg'
+            }
+        );
+
+        const dt = new DataTransfer();
+
+        dt.items.add(croppedFile);
+
+        activeInput.files = dt.files;
+
+        const previewSelector =
+            activeInput.dataset.previewTarget;
+
+        if (previewSelector) {
+
+            const preview =
+                document.querySelector(previewSelector);
+
+            if (preview) {
+    const croppedUrl = URL.createObjectURL(blob);
+    preview.src = croppedUrl;
+
+    if (preview.id === 'mainPreview') {
+        const cardImg = document.getElementById('cardPreviewImg');
+        if (cardImg) cardImg.src = croppedUrl;
+    }
+}
+
+        } else {
+
+            const img =
+                activeInput.closest('label')
+                ?.querySelector('img');
+
+            if (img) {
+                img.src =
+                    URL.createObjectURL(blob);
+            }
+        }
+
+        cropperModal.style.display = 'none';
+
+        cropper.destroy();
+
+        cropper = null;
+
+    }, 'image/jpeg', 0.92);
+});
+document.getElementById('mainPreview')?.addEventListener('click', () => {
+    const input = document.querySelector('input[name="image"]');
+    const preview = document.getElementById('mainPreview');
+
+    if (!input || !preview || !preview.src) return;
+
+    activeInput = input;
+    cropperImage.src = preview.src;
+    cropperModal.style.display = 'flex';
+
+    if (cropper) {
+        cropper.destroy();
+    }
+
+    cropper = new Cropper(cropperImage, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        responsive: true,
+        background: false,
+    });
+});
+document.getElementById('adjustPreviewImageBtn')?.addEventListener('click', () => {
+    document.getElementById('mainPreview')?.click();
+});
 </script>
 </body>
 </html>
