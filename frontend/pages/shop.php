@@ -964,7 +964,7 @@ html, body {
     padding: 0 !important;
     border-radius: 50% !important;
     font-size: 0;
-    background: #f5368d !important;
+    background: #ffb6cf !important;
     box-shadow: 0 8px 18px rgba(245,54,141,.28) !important;
   }
 
@@ -1182,7 +1182,7 @@ html, body {
     min-height: 40px;
     margin: 0 10px 10px;
     border-radius: 50% !important;
-    background: #f5368d !important;
+    background: #ffb6cf !important;
   }
 }
   </style>
