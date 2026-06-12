@@ -109,7 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <button class="tool-control" type="button" data-align="left" title="靠左"><i class="fa-solid fa-align-left"></i></button>
       <button class="tool-control" type="button" data-align="center" title="居中"><i class="fa-solid fa-align-center"></i></button>
       <button class="tool-control" type="button" data-align="right" title="靠右"><i class="fa-solid fa-align-right"></i></button>
-      <span class="autosave-state" data-autosave-state><i class="fa-solid fa-cloud-check"></i> 已自动保存</span>
+      <span class="autosave-state" data-autosave-state><i class="fa-solid fa-circle-check"></i> 没有未保存修改</span>
+      <button class="save-visual" type="submit"><i class="fa-solid fa-floppy-disk"></i> 保存并发布</button>
     </div>
 
     <section class="canvas-shell">
@@ -125,27 +126,12 @@ var form = document.getElementById('visualForm');
 var saveState = document.querySelector('[data-autosave-state]');
 var activeElement = null;
 var savedRange = null;
-var saveTimer = null;
 
-function setSaveState(text, saving) {
-  saveState.innerHTML = '<i class="fa-solid ' + (saving ? 'fa-cloud-arrow-up' : 'fa-cloud-check') + '"></i> ' + text;
-}
-function autoSaveElement(el) {
-  clearTimeout(saveTimer);
-  setSaveState('正在保存...', true);
-  saveTimer = setTimeout(function () {
-    var data = new FormData();
-    data.append('csrf_token', form.querySelector('[name="csrf_token"]').value);
-    data.append('key', el.dataset.contentKey);
-    data.append('value', el.innerHTML);
-    fetch('api_content_autosave.php', { method:'POST', body:data })
-      .then(function (response) { return response.json(); })
-      .then(function (result) { setSaveState(result.success ? '已自动保存' : (result.message || '保存失败'), false); })
-      .catch(function () { setSaveState('保存失败', false); });
-  }, 550);
+function setSaveState(text, dirty) {
+  saveState.innerHTML = '<i class="fa-solid ' + (dirty ? 'fa-pen-to-square' : 'fa-circle-check') + '"></i> ' + text;
 }
 function markDirty() {
-  if (activeElement) autoSaveElement(activeElement);
+  if (activeElement) setSaveState('有未保存修改', true);
 }
 function rememberSelection() {
   var win = frame.contentWindow;
@@ -260,6 +246,7 @@ form.addEventListener('submit', function () {
     var input=form.querySelector('[data-key="'+el.dataset.contentKey+'"]');
     if (input) input.value=el.innerHTML;
   });
+  setSaveState('正在保存并发布...', false);
 });
 </script>
 </body>
