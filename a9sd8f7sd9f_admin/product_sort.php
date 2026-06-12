@@ -28,7 +28,12 @@ if (!isset($categories[$category])) {
     .sort-canvas { overflow:hidden; border:1px solid #f2c9da; border-radius:18px; background:#fff; box-shadow:0 16px 38px rgba(185,75,126,.1); }
     .sort-canvas-head { display:flex; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #f4d5e2; font-weight:800; }
     #shopFrame { display:block; width:100%; height:calc(100vh - 285px); min-height:680px; border:0; background:#fff7fb; }
-    @media(max-width:900px) { .sort-toolbar { align-items:stretch; flex-direction:column; } .sort-toolbar select { width:100%; } .sort-state { margin-left:0; } }
+    .desktop-only-note { display:flex; align-items:center; gap:10px; margin:18px 0; padding:13px 16px; border:1px solid #f2c9da; border-radius:12px; background:#fff6fa; color:#8a6175; font-weight:800; }
+    .mobile-block { display:none; }
+    @media(max-width:900px) {
+      .desktop-only-note, .sort-toolbar, .sort-canvas { display:none; }
+      .mobile-block { display:block; margin-top:18px; padding:32px 20px; border:1px solid #f3c8da; border-radius:16px; background:#fff; color:#6f6171; text-align:center; font-weight:800; }
+    }
   </style>
 </head>
 <body>
@@ -37,6 +42,8 @@ if (!isset($categories[$category])) {
   <header class="product-topbar">
     <div><h1>商品排序</h1><p>选择分类后，直接拖动前台商品卡片调整显示顺序</p></div>
   </header>
+
+  <div class="desktop-only-note"><i class="fa-solid fa-desktop"></i> 商品排序功能只可以在电脑端使用</div>
 
   <div class="sort-toolbar">
     <label>
@@ -56,6 +63,7 @@ if (!isset($categories[$category])) {
     <div class="sort-canvas-head"><span>前台商品页预览</span><span>按住商品卡片拖动</span></div>
     <iframe id="shopFrame" src="../shop.php?cat=<?= rawurlencode($category) ?>&sort_edit=1&t=<?= time() ?>"></iframe>
   </section>
+  <div class="mobile-block"><i class="fa-solid fa-desktop"></i><br><br>请使用电脑打开商品排序功能。</div>
 </main>
 
 <form id="csrfForm" hidden><?= csrf_field() ?></form>
