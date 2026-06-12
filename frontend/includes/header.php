@@ -283,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!results.length) {
             const empty = document.createElement("div");
             empty.style.cssText = "padding:10px;text-align:center;color:#999;";
-            empty.textContent = "Ã¦Â²Â¡Ã¦Å“â€°Ã¦â€°Â¾Ã¥Ë†Â°Ã§â€ºÂ¸Ã¥â€¦Â³Ã¥â€¢â€ Ã¥â€œÂ";
+            empty.textContent = "没有找到相关商品";
             box.appendChild(empty);
             return;
           }
@@ -300,13 +300,13 @@ document.addEventListener("DOMContentLoaded", () => {
             name.textContent = item.name || "";
             const sku = document.createElement("div");
             sku.className = "suggest-sku";
-            sku.textContent = `SKU: ${item.sku || "-"} Ã‚Â· RM ${item.price || "0.00"}`;
+            sku.textContent = `SKU: ${item.sku || "-"} · RM ${item.price || "0.00"}`;
             text.appendChild(name); text.appendChild(sku); div.appendChild(img); div.appendChild(text);
             div.onclick = () => { location.href = "search.php?q=" + encodeURIComponent(item.name || ""); };
             box.appendChild(div);
           });
         })
-        .catch(() => { box.innerHTML = "<div style='padding:10px;text-align:center;color:#999;'>Ã¦ÂÅ“Ã§Â´Â¢Ã¥Â¤Â±Ã¨Â´Â¥Ã¯Â¼Å’Ã¨Â¯Â·Ã§Â¨ÂÃ¥ÂÅ½Ã¥â€ ÂÃ¨Â¯â€¢</div>"; });
+        .catch(() => { box.innerHTML = "<div style='padding:10px;text-align:center;color:#999;'>搜索失败，请稍后再试</div>"; });
     }, 180);
   });
   input.addEventListener("keydown", e => {

@@ -24,13 +24,13 @@ function qii_text($text) {
 
 $product_id = (int)($_GET['product_id'] ?? 0);
 
-// èŽ·å–å•†å“ä¿¡æ¯
+// 获取商品信息
 $stmt = $pdo->prepare("SELECT id, name, price, stock, image_url FROM products WHERE id = ? AND COALESCE(status, 'active') = 'active' LIMIT 1");
 $stmt->execute([$product_id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$product) {
-    echo "<div style='padding:12px;text-align:center;color:#C94B82;'>å•†å“ä¸å­˜åœ¨</div>";
+    echo "<div style='padding:12px;text-align:center;color:#C94B82;'>商品不存在</div>";
     exit;
 }
 

@@ -45,6 +45,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
+    error_log('Search suggest failed: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(["error" => $e->getMessage()]);
+    echo json_encode(["error" => "搜索暂时不可用"], JSON_UNESCAPED_UNICODE);
 }

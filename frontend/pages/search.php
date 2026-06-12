@@ -224,7 +224,7 @@ if ($q !== '') {
             <img src="<?= htmlspecialchars(qii_asset_path($p['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
             <div class="product-text">
               <h4><?= htmlspecialchars($p['name']) ?></h4>
-              <?php if (!empty($p['sku'])): ?><p>ç¼–å·ï¼š<?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
+              <?php if (!empty($p['sku'])): ?><p>编号：<?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
               <p>åº“å­˜ï¼š<?= (int)$p['stock'] ?></p>
               <div class="price">RM <?= number_format($p['price'], 2) ?></div>
             </div>
@@ -238,7 +238,7 @@ if ($q !== '') {
         </div>
       <?php endforeach; ?>
     <?php else: ?>
-      <p style="text-align:center;color:#aaa;margin:40px 0;">æ²¡æœ‰æ‰¾åˆ°ç›¸å…³å•†å“ã€‚</p>
+      <p style="text-align:center;color:#aaa;margin:40px 0;">没有找到相关商品。</p>
     <?php endif; ?>
   </div>
 </div>

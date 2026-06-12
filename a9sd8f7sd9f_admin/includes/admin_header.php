@@ -20,7 +20,7 @@ $mobile_items = [
     ['file' => '#', 'icon' => 'fa-table-cells-large', 'label' => '更多', 'class' => 'more'],
 ];
 
-$more_pages = ['discount_center.php', 'reply.php', 'inventory.php', 'hero_content.php', 'customers.php'];
+$more_pages = ['discount_center.php', 'reply.php', 'inventory.php', 'hero_content.php', 'product_sort.php', 'customers.php'];
 if (!$customerFeaturesEnabled) {
     $menu_items = array_values(array_filter(
         $menu_items,
@@ -40,7 +40,7 @@ if (!$customerFeaturesEnabled) {
 <header class="admin-shell">
   <aside class="admin-sidebar">
     <div class="brand-panel">
-      <img src="../images/logo.png" alt="Qii.shop Logo" class="brand-logo">
+      <img src="../images/products/qii.jpg" alt="Qii.shop Logo" class="brand-logo">
       <div>
         <p class="brand-kicker">Qii Admin</p>
         <h2>Qii.shop</h2>
@@ -57,6 +57,10 @@ if (!$customerFeaturesEnabled) {
       <a href="hero_content.php" class="<?= $current_page === 'hero_content.php' ? 'active' : '' ?>">
         <span class="menu-icon"><i class="fa-solid fa-pen-to-square"></i></span>
         <span>前台内容</span>
+      </a>
+      <a href="product_sort.php" class="<?= $current_page === 'product_sort.php' ? 'active' : '' ?>">
+        <span class="menu-icon"><i class="fa-solid fa-arrow-down-wide-short"></i></span>
+        <span>商品排序</span>
       </a>
     </nav>
 
@@ -89,6 +93,7 @@ if (!$customerFeaturesEnabled) {
 
 <div class="mobile-more-menu" data-mobile-more-menu>
   <a href="hero_content.php"><i class="fa-solid fa-pen-to-square"></i><span>前台内容</span></a>
+  <a href="product_sort.php"><i class="fa-solid fa-arrow-down-wide-short"></i><span>商品排序</span></a>
   <a href="discount_center.php"><i class="fa-solid fa-ticket"></i><span>优惠管理</span></a>
   <a href="customers.php"><i class="fa-solid fa-users"></i><span>用户管理</span></a>
   <a href="reply.php"><i class="fa-solid fa-comments"></i><span>用户消息</span></a>

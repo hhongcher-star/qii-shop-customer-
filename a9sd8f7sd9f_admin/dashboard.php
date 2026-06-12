@@ -521,7 +521,7 @@ $overview = [
   </div>
 
   <section class="welcome-card page-card">
-    <img src="../images/logo.png" alt="Qii.shop Logo" class="welcome-logo">
+    <img src="../images/products/qii.jpg" alt="Qii.shop Logo" class="welcome-logo">
     <div class="welcome-copy">
       <h1>欢迎回来，admin 🎀</h1>
       <p>今天也要开心营业哦～</p>

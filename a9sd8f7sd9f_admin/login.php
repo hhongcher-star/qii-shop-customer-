@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <form class="login-box" method="post">
-    <img src="../images/logo.png" alt="Qii.shop Logo" class="logo">
+    <img src="../images/products/qii.jpg" alt="Qii.shop Logo" class="logo">
     <h1>管理端登录</h1>
     <?php if ($error): ?><div class="error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
     <?= csrf_field() ?>

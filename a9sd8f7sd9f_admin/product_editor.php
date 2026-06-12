@@ -294,9 +294,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$baseSku, $name, $firstPrice, $totalStock, $category, $brand, $status, $imageUrl, $hasVariant, $id]);
         } else {
-            $stmt = $pdo->prepare("SELECT COALESCE(MAX(sort_order),0) FROM products WHERE category=?");
-            $stmt->execute([$category]);
-            $sortOrder = (int)$stmt->fetchColumn() + 1;
+            $pdo->prepare("UPDATE products SET sort_order = sort_order + 1 WHERE category = ?")
+                ->execute([$category]);
+            $sortOrder = 1;
             $stmt = $pdo->prepare("
                 INSERT INTO products (sku, name, price, stock, warning_level, category, brand, status, image_url, has_variant, sort_order, created_at)
                 VALUES (?, ?, ?, ?, 5, ?, ?, ?, ?, ?, ?, NOW())
@@ -540,11 +540,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
             <?php endforeach; ?>
           </div>
         </section>
-        <div class="variant-save-row">
-  <button type="button" id="saveVariantBtn" class="save-action">
-    <i class="fa-solid fa-floppy-disk"></i> 保存规格
-  </button>
-</div>
       </div>
 
       <aside class="editor-side">
@@ -701,67 +696,6 @@ function showToast(message, isError = false) {
         toast.remove();
     }, 2500);
 }
-document.getElementById('saveVariantBtn')?.addEventListener('click', async () => {
-    const form = document.getElementById('productEditorForm');
-    const btn = document.getElementById('saveVariantBtn');
-
-    if (!form || !btn) return;
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
-
-    try {
-        const formData = new FormData(form);
-
-        const response = await fetch('api_product_variants_save.php', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-    showToast(data.message || '规格保存成功');
-
-    if (data.draft) {
-        return;
-    }
-
-    setTimeout(() => {
-        location.reload();
-    }, 700);
-} else {
-            showToast(data.message || '规格保存失败', true);
-        }
-
-    } catch (err) {
-        console.error(err);
-        showToast('规格保存失败，请稍后再试', true);
-
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 保存规格';
-    }
-});
-
-function toggleVariantSaveButton() {
-    const productType = document.querySelector('[name="product_type"]')?.value;
-    const saveVariantBtn = document.getElementById('saveVariantBtn');
-
-    if (!saveVariantBtn) return;
-
-    const row = saveVariantBtn.closest('.variant-save-row');
-
-    if (row) {
-        row.style.display = productType === 'variant' ? 'flex' : 'none';
-    }
-}
-
-document.querySelector('[name="product_type"]')?.addEventListener('change', toggleVariantSaveButton);
-toggleVariantSaveButton();
 let cropper = null;
 let activeInput = null;
 

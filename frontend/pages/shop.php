@@ -112,7 +112,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   ob_start();
   if ($products) {
     foreach ($products as $p): ?>
-      <div class="product-card">
+      <div class="product-card" data-product-id="<?= (int)$p['id'] ?>">
         <?php if (!empty($p['brand'])): ?>
           <div class="brand-badge"><?= htmlspecialchars(qii_text($p['brand'])) ?></div>
         <?php endif; ?>
@@ -1212,7 +1212,7 @@ html, body {
   <?php include __DIR__ . "/../includes/header.php"; ?>
 
   <main>
-    <section class="mobile-shop-top" aria-label="æ‰‹æœºç«¯å•†åº—å…¥å£">
+    <section class="mobile-shop-top" aria-label="手机端商店入口">
 
       <div class="mobile-promo">
   <h2 data-content-key="shop_promo_title"><?= $shopPromoTitle ?></h2>
@@ -1251,7 +1251,7 @@ html, body {
     <p style="text-align:center;color:#999;">No products yet.</p>
   <?php else: ?>
     <?php foreach ($products as $p): ?>
-      <div class="product-card" data-aos="fade-up">
+      <div class="product-card" data-product-id="<?= (int)$p['id'] ?>" data-aos="fade-up">
         <?php if (!empty($p['brand'])): ?>
           <div class="brand-badge"><?= htmlspecialchars(qii_text($p['brand'])) ?></div>
         <?php endif; ?>
@@ -1398,7 +1398,7 @@ document.getElementById("imgPreview").addEventListener("click", function() {
 <?php include __DIR__ . '/../components/variant_modal.php'; ?>
 
   <!-- ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸ Qii ÃƒÂ¥Ã‚ÂÃ‚Â¯ÃƒÂ§Ã‹â€ Ã‚Â±ÃƒÂ¦Ã‚ÂÃ‚ÂÃƒÂ§Ã‚Â¤Ã‚ÂºÃƒÂ¦Ã‚Â¡Ã¢â‚¬Â  -->
-  <div id="qiiToast" class="qii-toast">ÃƒÂ¥Ã‚Â·Ã‚Â²ÃƒÂ¥Ã…Â Ã‚Â ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¥ÃƒÂ¨Ã‚Â´Ã‚Â­ÃƒÂ§Ã¢â‚¬Â°Ã‚Â©ÃƒÂ¨Ã‚Â½Ã‚Â¦</div>
+  <div id="qiiToast" class="qii-toast">已加入购物车</div>
 
   <style>
     .qii-toast {

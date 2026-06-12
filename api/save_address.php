@@ -83,6 +83,7 @@ try {
     echo "OK";
 
 } catch (Exception $e) {
+    error_log('Save address failed: ' . $e->getMessage());
     http_response_code(500);
-    echo "❌ Error: " . $e->getMessage();
+    echo "❌ 保存失败，请稍后重试";
 }
