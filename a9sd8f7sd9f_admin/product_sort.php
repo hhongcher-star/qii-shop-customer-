@@ -27,6 +27,7 @@ if (!isset($categories[$category])) {
     .sort-save { min-height:46px; padding:0 20px; border:0; border-radius:12px; background:#ff3e96; color:#fff; font-weight:900; cursor:pointer; }
     .sort-canvas { overflow:hidden; border:1px solid #f2c9da; border-radius:18px; background:#fff; box-shadow:0 16px 38px rgba(185,75,126,.1); }
     .sort-canvas-head { display:flex; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #f4d5e2; font-weight:800; }
+    .sort-help { margin:0; padding:12px 18px; border-bottom:1px solid #f4d5e2; background:#fff8fb; color:#7c6572; font-weight:700; }
     #shopFrame { display:block; width:100%; height:calc(100vh - 285px); min-height:680px; border:0; background:#fff7fb; }
     .desktop-only-note { display:flex; align-items:center; gap:10px; margin:18px 0; padding:13px 16px; border:1px solid #f2c9da; border-radius:12px; background:#fff6fa; color:#8a6175; font-weight:800; }
     .mobile-block { display:none; }
@@ -61,6 +62,7 @@ if (!isset($categories[$category])) {
 
   <section class="sort-canvas">
     <div class="sort-canvas-head"><span>前台商品页预览</span><span>按住商品卡片拖动</span></div>
+    <p class="sort-help">也可以在每个商品右侧的“排序”数字框输入目标位置，例如输入 1 后，商品会移动到第一位。调整完成后点击“保存顺序”。</p>
     <iframe id="shopFrame" src="../shop.php?cat=<?= rawurlencode($category) ?>&sort_edit=1&t=<?= time() ?>"></iframe>
   </section>
   <div class="mobile-block"><i class="fa-solid fa-desktop"></i><br><br>请使用电脑打开商品排序功能。</div>
@@ -78,6 +80,35 @@ let observedArea = null;
 function setState(text, dirty = false) {
   state.textContent = text;
   state.classList.toggle('dirty', dirty);
+}
+
+function renumberProducts(area) {
+  const cards = [...area.querySelectorAll('.product-card[data-product-id]')];
+  cards.forEach((card, index) => {
+    const input = card.querySelector('.sort-position-input');
+    if (input) {
+      input.value = String(index + 1);
+      input.max = String(cards.length);
+    }
+  });
+}
+
+function moveProductToPosition(card, requestedPosition) {
+  const area = card.closest('.product-area');
+  if (!area) return;
+  const cards = [...area.querySelectorAll('.product-card[data-product-id]')];
+  const currentIndex = cards.indexOf(card);
+  const position = Math.max(1, Math.min(cards.length, Number.parseInt(requestedPosition, 10) || currentIndex + 1));
+  const targetIndex = position - 1;
+
+  if (targetIndex !== currentIndex) {
+    const cardsWithoutCurrent = cards.filter(item => item !== card);
+    const target = cardsWithoutCurrent[targetIndex];
+    if (target) area.insertBefore(card, target);
+    else area.appendChild(card);
+    setState('有未保存的顺序修改', true);
+  }
+  renumberProducts(area);
 }
 
 async function switchCategory(nextCategory) {
@@ -139,10 +170,42 @@ function decorateProducts() {
   area.querySelectorAll('.product-card[data-product-id]:not([data-sort-bound])').forEach(card => {
     card.dataset.sortBound = '1';
     card.draggable = true;
+    card.style.position = 'relative';
     card.style.cursor = 'grab';
     card.style.outline = '2px dashed rgba(245,54,141,.45)';
     card.style.outlineOffset = '3px';
+
+    const control = doc.createElement('label');
+    control.className = 'sort-position-control';
+    control.style.cssText = 'position:absolute;top:10px;right:10px;z-index:20;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #f2bfd5;border-radius:10px;background:rgba(255,255,255,.96);box-shadow:0 4px 14px rgba(128,58,91,.14);color:#6f5060;font-size:12px;font-weight:800;cursor:default;';
+    control.textContent = '排序';
+
+    const input = doc.createElement('input');
+    input.className = 'sort-position-input';
+    input.type = 'number';
+    input.min = '1';
+    input.inputMode = 'numeric';
+    input.style.cssText = 'width:54px;height:30px;padding:0 5px;border:1px solid #e8aac5;border-radius:7px;background:#fff;color:#4f3c46;text-align:center;font-weight:900;pointer-events:auto;';
+    input.addEventListener('pointerdown', event => event.stopPropagation());
+    input.addEventListener('click', event => event.stopPropagation());
+    input.addEventListener('keydown', event => {
+      event.stopPropagation();
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        moveProductToPosition(card, input.value);
+        input.blur();
+      }
+    });
+    input.addEventListener('change', () => moveProductToPosition(card, input.value));
+    control.addEventListener('dragstart', event => event.preventDefault());
+    control.appendChild(input);
+    card.appendChild(control);
+
     card.addEventListener('dragstart', event => {
+      if (event.target.closest('.sort-position-control')) {
+        event.preventDefault();
+        return;
+      }
       draggedCard = card;
       card.style.opacity = '.45';
       event.dataTransfer.effectAllowed = 'move';
@@ -150,9 +213,11 @@ function decorateProducts() {
     card.addEventListener('dragend', () => {
       card.style.opacity = '1';
       draggedCard = null;
+      renumberProducts(area);
       setState('有未保存的顺序修改', true);
     });
   });
+  renumberProducts(area);
 
   if (area !== observedArea) {
     observedArea = area;
