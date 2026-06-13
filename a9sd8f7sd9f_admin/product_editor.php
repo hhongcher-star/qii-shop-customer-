@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../app/categories.php';
+require_once __DIR__ . '/../app/product_images.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
 $categoryRows = qii_categories($pdo, false);
@@ -43,30 +44,11 @@ function image_upload_error(string $field): ?string {
 }
 
 function upload_admin_image(string $field, ?string $existing = null): ?string {
-    if (!has_uploaded_file($field)) {
-        return $existing;
-    }
-
-    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-    $type = uploaded_mime_type($_FILES[$field]['tmp_name']);
-    $dir = dirname(__DIR__) . '/images/products';
-    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-        throw new RuntimeException('无法创建图片目录');
-    }
-
-    $filename = bin2hex(random_bytes(16)) . '.' . $allowed[$type];
-    if (!move_uploaded_file($_FILES[$field]['tmp_name'], $dir . '/' . $filename)) {
-        throw new RuntimeException('无法保存上传图片');
-    }
-
-    return 'images/products/' . $filename;
+    return qii_store_product_image($field, $existing);
 }
 
 function asset_url(?string $path): string {
-    $path = trim((string)$path);
-    if ($path === '') return '../images/logo.png';
-    if (preg_match('#^(https?:)?//#', $path)) return $path;
-    return '../' . ltrim($path, '/');
+    return qii_product_image_url($path);
 }
 
 function has_uploaded_file(string $field): bool {

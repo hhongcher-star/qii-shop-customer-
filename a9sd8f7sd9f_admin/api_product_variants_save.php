@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../app/product_images.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -55,36 +56,7 @@ function image_upload_error(string $field): ?string {
 }
 
 function upload_variant_image(string $field, string $existing = ''): string {
-    if (!has_uploaded_file($field)) {
-        return $existing;
-    }
-
-    $allowed = [
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/gif' => 'gif',
-        'image/webp' => 'webp',
-    ];
-
-    $type = uploaded_mime_type($_FILES[$field]['tmp_name']);
-
-    if (!isset($allowed[$type])) {
-        throw new RuntimeException('Unsupported image type');
-    }
-
-    $dir = dirname(__DIR__) . '/images/products';
-
-    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-        throw new RuntimeException('Cannot create upload directory');
-    }
-
-    $filename = bin2hex(random_bytes(16)) . '.' . $allowed[$type];
-
-    if (!move_uploaded_file($_FILES[$field]['tmp_name'], $dir . '/' . $filename)) {
-        throw new RuntimeException('Cannot save uploaded image');
-    }
-
-    return 'images/products/' . $filename;
+    return (string)qii_store_product_image($field, $existing);
 }
 
 function is_non_negative_integer(string $value): bool {

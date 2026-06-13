@@ -1,0 +1,6 @@
+# Runtime product uploads must persist on the server between deployments.
+/images/products/*
+!/images/products/.htaccess
+!/images/products/.gitkeep
+!/images/products/README.md
+

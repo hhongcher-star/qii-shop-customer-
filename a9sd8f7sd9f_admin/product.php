@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../app/categories.php';
+require_once __DIR__ . '/../app/product_images.php';
 
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
@@ -10,17 +11,7 @@ $categoryRows = qii_categories($pdo, false);
 $categories = array_map(fn($row) => $row['name'], $categoryRows);
 
 function product_img(?string $path): string {
-    $path = trim((string)$path);
-
-    if ($path === '') {
-        return '../images/logo.png';
-    }
-
-    if (preg_match('#^(https?:)?//#', $path)) {
-        return $path;
-    }
-
-    return '../' . ltrim($path, '/');
+    return qii_product_image_url($path);
 }
 
 $deleteError = '';
@@ -395,7 +386,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="product-image-wrap">
                     <img 
-                        src="<?= htmlspecialchars(product_img($p['image_url'] ?? '')) ?>" 
+                        src="<?= htmlspecialchars(product_img($p['image_url'] ?? '')) ?>"
                         alt="<?= htmlspecialchars($productName) ?>"
                     >
 
