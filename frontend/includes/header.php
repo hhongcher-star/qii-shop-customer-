@@ -300,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
             name.textContent = item.name || "";
             const sku = document.createElement("div");
             sku.className = "suggest-sku";
-            sku.textContent = `SKU: ${item.sku || "-"} · RM ${item.price || "0.00"}`;
+            sku.textContent = `RM ${item.price || "0.00"}`;
             text.appendChild(name); text.appendChild(sku); div.appendChild(img); div.appendChild(text);
             div.onclick = () => { location.href = "search.php?q=" + encodeURIComponent(item.name || ""); };
             box.appendChild(div);

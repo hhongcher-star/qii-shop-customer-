@@ -122,7 +122,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         <img src="<?= htmlspecialchars(qii_asset_path($p['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars(qii_text($p['name'])) ?>">
         <div class="product-info">
           <h4><?= htmlspecialchars(qii_text($p['name'])) ?></h4>
-          <?php if (!empty($p['sku'])): ?><p>SKU: <?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
           <div class="price">RM <?= number_format($p['price'], 2) ?></div>
         </div>
         <?php if ($p['stock'] > 0): ?>
@@ -1261,7 +1260,6 @@ html, body {
         <img src="<?= htmlspecialchars(qii_asset_path($p['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars(qii_text($p['name'])) ?>">
         <div class="product-info">
           <h4><?= htmlspecialchars(qii_text($p['name'])) ?></h4>
-          <?php if (!empty($p['sku'])): ?><p>SKU: <?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
           <div class="price">RM <?= number_format($p['price'], 2) ?></div>
         </div>
         <?php if ($p['stock'] > 0): ?>

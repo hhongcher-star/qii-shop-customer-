@@ -212,7 +212,7 @@ if ($q !== '') {
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="search-wrapper">
-  <h2>æœç´¢ç»“æžœï¼š<?= htmlspecialchars($q) ?></h2>
+  <h2>搜索结果：<?= htmlspecialchars($q) ?></h2>
   <div class="search-results">
     <?php if ($products): ?>
       <?php foreach ($products as $p): ?>
@@ -224,16 +224,15 @@ if ($q !== '') {
             <img src="<?= htmlspecialchars(qii_asset_path($p['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
             <div class="product-text">
               <h4><?= htmlspecialchars($p['name']) ?></h4>
-              <?php if (!empty($p['sku'])): ?><p>编号：<?= htmlspecialchars($p['sku']) ?></p><?php endif; ?>
-              <p>åº“å­˜ï¼š<?= (int)$p['stock'] ?></p>
+              <p>库存：<?= (int)$p['stock'] ?></p>
               <div class="price">RM <?= number_format($p['price'], 2) ?></div>
             </div>
           </div>
 
           <?php if ($p['stock'] > 0): ?>
-            <button class="add-btn" onclick='openVariantModal(<?= qii_product_payload($p) ?>)'>é€‰æ‹©è§„æ ¼</button>
+            <button class="add-btn" onclick='openVariantModal(<?= qii_product_payload($p) ?>)'>选择规格</button>
           <?php else: ?>
-            <button class="add-btn" disabled>å”®ç½„</button>
+            <button class="add-btn" disabled>售罄</button>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
@@ -246,7 +245,7 @@ if ($q !== '') {
 <?php include __DIR__ . "/../includes/footer.php"; ?>
 <?php include __DIR__ . "/../components/variant_modal.php"; ?>
 
-<div id="qiiToast" class="qii-toast">å·²åŠ å…¥è´­ç‰©è½¦</div>
+<div id="qiiToast" class="qii-toast">已加入购物袋</div>
 <script>
 function qiiToast(msg) {
   const toast = document.getElementById("qiiToast");

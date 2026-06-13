@@ -98,7 +98,6 @@ $variantEditableContent = [
       <img id="modalImg" src="" alt="">
       <div class="variant-product-meta">
         <h3 id="modalName"></h3>
-        <div class="variant-product-code">SKU: <span id="modalSku">-</span></div>
         <div class="price-line">RM <span id="modalPrice"></span></div>
         <div id="modalStock">库存：-</div>
         
@@ -213,7 +212,6 @@ function openVariantModal(p) {
     const modal = document.getElementById("variantModal");
 
     document.getElementById("modalName").textContent = p.name;
-    document.getElementById("modalSku").textContent = p.sku || "-";
     document.getElementById("modalPrice").textContent = parseFloat(p.price).toFixed(2);
     document.getElementById("modalImg").src = qiiAssetPath(p.img);
     document.getElementById("variantQty").value = 1;
