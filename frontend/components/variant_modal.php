@@ -28,7 +28,9 @@ $variantEditableContent = [
 .variant-product-meta { min-width: 0; flex: 1; padding-right: 26px; }
 #variantModal h3 { margin: 4px 0 8px; color: #e43f88; font-size: 14px; font-weight: 800; line-height: 1.3; word-break: break-word; }
 .variant-product-code { margin-bottom: 7px; color: #9b8790; font-size: 11px; }
-#variantModal .price-line { margin-bottom: 7px; color: #f5368d; font-size: 20px; font-weight: 900; }
+#variantModal .price-line { margin-bottom: 7px; font-size: 20px; font-weight: 900; }
+#variantModal .price-line,
+#variantModal .price-line #modalPrice { color: #E44B87 !important; }
 #variantModal #modalStock { color: #8d7c85; font-size: 11px; }
 .variant-like { margin-top:8px; margin-left:auto; width:42px; height:42px; display:grid; place-items:center; border:1px solid #f5bfd5; border-radius:50%; background:#fff; color:#f5a8c9; font-size:22px; cursor:pointer; }
 .variant-like.active { color:#ed2f87; background:#fff0f7; border-color:#ed78ab; }
