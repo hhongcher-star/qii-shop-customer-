@@ -102,6 +102,8 @@ $stockStatus = $_GET['stock_status'] ?? '';
 $warnStatus = $_GET['warn_status'] ?? '';
 $productMode = $_GET['product_mode'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
+$perPage = 30;
+$page = max(1, (int)($_GET['page'] ?? 1));
 
 $sql = "
     SELECT
@@ -220,6 +222,10 @@ foreach ($products as $p) {
     ];
 }
 
+$filteredProductCount = count($rows);
+$totalPages = max(1, (int)ceil($filteredProductCount / $perPage));
+$page = min($page, $totalPages);
+
 $totalStock = (int)$pdo->query("
     SELECT COALESCE(SUM(stock), 0) FROM (
       SELECT v.stock FROM product_variants v
@@ -237,6 +243,7 @@ foreach ($rows as $r) {
     if ((int)$r['stock'] <= 0) $outCount++;
     elseif ((int)$r['stock'] <= (int)$r['warning_level']) $lowCount++;
 }
+$rows = array_slice($rows, ($page - 1) * $perPage, $perPage);
 $todayAdjust = 0;
 $msg = $_GET['msg'] ?? '';
 ?>
@@ -247,7 +254,7 @@ $msg = $_GET['msg'] ?? '';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>库存管理 | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="css/inventory_admin.css?v=20260604">
+  <link rel="stylesheet" href="css/inventory_admin.css?v=20260620">
   <style>
     @media (max-width: 760px) {
       .inventory-table-card { overflow-x: auto !important; overflow-y: visible !important; padding: 0 !important; -webkit-overflow-scrolling: touch; }
@@ -340,7 +347,7 @@ $msg = $_GET['msg'] ?? '';
       </section>
 
   <section class="inventory-table-card">
-    <div class="mobile-list-head"><strong>共 <?= count($rows) ?> 条记录</strong><span>排序：最新 <i class="fa-solid fa-arrow-up-short-wide"></i></span></div>
+    <div class="mobile-list-head"><strong>共 <?= $filteredProductCount ?> 个商品</strong><span>每页 30 个</span></div>
     <table>
       <thead>
         <tr>
@@ -431,7 +438,14 @@ $msg = $_GET['msg'] ?? '';
       </tbody>
     </table>
   
-    <button type="button" class="load-more">加载更多 <i class="fa-solid fa-chevron-down"></i></button>
+    <?php if ($totalPages > 1): ?>
+      <nav class="inventory-pagination" aria-label="库存分页">
+        <?php $pageQuery = $_GET; ?>
+        <?php if ($page > 1): $pageQuery['page'] = $page - 1; ?><a class="page-button" href="?<?= htmlspecialchars(http_build_query($pageQuery)) ?>"><i class="fa-solid fa-chevron-left"></i><span>上一页</span></a><?php else: ?><span class="page-button disabled"><i class="fa-solid fa-chevron-left"></i><span>上一页</span></span><?php endif; ?>
+        <span class="page-status"><strong><?= $page ?></strong><em>/</em><?= $totalPages ?> 页 <small>共 <?= number_format($filteredProductCount) ?> 个商品</small></span>
+        <?php if ($page < $totalPages): $pageQuery['page'] = $page + 1; ?><a class="page-button" href="?<?= htmlspecialchars(http_build_query($pageQuery)) ?>"><span>下一页</span><i class="fa-solid fa-chevron-right"></i></a><?php else: ?><span class="page-button disabled"><span>下一页</span><i class="fa-solid fa-chevron-right"></i></span><?php endif; ?>
+      </nav>
+    <?php endif; ?>
   </section>
 </main>
 

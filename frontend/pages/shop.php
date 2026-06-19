@@ -616,8 +616,19 @@ html, body {
 
 /* SOLD OUT ÃƒÂ§Ã‚Â»Ã…Â¸ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â² */
 .soldout-tag {
-  background: #E57597 !important;
+  padding: 6px 10px !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 999px !important;
+  background: rgba(104,72,87,.86) !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: .04em;
+  box-shadow: 0 4px 12px rgba(71,42,56,.16) !important;
+  backdrop-filter: blur(6px);
 }
+.product-card .add-btn:disabled { display: none !important; }
+.product-card:has(.soldout-tag) > img { filter: saturate(.72) brightness(.96); }
 
 /* ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¦Ã‚Â Ã¢â‚¬Â¡ÃƒÂ©Ã‚Â¢Ã‹Å“ÃƒÂ§Ã‚Â»Ã…Â¸ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â² */
 .category-title {

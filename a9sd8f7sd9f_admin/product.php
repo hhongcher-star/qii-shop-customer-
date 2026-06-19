@@ -170,6 +170,8 @@ $search = trim($_GET['search'] ?? '');
 $cat = $_GET['cat'] ?? '';
 $status = $_GET['status'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
+$perPage = 32;
+$page = max(1, (int)($_GET['page'] ?? 1));
 
 $where = [];
 $params = [];
@@ -189,6 +191,15 @@ if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
     $where[] = "p.status = ?";
     $params[] = $status;
 }
+
+$countSql = "SELECT COUNT(*) FROM products p" . ($where ? " WHERE " . implode(" AND ", $where) : '');
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$filteredProductCount = (int)$countStmt->fetchColumn();
+$totalProductCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
+$totalPages = max(1, (int)ceil($filteredProductCount / $perPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $perPage;
 
 $orderSql = match ($sort) {
     'price_asc' => 'min_price ASC, p.id DESC',
@@ -213,7 +224,7 @@ if ($where) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " GROUP BY p.id ORDER BY {$orderSql}";
+$sql .= " GROUP BY p.id ORDER BY {$orderSql} LIMIT {$perPage} OFFSET {$offset}";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -241,6 +252,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div>
             <h1>商品管理</h1>
             <p>管理所有商品，查看库存、规格和上架状态</p>
+            <div class="product-count-monitor"><i class="fa-solid fa-chart-simple"></i> 当前共有 <strong><?= number_format($totalProductCount) ?></strong> 个商品</div>
         </div>
 
         <div class="product-topbar-actions">
@@ -450,11 +462,24 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     </section>
 
+    <?php if ($totalPages > 1): ?>
+        <nav class="admin-pagination" aria-label="商品分页">
+            <?php $pageQuery = $_GET; ?>
+            <?php if ($page > 1): $pageQuery['page'] = $page - 1; ?><a href="?<?= htmlspecialchars(http_build_query($pageQuery)) ?>">上一页</a><?php endif; ?>
+            <span>第 <?= $page ?> / <?= $totalPages ?> 页 · 共 <?= number_format($filteredProductCount) ?> 个</span>
+            <?php if ($page < $totalPages): $pageQuery['page'] = $page + 1; ?><a href="?<?= htmlspecialchars(http_build_query($pageQuery)) ?>">下一页</a><?php endif; ?>
+        </nav>
+    <?php endif; ?>
+
 </main>
 
 <style>
 .product-topbar { grid-template-columns: 1fr auto; }
 .product-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.product-count-monitor { display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:8px 13px; border:1px solid #f4c9dc; border-radius:999px; background:rgba(255,255,255,.72); color:#7b5267; font-size:14px; }
+.product-count-monitor strong { color:#d93682; font-size:17px; }
+.admin-pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin:28px 0 8px; }
+.admin-pagination a, .admin-pagination span { padding:11px 16px; border-radius:12px; background:#fff; border:1px solid #f2c9da; color:#795568; text-decoration:none; font-weight:700; }
 .category-action { border: 0; cursor: pointer; }
 .category-dialog { width: min(620px, calc(100% - 32px)); max-height: min(82vh, 700px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
 .category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
