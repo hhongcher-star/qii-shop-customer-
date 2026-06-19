@@ -74,4 +74,3 @@ function qii_product_image_url(?string $path): string
 
     return '/' . ltrim(str_replace('\\', '/', $path), '/');
 }
-

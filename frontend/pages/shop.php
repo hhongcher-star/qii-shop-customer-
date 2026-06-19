@@ -102,10 +102,17 @@ if ($cat === '' || !isset($categories[$cat])) {
   $cat = array_key_first($categories) ?: 'phone';
 }
 
-// ÃƒÂ¦Ã…Â¸Ã‚Â¥ÃƒÂ¨Ã‚Â¯Ã‚Â¢ÃƒÂ¨Ã‚Â¯Ã‚Â¥ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¤Ã‚Â¸Ã¢â‚¬Â¹ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚Â
-$stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? AND COALESCE(status, 'active') = 'active' ORDER BY sort_order ASC, created_at DESC");
+// 每次只读取当前分类的 24 个商品。
+$shopPage = max(1, (int)($_GET['page'] ?? 1));
+$shopPageSize = 24;
+$shopOffset = ($shopPage - 1) * $shopPageSize;
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? AND COALESCE(status, 'active') = 'active' ORDER BY sort_order ASC, created_at DESC LIMIT {$shopPageSize} OFFSET {$shopOffset}");
 $stmt->execute([$cat]);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE category = ? AND status = 'active'");
+$countStmt->execute([$cat]);
+$categoryProductCount = (int)$countStmt->fetchColumn();
+$totalShopPages = max(1, (int)ceil($categoryProductCount / $shopPageSize));
 
 // ÃƒÂ¥Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ¦Ã…Â¾Ã…â€œÃƒÂ¦Ã‹Å“Ã‚Â¯ AJAX ÃƒÂ¨Ã‚Â¯Ã‚Â·ÃƒÂ¦Ã‚Â±Ã¢â‚¬Å¡ÃƒÂ¯Ã‚Â¼Ã…â€™ÃƒÂ¥Ã‚ÂÃ‚ÂªÃƒÂ¨Ã‚Â¿Ã¢â‚¬ÂÃƒÂ¥Ã¢â‚¬ÂºÃ…Â¾ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚Â HTML
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
@@ -134,7 +141,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   } else {
     echo "<p>No products yet.</p>";
   }
-  echo ob_get_clean();
+  $html = ob_get_clean();
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'html' => $html,
+    'page' => $shopPage,
+    'total_pages' => $totalShopPages,
+    'total_products' => $categoryProductCount,
+    'category' => $cat,
+  ], JSON_UNESCAPED_UNICODE);
   exit;
 }
 ?>
@@ -1244,10 +1259,12 @@ html, body {
         <ul>
           <?php foreach ($categories as $key => $label): ?>
             <li class="cat-link <?= ($cat === $key) ? 'active' : '' ?>" data-cat="<?= htmlspecialchars($key) ?>">
+              <a href="shop.php?cat=<?= urlencode($key) ?>">
               <?php if (!empty($categoryRows[$key]['emoji'])): ?>
                 <span class="cat-emoji"><?= htmlspecialchars($categoryRows[$key]['emoji']) ?></span>
               <?php endif; ?>
               <span class="cat-name"><?= htmlspecialchars($categoryRows[$key]['name'] ?? $key) ?></span>
+              </a>
             </li>
           <?php endforeach; ?>
         </ul>
@@ -1282,6 +1299,129 @@ html, body {
     <?php endforeach; ?>
   <?php endif; ?>
     </div>
+    <style>
+      .shop-layout .shop-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 30px auto 12px;
+        padding: 18px 12px;
+      }
+      .shop-layout .shop-pagination a,
+      .shop-layout .shop-pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        box-sizing: border-box;
+        padding: 0 22px;
+        border-radius: 999px;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .shop-layout .shop-pagination a {
+        border: 1px solid #f5368d;
+        background: linear-gradient(135deg, #ff72ad, #f5368d);
+        color: #fff !important;
+        text-decoration: none !important;
+        box-shadow: 0 8px 20px rgba(245, 54, 141, .24);
+        transition: transform .2s ease, box-shadow .2s ease;
+      }
+      .shop-layout .shop-pagination a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 11px 24px rgba(245, 54, 141, .34);
+      }
+      .shop-layout .shop-pagination span {
+        border: 1px solid #ffc1dc;
+        background: #fff0f7;
+        color: #d92e7c;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.8);
+      }
+      .shop-layout .product-area.shop-products-loading {
+        opacity: .45;
+        pointer-events: none;
+        transition: opacity .18s ease;
+      }
+      @media (max-width: 480px) {
+        .shop-layout .shop-pagination { gap: 8px; padding: 14px 4px; }
+        .shop-layout .shop-pagination a,
+        .shop-layout .shop-pagination span { min-height: 42px; padding: 0 15px; font-size: 13px; }
+      }
+    </style>
+    <?php if ($totalShopPages > 1): ?>
+      <nav class="shop-pagination" aria-label="商品分页" data-shop-pagination>
+        <?php if ($shopPage > 1): ?><a href="shop.php?cat=<?= urlencode($cat) ?>&page=<?= $shopPage - 1 ?>#shop-products">上一页</a><?php endif; ?>
+        <span>第 <?= $shopPage ?> / <?= $totalShopPages ?> 页</span>
+        <?php if ($shopPage < $totalShopPages): ?><a href="shop.php?cat=<?= urlencode($cat) ?>&page=<?= $shopPage + 1 ?>#shop-products">下一页</a><?php endif; ?>
+      </nav>
+    <?php endif; ?>
+    <script>
+    (() => {
+      const productArea = document.querySelector('.product-area');
+      const categoryTitle = document.querySelector('.category-title');
+      const productSection = document.querySelector('#shop-products');
+      if (!productArea || !productSection) return;
+
+      let activeRequest = null;
+
+      function paginationHtml(category, page, totalPages) {
+        if (totalPages <= 1) return '';
+        const previous = page > 1
+          ? `<a href="shop.php?cat=${encodeURIComponent(category)}&page=${page - 1}#shop-products">上一页</a>` : '';
+        const next = page < totalPages
+          ? `<a href="shop.php?cat=${encodeURIComponent(category)}&page=${page + 1}#shop-products">下一页</a>` : '';
+        return `<nav class="shop-pagination" aria-label="商品分页" data-shop-pagination>${previous}<span>第 ${page} / ${totalPages} 页</span>${next}</nav>`;
+      }
+
+      async function loadShop(category, page, updateHistory = true) {
+        activeRequest?.abort();
+        activeRequest = new AbortController();
+        productArea.classList.add('shop-products-loading');
+
+        try {
+          const url = `shop.php?cat=${encodeURIComponent(category)}&page=${page}&ajax=1`;
+          const response = await fetch(url, { signal: activeRequest.signal, headers: { Accept: 'application/json' } });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          productArea.innerHTML = data.html;
+          productSection.querySelector('[data-shop-pagination]')?.remove();
+          productArea.insertAdjacentHTML('afterend', paginationHtml(data.category, data.page, data.total_pages));
+
+          document.querySelectorAll('.cat-link').forEach(item => {
+            const active = item.dataset.cat === data.category;
+            item.classList.toggle('active', active);
+            if (active && categoryTitle) categoryTitle.textContent = item.textContent.trim();
+          });
+
+          if (updateHistory) history.pushState({ category: data.category, page: data.page }, '', `shop.php?cat=${encodeURIComponent(data.category)}&page=${data.page}#shop-products`);
+          productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (error) {
+          if (error.name !== 'AbortError') alert('商品加载失败，请稍后再试。');
+        } finally {
+          productArea.classList.remove('shop-products-loading');
+        }
+      }
+
+      document.addEventListener('click', event => {
+        const categoryLink = event.target.closest('.cat-link a');
+        const pageLink = event.target.closest('[data-shop-pagination] a');
+        const link = categoryLink || pageLink;
+        if (!link) return;
+        event.preventDefault();
+        const url = new URL(link.href, location.href);
+        loadShop(url.searchParams.get('cat') || '', Math.max(1, Number(url.searchParams.get('page')) || 1));
+      });
+
+      window.addEventListener('popstate', () => {
+        const params = new URLSearchParams(location.search);
+        loadShop(params.get('cat') || '', Math.max(1, Number(params.get('page')) || 1), false);
+      });
+    })();
+    </script>
   </div>
 </section>
   </main>
@@ -1301,47 +1441,7 @@ html, body {
       }, 1800);
     });
 
-    // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ ÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â»ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¦Ã¢â‚¬â€Ã‚Â¶ÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ¦Ã¢â€šÂ¬Ã‚ÂÃƒÂ¥Ã…Â Ã‚Â ÃƒÂ¨Ã‚Â½Ã‚Â½ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚ÂÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ¤Ã‚Â¸Ã‚ÂÃƒÂ¥Ã‹â€ Ã‚Â·ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â°ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â´ÃƒÂ¤Ã‚Â¸Ã‚ÂªÃƒÂ©Ã‚Â¡Ã‚ÂµÃƒÂ©Ã‚ÂÃ‚Â¢ÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â°
-    document.addEventListener("DOMContentLoaded", () => {
-      const categoryList = document.querySelectorAll(".cat-link");
-      const productArea = document.querySelector(".product-area");
-      const title = document.querySelector(".category-title");
-
-      const defaultCat = <?= json_encode($cat, JSON_UNESCAPED_UNICODE) ?>;
-      fetch(`shop.php?cat=${defaultCat}&ajax=1`)
-        .then(res => res.text())
-        .then(html => {
-          if (productArea) productArea.innerHTML = html;
-          const activeLi = document.querySelector(`[data-cat="${defaultCat}"]`);
-          if (title && activeLi) title.textContent = activeLi.textContent.trim();
-          categoryList.forEach(li => li.classList.remove("active"));
-          if (activeLi) activeLi.classList.add("active");
-        });
-
-      // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â»ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¢
-      categoryList.forEach((item) => {
-        item.addEventListener("click", (e) => {
-          e.preventDefault();
-
-          categoryList.forEach(li => li.classList.remove("active"));
-          item.classList.add("active");
-
-          if (title) title.textContent = item.textContent.trim();
-
-          const cat = item.dataset.cat;
-          fetch(`shop.php?cat=${cat}&ajax=1`)
-            .then(res => res.text())
-            .then(html => {
-              productArea.innerHTML = html;
-            })
-            .catch(err => {
-              productArea.innerHTML = `<p style="color:#c94b82;text-align:center;">Load failed. Please try again.</p>`;
-            });
-        });
-      });
-    });
-
-// ÃƒÂ¨Ã‚Â®Ã‚Â©ÃƒÂ¦Ã‚Â¯Ã‚ÂÃƒÂ¤Ã‚Â¸Ã‚ÂªÃƒÂ§Ã‚Â³Ã¢â‚¬â€œÃƒÂ¦Ã…Â¾Ã…â€œÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â£ÃƒÂ©Ã…Â¡Ã‚ÂÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¤Ã‚Â½Ã‚ÂÃƒÂ§Ã‚Â½Ã‚Â®
+// Decorative candy animation.
 document.querySelectorAll(".sakura").forEach((el, i) => {
   el.style.left = Math.random() * 100 + "vw";          
   el.style.animationDuration = 8 + Math.random()*6 + "s";
@@ -1401,6 +1501,7 @@ document.getElementById("imgPreview").addEventListener("click", function() {
 });
 
 </script>
+
 
 
 
