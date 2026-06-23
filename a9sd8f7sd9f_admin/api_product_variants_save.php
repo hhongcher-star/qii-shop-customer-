@@ -160,7 +160,7 @@ try {
             $errors[] = '第 ' . ($i + 1) . ' 个规格库存必须是非负整数';
         }
 
-        if ($image === '' && !has_uploaded_file($field)) {
+        if (false && $image === '' && !has_uploaded_file($field)) {
             $errors[] = '第 ' . ($i + 1) . ' 个规格必须上传图片';
         }
 

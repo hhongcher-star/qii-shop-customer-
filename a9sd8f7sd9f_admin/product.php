@@ -8,10 +8,79 @@ require_once __DIR__ . '/../app/product_images.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
 $categoryRows = qii_categories($pdo, false);
-$categories = array_map(fn($row) => $row['name'], $categoryRows);
+$categories = [];
+foreach ($categoryRows as $key => $row) {
+    $categories[$key] = $row['name'];
+}
 
 function product_img(?string $path): string {
     return qii_product_image_url($path);
+}
+
+function category_name_html(string $html): string {
+    $html = html_entity_decode($html, ENT_QUOTES, 'UTF-8');
+    $html = preg_replace('/<(div|p)[^>]*>/i', '<br>', $html);
+    $html = preg_replace('/<div><br><\/div>|<p><br><\/p>/i', '<br>', $html);
+    $html = preg_replace('/<\/div>\s*<div>|<\/p>\s*<p>/i', '<br>', $html);
+    $html = preg_replace('/<\/?(div|p)[^>]*>/i', '', $html);
+    $html = strip_tags($html, '<br>');
+    $html = preg_replace('/<br\s*\/?>/i', '<br>', $html);
+    $html = preg_replace('/^(<br>)+|(<br>)+$/i', '', $html);
+
+    if (!class_exists('DOMDocument')) {
+        return trim(strip_tags($html, '<br>'));
+    }
+
+    $document = new DOMDocument('1.0', 'UTF-8');
+    libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="UTF-8"><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+
+    $renderNode = function (DOMNode $node) use (&$renderNode): string {
+        if ($node instanceof DOMText) {
+            return htmlspecialchars($node->nodeValue, ENT_QUOTES, 'UTF-8');
+        }
+        if (!$node instanceof DOMElement) return '';
+        if (strtolower($node->tagName) === 'br') return '<br>';
+
+        $children = '';
+        foreach ($node->childNodes as $child) {
+            $children .= $renderNode($child);
+        }
+
+        return $children;
+    };
+
+    $root = $document->getElementsByTagName('div')->item(0);
+    $clean = '';
+    if ($root) {
+        foreach ($root->childNodes as $child) {
+            $clean .= $renderNode($child);
+        }
+    }
+    return trim($clean);
+}
+
+function category_name_text(string $html): string {
+    return trim(html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $html)), ENT_QUOTES, 'UTF-8'));
+}
+
+function category_name_admin_html(string $html): string {
+    return category_name_html($html);
+}
+
+function category_name_plain(string $html): string {
+    return category_name_text($html);
+}
+
+function product_ajax_request(): bool {
+    return strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
+}
+
+function product_json_response(array $payload): void {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 $deleteError = '';
@@ -19,12 +88,12 @@ $categoryError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_category') {
     verify_csrf();
-    $name = trim($_POST['category_name'] ?? '');
+    $name = category_name_html((string)($_POST['category_name'] ?? ''));
     $key = strtolower(trim($_POST['category_key'] ?? ''));
     $emoji = trim($_POST['category_emoji'] ?? '');
     $key = trim(preg_replace('/[^a-z0-9_-]+/', '-', $key), '-');
 
-    if ($name === '' || $key === '') {
+    if (category_name_text($name) === '' || $key === '') {
         $categoryError = '分类名称和分类代号不能为空。';
     } elseif (isset($categoryRows[$key])) {
         $categoryError = '这个分类代号已经存在。';
@@ -55,11 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_
     verify_csrf();
     $oldKey = trim($_POST['old_category_key'] ?? '');
     $newKey = strtolower(trim($_POST['category_key'] ?? ''));
-    $name = trim($_POST['category_name'] ?? '');
+    $name = category_name_html((string)($_POST['category_name'] ?? ''));
     $emoji = trim($_POST['category_emoji'] ?? '');
     $newKey = trim(preg_replace('/[^a-z0-9_-]+/', '-', $newKey), '-');
 
-    if ($oldKey === '' || $newKey === '' || $name === '') {
+    if ($oldKey === '' || $newKey === '' || category_name_text($name) === '') {
         $categoryError = '分类名称和分类代号不能为空。';
     } elseif ($newKey !== $oldKey && isset($categoryRows[$newKey])) {
         $categoryError = '新的分类代号已经存在。';
@@ -72,6 +141,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_
             $pdo->prepare("UPDATE product_categories SET category_key = ?, name = ?, emoji = ? WHERE category_key = ?")
                 ->execute([$newKey, $name, $emoji, $oldKey]);
             $pdo->commit();
+            if (product_ajax_request()) {
+                product_json_response([
+                    'ok' => true,
+                    'old_key' => $oldKey,
+                    'key' => $newKey,
+                    'name_html' => $name,
+                    'name_text' => category_name_plain($name),
+                    'emoji' => $emoji,
+                ]);
+            }
             header('Location: product.php?category_updated=1');
             exit;
         } catch (Throwable $e) {
@@ -80,6 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit_
             }
             error_log('Category update failed: ' . $e->getMessage());
             $categoryError = '分类修改失败，请稍后重试。';
+            if (product_ajax_request()) {
+                product_json_response(['ok' => false, 'message' => $categoryError]);
+            }
         }
     }
 }
@@ -229,6 +311,7 @@ $sql .= " GROUP BY p.id ORDER BY {$orderSql} LIMIT {$perPage} OFFSET {$offset}";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 
 <!DOCTYPE html>
@@ -282,7 +365,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <option value="">全部分类</option>
             <?php foreach ($categories as $key => $label): ?>
                 <option value="<?= htmlspecialchars($key) ?>" <?= $cat === $key ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($label) ?>
+                    <?= htmlspecialchars(str_replace("\n", ' / ', category_name_plain($label))) ?>
                 </option>
             <?php endforeach; ?>
         </select>
@@ -326,7 +409,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <form method="post" class="category-add-form">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="add_category">
-            <input name="category_name" placeholder="分类名称，例如：包包" required>
+            <input type="hidden" name="category_name" data-category-name-input required>
+            <div class="category-rich-input" contenteditable="true" data-category-name-editor data-placeholder="分类名称，例如：包包"></div>
             <input name="category_key" placeholder="英文代号，例如：bag" pattern="[A-Za-z0-9_-]+" required>
             <input name="category_emoji" placeholder="图标，例如：👜" maxlength="20">
             <button type="submit" class="primary-action"><i class="fa-solid fa-plus"></i> 添加</button>
@@ -355,7 +439,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <input type="hidden" name="action" value="edit_category">
                         <input type="hidden" name="old_category_key" value="<?= htmlspecialchars($key) ?>">
                         <input class="category-emoji-input" name="category_emoji" value="<?= htmlspecialchars($row['emoji']) ?>" aria-label="分类图标">
-                        <input name="category_name" value="<?= htmlspecialchars($row['name']) ?>" aria-label="分类名称" required>
+                        <input type="hidden" name="category_name" value="<?= htmlspecialchars($row['name']) ?>" data-category-name-input required>
+                        <div class="category-rich-input" contenteditable="true" data-category-name-editor aria-label="分类名称" data-placeholder="分类名称"><?= category_name_admin_html($row['name']) ?></div>
                         <input name="category_key" value="<?= htmlspecialchars($key) ?>" pattern="[A-Za-z0-9_-]+" aria-label="分类代号" required>
                         <button type="submit" class="category-save-button" title="保存"><i class="fa-solid fa-floppy-disk"></i></button>
                     </form>
@@ -411,7 +496,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <h2><?= htmlspecialchars($productName) ?></h2>
 
                     <span class="category-badge">
-                        <?= htmlspecialchars($categories[$productCategory] ?? $productCategory) ?>
+                        <?= category_name_admin_html((string)($categories[$productCategory] ?? $productCategory)) ?>
                     </span>
 
                     <p class="product-price">
@@ -436,12 +521,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <footer class="product-actions">
-                    <a href="product_editor.php?id=<?= (int)$p['id'] ?>" class="soft-button">
+                    <a href="product_editor.php?<?= htmlspecialchars(http_build_query(['id' => (int)$p['id'], 'return' => $productListReturnUrl])) ?>" class="soft-button" data-preserve-product-scroll>
                         <i class="fa-solid fa-pen"></i>
                         编辑
                     </a>
 
-                    <a href="product_editor.php?id=<?= (int)$p['id'] ?>" class="soft-button detail">
+                    <a href="product_editor.php?<?= htmlspecialchars(http_build_query(['id' => (int)$p['id'], 'return' => $productListReturnUrl])) ?>" class="soft-button detail" data-preserve-product-scroll>
                         <i class="fa-regular fa-eye"></i>
                         查看详情
                     </a>
@@ -481,13 +566,16 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .admin-pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin:28px 0 8px; }
 .admin-pagination a, .admin-pagination span { padding:11px 16px; border-radius:12px; background:#fff; border:1px solid #f2c9da; color:#795568; text-decoration:none; font-weight:700; }
 .category-action { border: 0; cursor: pointer; }
-.category-dialog { width: min(620px, calc(100% - 32px)); max-height: min(82vh, 700px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
+.category-dialog { width: min(760px, calc(100% - 32px)); max-height: min(82vh, 700px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
 .category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
 .category-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .category-dialog-head h2 { margin: 0; color: #29203d; }
 .category-dialog-head .category-dialog-close { position: static; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: #fff5fa; box-shadow: none; font-size: 22px; color: #796d7d; cursor: pointer; }
-.category-add-form { display: grid; grid-template-columns: 1.3fr 1fr .7fr auto; gap: 10px; margin-bottom: 20px; }
-.category-add-form input { min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; }
+.category-add-form { display: grid; grid-template-columns: minmax(190px, 1.4fr) minmax(120px, .8fr) 90px auto; gap: 10px; margin-bottom: 20px; align-items: stretch; }
+.category-add-form input,
+.category-rich-input { min-width: 0; min-height: 48px; padding: 12px 14px; border: 1px solid #f2c9da; border-radius: 10px; font-size: 15px; box-sizing: border-box; background:#fff; }
+.category-rich-input { overflow: auto; line-height: 1.18; white-space: pre-wrap; outline: none; }
+.category-rich-input:empty::before { content: attr(data-placeholder); color: #9b929e; }
 .category-add-form .primary-action { min-width: 110px; border: 0; cursor: pointer; }
 .category-list { display: grid; gap: 8px; max-height: 430px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .category-list > div { display: grid; grid-template-columns: 32px minmax(0, 1fr) 42px; align-items: center; gap: 8px; padding: 8px; background: #fff5fa; border-radius: 10px; }
@@ -495,10 +583,14 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 .category-order-buttons { display: grid; gap: 4px; }
 .category-order-buttons button { width: 30px; height: 25px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #f3c9db; border-radius: 8px; background: #fff; color: #d94b8a; cursor: pointer; }
 .category-order-buttons button:hover { border-color: #ff78b3; background: #fff0f7; }
-.category-edit-form { display: grid; grid-template-columns: 54px minmax(120px, 1fr) 120px 42px; align-items: center; gap: 8px; min-width: 0; }
-.category-edit-form input { width: 100%; min-width: 0; height: 40px; box-sizing: border-box; padding: 0 10px; border: 1px solid #f2c9da; border-radius: 10px; background: #fff; }
+.category-edit-form { display: grid; grid-template-columns: 54px minmax(150px, 1fr) 150px 42px; align-items: stretch; gap: 8px; min-width: 0; }
+.category-edit-form input,
+.category-edit-form .category-rich-input { width: 100%; min-width: 0; min-height: 52px; box-sizing: border-box; padding: 10px; border: 1px solid #f2c9da; border-radius: 10px; background: #fff; font: inherit; }
+.category-edit-form .category-rich-input { line-height: 1.18; }
 .category-edit-form .category-emoji-input { padding: 0; text-align: center; font-size: 18px; }
 .category-save-button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #bde8d2; border-radius: 12px; background: #fff; color: #23a66f; cursor: pointer; }
+.category-save-button.saved { background: #d8f8e7; border-color: #74d6a3; }
+.category-save-button:disabled { opacity: .65; cursor: wait; }
 .category-list .icon-button {
   position: static;
   inset: auto;
@@ -553,8 +645,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     background: #fff;
   }
   .category-dialog-head h2 { font-size: 24px; line-height: 1.2; }
-  .category-add-form { flex: 0 0 auto; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
-  .category-add-form input { width: 100%; height: 48px; box-sizing: border-box; }
+  .category-add-form { flex: 0 0 auto; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .category-add-form .category-rich-input { grid-column: 1 / -1; }
+  .category-add-form input,
+  .category-add-form .category-rich-input { width: 100%; min-height: 48px; box-sizing: border-box; }
   .category-add-form .primary-action { width: 100%; min-height: 52px; }
   .category-list {
     display: grid;
@@ -572,10 +666,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
   .category-list > div { grid-template-columns: 30px minmax(0, 1fr) 42px; padding: 8px 6px; gap: 6px; }
   .category-edit-form { grid-template-columns: 46px minmax(0, 1fr) 42px; gap: 6px; }
+  .category-edit-form .category-rich-input { grid-column: 2 / -1; }
   .category-edit-form input[name="category_key"] { grid-column: 2 / 3; }
-  .category-edit-form .category-save-button { grid-column: 3; grid-row: 1 / span 2; height: 82px; }
-  .category-edit-form .category-emoji-input { grid-row: 1 / span 2; height: 82px; }
-  .category-edit-form input:not(.category-emoji-input) { height: 38px; }
+  .category-edit-form .category-save-button { grid-column: 3; grid-row: 2; height: 52px; }
+  .category-edit-form .category-emoji-input { grid-row: 1 / span 2; min-height: 110px; }
+  .category-edit-form input:not(.category-emoji-input),
+  .category-edit-form .category-rich-input { min-height: 52px; }
   .category-list .icon-button { width: 38px; min-width: 38px; height: 38px; min-height: 38px; }
 }
 @media (max-width: 390px) {
@@ -586,5 +682,83 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </style>
 
 <script src="js/product_admin.js?v=20260605"></script>
+<script>
+(() => {
+  const scrollKey = 'qiiProductScroll:' + window.location.pathname + window.location.search;
+  const savedScroll = sessionStorage.getItem(scrollKey);
+
+  if (savedScroll !== null) {
+    sessionStorage.removeItem(scrollKey);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, Math.max(0, parseInt(savedScroll, 10) || 0));
+    });
+  }
+
+  document.querySelectorAll('[data-preserve-product-scroll]').forEach((link) => {
+    link.addEventListener('click', () => {
+      sessionStorage.setItem(scrollKey, String(window.scrollY || window.pageYOffset || 0));
+    });
+  });
+
+  function syncCategoryEditor(form) {
+    const editor = form.querySelector('[data-category-name-editor]');
+    const input = form.querySelector('[data-category-name-input]');
+    if (editor && input) {
+      input.value = editor.innerText
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .replace(/\n/g, '<br>');
+    }
+  }
+
+  document.querySelectorAll('.category-add-form, .category-edit-form').forEach((form) => {
+    const editor = form.querySelector('[data-category-name-editor]');
+    if (!editor) return;
+
+    editor.addEventListener('input', () => syncCategoryEditor(form));
+    editor.addEventListener('keyup', () => syncCategoryEditor(form));
+    editor.addEventListener('mouseup', () => syncCategoryEditor(form));
+    editor.addEventListener('blur', () => syncCategoryEditor(form));
+    editor.addEventListener('touchend', () => syncCategoryEditor(form));
+    form.addEventListener('submit', () => syncCategoryEditor(form));
+    syncCategoryEditor(form);
+  });
+
+  document.querySelectorAll('.category-edit-form').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      syncCategoryEditor(form);
+      const button = form.querySelector('.category-save-button');
+      const oldKeyInput = form.querySelector('input[name="old_category_key"]');
+      const keyInput = form.querySelector('input[name="category_key"]');
+      const editor = form.querySelector('[data-category-name-editor]');
+      const nameInput = form.querySelector('[data-category-name-input]');
+      button.disabled = true;
+
+      try {
+        const response = await fetch('product.php', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: new FormData(form),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.message || 'save failed');
+
+        if (oldKeyInput) oldKeyInput.value = data.key;
+        if (keyInput) keyInput.value = data.key;
+        if (editor) editor.innerHTML = data.name_html || '';
+        if (nameInput) nameInput.value = data.name_html || '';
+        button.classList.add('saved');
+        setTimeout(() => button.classList.remove('saved'), 900);
+      } catch (error) {
+        alert(error.message || '分类保存失败，请再按一次。');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>

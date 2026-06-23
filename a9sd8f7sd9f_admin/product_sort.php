@@ -123,11 +123,13 @@ async function switchCategory(nextCategory) {
   setState('正在加载分类...');
   try {
     const response = await frame.contentWindow.fetch(
-      'shop.php?cat=' + encodeURIComponent(nextCategory) + '&ajax=1',
+      'shop.php?cat=' + encodeURIComponent(nextCategory) + '&ajax=1&sort_edit=1',
       { cache:'no-store' }
     );
     if (!response.ok) throw new Error('分类加载失败');
-    area.innerHTML = await response.text();
+    const result = await response.json();
+    if (!result || typeof result.html !== 'string') throw new Error('分类内容格式错误');
+    area.innerHTML = result.html;
     doc.querySelectorAll('.cat-link').forEach(link => link.classList.remove('active'));
     item.classList.add('active');
     if (title) title.textContent = item.textContent.trim();

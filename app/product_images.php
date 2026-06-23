@@ -72,5 +72,13 @@ function qii_product_image_url(?string $path): string
         return $path;
     }
 
-    return '/' . ltrim(str_replace('\\', '/', $path), '/');
+    $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    $base = rtrim(dirname($script), '/');
+    foreach (['/a9sd8f7sd9f_admin', '/frontend/pages', '/api'] as $segment) {
+        if (str_ends_with($base, $segment)) {
+            $base = substr($base, 0, -strlen($segment));
+            break;
+        }
+    }
+    return ($base === '' ? '' : $base) . '/' . ltrim(str_replace('\\', '/', $path), '/');
 }

@@ -106,7 +106,26 @@ function json_response(bool $success, string $message, array $extra = []): never
     exit;
 }
 
+function product_return_url(): string {
+    $return = (string)($_POST['return'] ?? $_GET['return'] ?? '');
+    if ($return === '') {
+        return 'product.php';
+    }
+
+    $parts = parse_url($return);
+    if (!is_array($parts)) {
+        return 'product.php';
+    }
+    $path = $parts['path'] ?? '';
+    if ($path !== 'product.php' && basename($path) !== 'product.php') {
+        return 'product.php';
+    }
+
+    return 'product.php' . (isset($parts['query']) ? '?' . $parts['query'] : '');
+}
+
 $id = (int)($_GET['id'] ?? 0);
+$returnUrl = product_return_url();
 $product = [
     'id' => 0,
     'sku' => '',
@@ -226,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($variantSku === '') $errors[] = '第 ' . ($i + 1) . ' 个规格缺少 SKU';
             if ($variantPrice === '' || !is_numeric($variantPrice) || (float)$variantPrice < 0) $errors[] = '第 ' . ($i + 1) . ' 个规格价格不正确';
             if (!is_non_negative_integer($variantStock)) $errors[] = '第 ' . ($i + 1) . ' 个规格库存必须是非负整数';
-            if ($variantImage === '' && !has_uploaded_file($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格必须上传图片';
+            if (false && $variantImage === '' && !has_uploaded_file($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格必须上传图片';
             if ($uploadError = image_upload_error($field)) $errors[] = '第 ' . ($i + 1) . ' 个规格：' . $uploadError;
             if ($variantSku !== '') {
                 $normalizedSku = strtolower($variantSku);
@@ -356,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->commit();
         if ($isAjax) json_response(true, '商品保存成功', ['id' => $id]);
 
-        header('Location: product_editor.php?id=' . $id . '&saved=1');
+        header('Location: product_editor.php?' . http_build_query(['id' => $id, 'saved' => 1, 'return' => $returnUrl]));
         exit;
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -403,7 +422,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 
 <main class="main product-editor-page">
   <header class="editor-topbar">
-    <a href="product.php" class="back-link"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="<?= htmlspecialchars($returnUrl) ?>" class="back-link"><i class="fa-solid fa-arrow-left"></i></a>
     <div>
       <h1><?= $isEdit ? '编辑商品' : '新增商品' ?> ✨</h1>
       <p>商品管理 <i class="fa-solid fa-chevron-right"></i> <?= $isEdit ? '编辑商品' : '新增商品' ?></p>
@@ -416,6 +435,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
   <form method="post" enctype="multipart/form-data" id="productEditorForm" data-product-form data-product-type-value="<?= htmlspecialchars($selectedProductType) ?>">
     <?= csrf_field() ?>
     <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
+    <input type="hidden" name="return" value="<?= htmlspecialchars($returnUrl) ?>">
     <input type="hidden" name="current_image" value="<?= htmlspecialchars($product['image_url'] ?? '') ?>">
     <section class="editor-card product-type-card">
       <h2><i class="fa-solid fa-box"></i> 商品形式</h2>
@@ -555,7 +575,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     </div>
 
     <div class="editor-actions">
-      <a href="product.php" class="cancel-action">取消</a>
+      <a href="<?= htmlspecialchars($returnUrl) ?>" class="cancel-action">取消</a>
       <button type="submit" class="save-action"><i class="fa-solid fa-lock"></i> 保存商品</button>
     </div>
   </form>
@@ -618,6 +638,7 @@ padding: 24px;
 
 <script src="js/product_admin.js?v=20260604"></script>
 <script>
+const productReturnUrl = <?= json_encode($returnUrl, JSON_UNESCAPED_SLASHES) ?>;
 document.getElementById('productEditorForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -641,7 +662,9 @@ document.getElementById('productEditorForm')?.addEventListener('submit', async (
         const data = await response.json();
         if (data.success) {
             const targetId = data.id || form.querySelector('input[name="id"]')?.value || '';
-            window.location.href = targetId ? `product_editor.php?id=${encodeURIComponent(targetId)}&saved=1` : 'product.php';
+            window.location.href = targetId
+                ? `product_editor.php?id=${encodeURIComponent(targetId)}&saved=1&return=${encodeURIComponent(productReturnUrl)}`
+                : productReturnUrl;
             return;
         }
 

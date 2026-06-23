@@ -87,9 +87,11 @@ foreach ($variants as $v):
      data-vname="<?= htmlspecialchars(qii_text($v['variant_name'])) ?>"
      data-vprice="<?= $v['price'] ?>"
      data-vstock="<?= $v['stock'] ?>"
-     data-vimg="<?= htmlspecialchars(qii_asset_path($v['image_url'])) ?>"
+     data-vimg="<?= htmlspecialchars($v['image_url'] ? qii_asset_path($v['image_url']) : '') ?>"
 >
+    <?php if (!empty($v['image_url'])): ?>
     <img src="<?= htmlspecialchars(qii_asset_path($v['image_url'])) ?>" alt="">
+    <?php endif; ?>
     <div>
         <div class="variant-name"><?= htmlspecialchars(qii_text($v['variant_name'])) ?></div>
         <div class="variant-stock">库存：<?= (int)$v['stock'] ?></div>

@@ -244,7 +244,76 @@ foreach ($rows as $r) {
     elseif ((int)$r['stock'] <= (int)$r['warning_level']) $lowCount++;
 }
 $rows = array_slice($rows, ($page - 1) * $perPage, $perPage);
-$todayAdjust = 0;
+$deductionMonth = $_GET['deduction_month'] ?? date('Y-m');
+$deductionMonth = preg_match('/^\d{4}-\d{2}$/', $deductionMonth) ? $deductionMonth : date('Y-m');
+$deductionStmt = $pdo->prepare("
+    SELECT
+      o.order_number,
+      o.order_status,
+      o.created_at AS order_created_at,
+      oi.product_name,
+      oi.variant_name,
+      oi.sku,
+      oi.quantity,
+      oi.price,
+      COALESCE(v.image_url, variant_product.image_url, sku_product.image_url, name_product.image_url) AS item_image
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    LEFT JOIN product_variants v ON v.sku = oi.sku AND oi.sku <> ''
+    LEFT JOIN product_groups g ON g.id = v.group_id
+    LEFT JOIN products variant_product ON variant_product.id = g.product_id
+    LEFT JOIN products sku_product ON sku_product.sku = oi.sku AND oi.sku <> ''
+    LEFT JOIN products name_product ON name_product.name = oi.product_name
+    WHERE DATE_FORMAT(o.created_at, '%Y-%m') = ?
+    ORDER BY o.created_at DESC, oi.id DESC
+");
+$deductionStmt->execute([$deductionMonth]);
+$deductionHistory = $deductionStmt->fetchAll(PDO::FETCH_ASSOC);
+$monthDeductQty = 0;
+$monthDeductOrders = [];
+foreach ($deductionHistory as $historyItem) {
+    $monthDeductQty += (int)$historyItem['quantity'];
+    $monthDeductOrders[(string)$historyItem['order_number']] = true;
+}
+$monthDeductOrderCount = count($monthDeductOrders);
+$monthDeductLines = count($deductionHistory);
+$deductionProductSummary = [];
+foreach ($deductionHistory as $historyItem) {
+    $summaryKey = trim((string)($historyItem['sku'] ?? ''));
+    if ($summaryKey === '') {
+        $summaryKey = trim((string)($historyItem['product_name'] ?? '')) . '|' . trim((string)($historyItem['variant_name'] ?? ''));
+    }
+    if (!isset($deductionProductSummary[$summaryKey])) {
+        $deductionProductSummary[$summaryKey] = [
+            'product_name' => $historyItem['product_name'] ?? '',
+            'variant_name' => $historyItem['variant_name'] ?? '',
+            'sku' => $historyItem['sku'] ?? '',
+            'price' => (float)($historyItem['price'] ?? 0),
+            'image' => $historyItem['item_image'] ?? '',
+            'order_numbers' => [],
+            'order_count' => 0,
+            'deduct_qty' => 0,
+        ];
+    }
+    $deductionProductSummary[$summaryKey]['deduct_qty'] += (int)$historyItem['quantity'];
+    $deductionProductSummary[$summaryKey]['order_numbers'][(string)$historyItem['order_number']] = true;
+    if (empty($deductionProductSummary[$summaryKey]['image']) && !empty($historyItem['item_image'])) {
+        $deductionProductSummary[$summaryKey]['image'] = $historyItem['item_image'];
+    }
+}
+foreach ($deductionProductSummary as &$summaryItem) {
+    $summaryItem['order_count'] = count($summaryItem['order_numbers']);
+    unset($summaryItem['order_numbers']);
+}
+unset($summaryItem);
+usort($deductionProductSummary, fn($a, $b) => $b['deduct_qty'] <=> $a['deduct_qty']);
+$todayAdjustStmt = $pdo->query("
+    SELECT COALESCE(SUM(oi.quantity), 0)
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    WHERE DATE(o.created_at) = CURDATE()
+");
+$todayAdjust = (int)$todayAdjustStmt->fetchColumn();
 $msg = $_GET['msg'] ?? '';
 ?>
 <!DOCTYPE html>
@@ -295,6 +364,59 @@ $msg = $_GET['msg'] ?? '';
       .stock-actions { display: flex !important; justify-content: center !important; gap: 8px !important; }
       /* Old variant-specific mobile style removed because row expansion now uses table rows */
     }
+    .deduction-history-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      padding: 0 20px;
+      border: 1px solid #f2bfd5;
+      border-radius: 16px;
+      background: #fff;
+      color: #d94b8a;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(216,69,134,.1);
+    }
+    .deduction-history-dialog { width: min(1180px, calc(100% - 32px)); max-height: 84vh; padding: 0; border: 0; border-radius: 20px; background: #fff; box-shadow: 0 28px 80px rgba(73,38,57,.28); }
+    .deduction-history-dialog::backdrop { background: rgba(54,34,46,.42); backdrop-filter: blur(3px); }
+    .deduction-history-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid #f5d9e5; background: #fff; }
+    .deduction-history-head h2 { margin: 0; color: #d94b8a; font-size: 20px; }
+    .deduction-history-head p { margin: 6px 0 0; color: #8b7a86; font-weight: 800; font-size: 13px; }
+    .deduction-month-form { margin: 0 0 0 auto; display: flex; align-items: flex-end; gap: 10px; }
+    .deduction-month-form label { display: grid; gap: 5px; color: #7d7081; font-weight: 900; font-size: 12px; }
+    .deduction-month-form input { min-height: 40px; border: 1px solid #f2bfd5; border-radius: 12px; padding: 0 12px; color: #2b223d; font-weight: 900; }
+    .deduction-month-form button { min-height: 40px; border: 0; border-radius: 12px; padding: 0 18px; background: #f43f8f; color: #fff; font-weight: 900; cursor: pointer; }
+    .deduction-history-close { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #fff0f7; color: #d94b8a; font-size: 20px; cursor: pointer; }
+    .deduction-history-body { max-height: calc(84vh - 75px); overflow: auto; padding: 0 20px 20px; }
+    .deduction-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px 0; }
+    .deduction-summary div { border: 1px solid #f7d7e4; border-radius: 14px; background: #fff8fb; padding: 13px 14px; }
+    .deduction-summary span { display: block; color: #806b77; font-size: 12px; font-weight: 900; }
+    .deduction-summary strong { display: block; margin-top: 4px; color: #d94b8a; font-size: 24px; }
+    .deduction-tabs { display: inline-flex; gap: 8px; padding: 4px; margin: 2px 0 14px; border: 1px solid #f7d7e4; border-radius: 16px; background: #fff8fb; }
+    .deduction-tab { min-height: 40px; padding: 0 18px; border: 0; border-radius: 13px; background: transparent; color: #7c6472; font-weight: 900; cursor: pointer; }
+    .deduction-tab.active { background: #f43f8f; color: #fff; box-shadow: 0 10px 24px rgba(244,63,143,.2); }
+    .deduction-panel[hidden] { display: none; }
+    .deduction-history-table { width: 100%; border-collapse: collapse; }
+    .deduction-history-table th, .deduction-history-table td { padding: 13px 12px; border-bottom: 1px solid #f7e4ec; text-align: left; white-space: nowrap; font-size: 13px; }
+    .deduction-history-table th { position: sticky; top: 0; background: #fff7fb; color: #806b77; }
+    .deduction-product-img { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; border: 1px solid #f6d4e2; background: #fff8fb; }
+    .deduction-product-cell { display: grid; grid-template-columns: 58px minmax(220px, 1fr); gap: 12px; align-items: center; }
+    .deduction-product-cell strong { display: block; color: #2b223d; font-size: 14px; }
+    .deduction-product-cell small { display: block; margin-top: 4px; color: #8b7a86; font-weight: 800; }
+    .deduction-qty { color: #e43f88; font-weight: 900; }
+    .deduction-total-qty { color: #f43f8f; font-weight: 1000; font-size: 16px; }
+    .deduction-empty { padding: 42px !important; text-align: center !important; color: #99858f; }
+    @media (max-width: 760px) {
+      .inventory-topbar { align-items: stretch; }
+      .deduction-history-button { width: 100%; }
+      .deduction-history-head { align-items: stretch; flex-wrap: wrap; }
+      .deduction-month-form { width: 100%; margin: 0; }
+      .deduction-summary { grid-template-columns: 1fr; }
+      .deduction-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+      .deduction-history-body { overflow: auto; padding: 0 12px 14px; }
+    }
   </style>
 </head>
 <body>
@@ -307,7 +429,7 @@ $msg = $_GET['msg'] ?? '';
       <p>管理商品规格库存，调整库存数量和预警值，确保库存充足。</p>
     </div>
     
-    <span class="date-pill"><i class="fa-regular fa-calendar"></i><?= date('Y-m-d') ?><i class="fa-solid fa-chevron-down"></i></span>
+    <button type="button" class="deduction-history-button" id="openDeductionHistory"><i class="fa-solid fa-clock-rotate-left"></i> 查看扣减记录</button>
   </header>
 
   <section class="inventory-stats">
@@ -447,11 +569,107 @@ $msg = $_GET['msg'] ?? '';
       </nav>
     <?php endif; ?>
   </section>
+
+  <dialog class="deduction-history-dialog" id="deductionHistoryDialog">
+    <div class="deduction-history-head">
+      <div>
+        <h2><i class="fa-solid fa-clock-rotate-left"></i> 库存扣减记录</h2>
+        <p>默认显示本月，可切换其他月份查看商品汇总和订单明细。</p>
+      </div>
+      <form method="get" class="deduction-month-form">
+        <?php foreach ($_GET as $key => $value): if ($key === 'deduction_month' || is_array($value)) continue; ?>
+          <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value) ?>">
+        <?php endforeach; ?>
+        <label>月份 <input type="month" name="deduction_month" value="<?= htmlspecialchars($deductionMonth) ?>"></label>
+        <button type="submit">查询</button>
+      </form>
+      <button type="button" class="deduction-history-close" id="closeDeductionHistory" aria-label="关闭">&times;</button>
+    </div>
+    <div class="deduction-history-body">
+      <div class="deduction-summary">
+        <div><span>本月扣减商品数</span><strong><?= number_format($monthDeductQty) ?></strong></div>
+        <div><span>涉及订单</span><strong><?= number_format($monthDeductOrderCount) ?></strong></div>
+        <div><span>扣减记录</span><strong><?= number_format($monthDeductLines) ?></strong></div>
+      </div>
+      <div class="deduction-tabs" role="tablist" aria-label="扣减记录视图">
+        <button type="button" class="deduction-tab active" data-deduction-tab="summary">商品汇总</button>
+        <button type="button" class="deduction-tab" data-deduction-tab="detail">订单明细</button>
+      </div>
+      <section class="deduction-panel" data-deduction-panel="summary">
+        <table class="deduction-history-table">
+          <thead><tr><th>商品</th><th>SKU</th><th>订单数</th><th>单价</th><th>合计扣减</th></tr></thead>
+          <tbody>
+            <?php if (!$deductionProductSummary): ?><tr><td colspan="5" class="deduction-empty">暂无商品扣减汇总。</td></tr><?php endif; ?>
+            <?php foreach ($deductionProductSummary as $summaryItem): ?>
+              <tr>
+                <td>
+                  <div class="deduction-product-cell">
+                    <img class="deduction-product-img" src="<?= htmlspecialchars(img_url($summaryItem['image'] ?? '')) ?>" alt="">
+                    <div>
+                      <strong><?= htmlspecialchars(qii_text($summaryItem['product_name'])) ?></strong>
+                      <small><?= htmlspecialchars(qii_text($summaryItem['variant_name'] ?: '默认规格')) ?></small>
+                    </div>
+                  </div>
+                </td>
+                <td><?= htmlspecialchars($summaryItem['sku'] ?: '-') ?></td>
+                <td><?= number_format((int)$summaryItem['order_count']) ?></td>
+                <td>RM <?= number_format((float)$summaryItem['price'], 2) ?></td>
+                <td class="deduction-total-qty">-<?= number_format((int)$summaryItem['deduct_qty']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </section>
+      <section class="deduction-panel" data-deduction-panel="detail" hidden>
+        <table class="deduction-history-table">
+          <thead><tr><th>扣减时间</th><th>图片</th><th>订单号</th><th>商品</th><th>规格</th><th>SKU</th><th>单价</th><th>扣减数量</th></tr></thead>
+          <tbody>
+            <?php if (!$deductionHistory): ?><tr><td colspan="8" class="deduction-empty">暂无订单商品扣减记录。</td></tr><?php endif; ?>
+            <?php foreach ($deductionHistory as $historyItem): ?>
+              <tr>
+                <td><?= htmlspecialchars(date('Y-m-d H:i', strtotime($historyItem['order_created_at']))) ?></td>
+                <td><img class="deduction-product-img" src="<?= htmlspecialchars(img_url($historyItem['item_image'] ?? '')) ?>" alt=""></td>
+                <td><?= htmlspecialchars($historyItem['order_number']) ?></td>
+                <td><?= htmlspecialchars(qii_text($historyItem['product_name'])) ?></td>
+                <td><?= htmlspecialchars(qii_text($historyItem['variant_name'] ?: '默认规格')) ?></td>
+                <td><?= htmlspecialchars($historyItem['sku'] ?: '-') ?></td>
+                <td>RM <?= number_format((float)$historyItem['price'], 2) ?></td>
+                <td class="deduction-qty">-<?= (int)$historyItem['quantity'] ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </dialog>
 </main>
 
 <script src="js/product_admin.js?v=20260604"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  const deductionDialog = document.getElementById('deductionHistoryDialog');
+  document.getElementById('openDeductionHistory')?.addEventListener('click', function () {
+    deductionDialog?.showModal();
+  });
+  document.getElementById('closeDeductionHistory')?.addEventListener('click', function () {
+    deductionDialog?.close();
+  });
+  deductionDialog?.addEventListener('click', function (event) {
+    if (event.target === deductionDialog) deductionDialog.close();
+  });
+
+  document.querySelectorAll('[data-deduction-tab]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var target = tab.dataset.deductionTab;
+      document.querySelectorAll('[data-deduction-tab]').forEach(function (item) {
+        item.classList.toggle('active', item === tab);
+      });
+      document.querySelectorAll('[data-deduction-panel]').forEach(function (panel) {
+        panel.hidden = panel.dataset.deductionPanel !== target;
+      });
+    });
+  });
+
   document.querySelectorAll('[data-toggle-variants]').forEach(function (button) {
     button.addEventListener('click', function () {
       var panels = document.querySelectorAll('[data-variant-panel="' + button.dataset.toggleVariants + '"]');

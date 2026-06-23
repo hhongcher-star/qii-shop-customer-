@@ -27,8 +27,13 @@ function qii_asset_path($path) {
   if ($path === '') return 'images/logo.png';
   if (preg_match('#^(https?:)?//#', $path)) return $path;
   $path = ltrim($path, '/');
-  if (strpos($path, 'uploads/') === 0 || strpos($path, 'images/') === 0) return $path;
-  return 'uploads/' . $path;
+  $assetPath = (strpos($path, 'uploads/') === 0 || strpos($path, 'images/') === 0) ? $path : 'uploads/' . $path;
+  $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+  $base = rtrim(dirname($script), '/');
+  if (str_ends_with($base, '/frontend/pages')) {
+    $base = substr($base, 0, -strlen('/frontend/pages'));
+  }
+  return ($base === '' ? '' : $base) . '/' . $assetPath;
 }
 
 function qii_text($text) {
@@ -95,16 +100,62 @@ $categories = [
 $categoryRows = qii_categories($pdo);
 $categories = [];
 foreach ($categoryRows as $key => $row) {
-  $categories[$key] = htmlspecialchars($row['emoji']) . ' ' . htmlspecialchars($row['name']);
+  $categories[$key] = trim((string)($row['emoji'] ?? '') . ' ' . (string)($row['name'] ?? $key));
+}
+
+function qii_category_label_text(string $html): string {
+  return trim(html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $html)), ENT_QUOTES, 'UTF-8'));
+}
+
+function qii_category_label_html(string $html): string {
+  $html = html_entity_decode($html, ENT_QUOTES, 'UTF-8');
+  $html = preg_replace('/<(div|p)[^>]*>/i', '<br>', $html);
+  $html = preg_replace('/<\/?(div|p)[^>]*>/i', '', $html);
+  $html = strip_tags($html, '<br>');
+  $html = preg_replace('/<br\s*\/?>/i', '<br>', $html);
+  $html = preg_replace('/^(<br>)+|(<br>)+$/i', '', $html);
+  if (!class_exists('DOMDocument')) {
+    return trim(strip_tags($html, '<br>'));
+  }
+
+  $document = new DOMDocument('1.0', 'UTF-8');
+  libxml_use_internal_errors(true);
+  $document->loadHTML('<?xml encoding="UTF-8"><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+  libxml_clear_errors();
+
+  $renderNode = function (DOMNode $node) use (&$renderNode): string {
+    if ($node instanceof DOMText) {
+      return htmlspecialchars($node->nodeValue, ENT_QUOTES, 'UTF-8');
+    }
+    if (!$node instanceof DOMElement) return '';
+    if (strtolower($node->tagName) === 'br') return '<br>';
+
+    $children = '';
+    foreach ($node->childNodes as $child) {
+      $children .= $renderNode($child);
+    }
+
+    return $children;
+  };
+
+  $root = $document->getElementsByTagName('div')->item(0);
+  $clean = '';
+  if ($root) {
+    foreach ($root->childNodes as $child) {
+      $clean .= $renderNode($child);
+    }
+  }
+  return trim($clean);
 }
 
 if ($cat === '' || !isset($categories[$cat])) {
   $cat = array_key_first($categories) ?: 'phone';
 }
 
-// 每次只读取当前分类的 24 个商品。
+// 普通商店分页显示；后台排序模式必须载入当前分类的全部商品。
 $shopPage = max(1, (int)($_GET['page'] ?? 1));
-$shopPageSize = 24;
+$sortEditMode = ($_GET['sort_edit'] ?? '') === '1';
+$shopPageSize = $sortEditMode ? 100000 : 24;
 $shopOffset = ($shopPage - 1) * $shopPageSize;
 $stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? AND COALESCE(status, 'active') = 'active' ORDER BY sort_order ASC, created_at DESC LIMIT {$shopPageSize} OFFSET {$shopOffset}");
 $stmt->execute([$cat]);
@@ -320,6 +371,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   cursor: pointer;
   border: 1px solid #f6bdd9;
   transition: all 0.25s ease;
+}
+.sidebar .cat-link a,
+.sidebar .cat-link a:link,
+.sidebar .cat-link a:visited,
+.sidebar .cat-link a:hover,
+.sidebar .cat-link a:active {
+  color: inherit;
+  text-decoration: none !important;
 }
 .sidebar li:hover { background: #ffe9f0; transform: scale(1.03); color: #e5679c; }
 .sidebar li.active { background: #f6bdd9; color: white; transform: scale(1.05); }
@@ -648,7 +707,10 @@ html, body {
 /* ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ§Ã‚Â±Ã‚Â»ÃƒÂ¦Ã‚Â Ã¢â‚¬Â¡ÃƒÂ©Ã‚Â¢Ã‹Å“ÃƒÂ§Ã‚Â»Ã…Â¸ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â² */
 .category-title {
   color: #E44B87 !important;
+  white-space: pre-line;
+  line-height: 1.08;
 }
+.cat-name { white-space: pre-line; line-height: 1.04; }
 
 /* ------------------------------------------
    ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸ Variant Modal ÃƒÂ¨Ã‚Â§Ã¢â‚¬Å¾ÃƒÂ¦Ã‚Â Ã‚Â¼ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ§Ã‚ÂªÃ¢â‚¬â€ÃƒÂ§Ã‚Â»Ã…Â¸ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â²
@@ -890,8 +952,11 @@ html, body {
   .cat-name {
     display: block;
     font-size: 11px;
-    line-height: 1.15;
+    line-height: 1.04;
+    text-decoration: none;
   }
+
+  .cat-link a { text-decoration: none; }
 
   .category-title {
     margin: 0 0 14px;
@@ -1258,12 +1323,13 @@ html, body {
         <h3>&#128150; &#20998;&#31867;</h3>
         <ul>
           <?php foreach ($categories as $key => $label): ?>
-            <li class="cat-link <?= ($cat === $key) ? 'active' : '' ?>" data-cat="<?= htmlspecialchars($key) ?>">
+            <?php $categoryName = (string)($categoryRows[$key]['name'] ?? $key); ?>
+            <li class="cat-link <?= ($cat === $key) ? 'active' : '' ?>" data-cat="<?= htmlspecialchars($key) ?>" data-label="<?= htmlspecialchars(qii_category_label_text($categoryName)) ?>" data-html="<?= htmlspecialchars(qii_category_label_html($categoryName)) ?>">
               <a href="shop.php?cat=<?= urlencode($key) ?>">
               <?php if (!empty($categoryRows[$key]['emoji'])): ?>
                 <span class="cat-emoji"><?= htmlspecialchars($categoryRows[$key]['emoji']) ?></span>
               <?php endif; ?>
-              <span class="cat-name"><?= htmlspecialchars($categoryRows[$key]['name'] ?? $key) ?></span>
+              <span class="cat-name"><?= qii_category_label_html($categoryName) ?></span>
               </a>
             </li>
           <?php endforeach; ?>
@@ -1272,7 +1338,8 @@ html, body {
 
   <!-- ÃƒÂ¥Ã‚ÂÃ‚Â³ÃƒÂ¤Ã‚Â¾Ã‚Â§ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚ÂÃƒÂ¥Ã‚Â±Ã¢â‚¬Â¢ÃƒÂ§Ã‚Â¤Ã‚Âº -->
   <div>
-    <h2 class="category-title"><?= $categories[$cat] ?? $categories['phone'] ?></h2>
+    <?php $currentCategoryName = (string)($categoryRows[$cat]['name'] ?? $cat); ?>
+    <h2 class="category-title"><?= !empty($categoryRows[$cat]['emoji']) ? htmlspecialchars($categoryRows[$cat]['emoji']) . ' ' : '' ?><?= qii_category_label_html($currentCategoryName) ?></h2>
     <div class="product-area">
       <?php if (empty($products)): ?>
     <p style="text-align:center;color:#999;">No products yet.</p>
@@ -1394,7 +1461,11 @@ html, body {
           document.querySelectorAll('.cat-link').forEach(item => {
             const active = item.dataset.cat === data.category;
             item.classList.toggle('active', active);
-            if (active && categoryTitle) categoryTitle.textContent = item.textContent.trim();
+            if (active && categoryTitle) {
+              const emoji = item.querySelector('.cat-emoji')?.textContent.trim() || '';
+              categoryTitle.innerHTML = (emoji ? emoji + ' ' : '') + (item.dataset.html || item.dataset.label || item.textContent.trim());
+              categoryTitle.style.removeProperty('color');
+            }
           });
 
           if (updateHistory) history.pushState({ category: data.category, page: data.page }, '', `shop.php?cat=${encodeURIComponent(data.category)}&page=${data.page}#shop-products`);

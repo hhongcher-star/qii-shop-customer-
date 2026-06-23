@@ -616,7 +616,9 @@ function submitAddress(){
     .then(res => {
         console.log("SUBMIT:", res);
         const trimmed = res.trim();
-        if (trimmed !== "OK" && trimmed !== "EXISTS") {
+        const lines = trimmed.split(/\r?\n/);
+        const status = lines[0] || "";
+        if (status !== "OK" && status !== "EXISTS") {
             alert("❌ 订单提交失败：" + res);
             return;
         }

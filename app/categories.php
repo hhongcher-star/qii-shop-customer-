@@ -21,13 +21,17 @@ function qii_ensure_categories(PDO $pdo): void
         CREATE TABLE IF NOT EXISTS product_categories (
             id INT AUTO_INCREMENT PRIMARY KEY,
             category_key VARCHAR(80) NOT NULL UNIQUE,
-            name VARCHAR(120) NOT NULL,
+            name TEXT NOT NULL,
             emoji VARCHAR(20) NOT NULL DEFAULT '',
             sort_order INT NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'active',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+    $columns = $pdo->query('SHOW COLUMNS FROM product_categories')->fetchAll(PDO::FETCH_COLUMN);
+    if (in_array('name', $columns, true)) {
+        $pdo->exec("ALTER TABLE product_categories MODIFY name TEXT NOT NULL");
+    }
     $stmt = $pdo->prepare("INSERT IGNORE INTO product_categories (category_key, name, emoji, sort_order) VALUES (?, ?, ?, ?)");
     $order = 1;
     foreach (qii_default_categories() as $key => [$name, $emoji]) {
