@@ -39,6 +39,51 @@ function redirect_inventory(array $extra = []): void {
     exit;
 }
 
+function render_deduction_summary_rows(array $deductionProductSummary): string {
+    ob_start();
+    if (!$deductionProductSummary): ?>
+        <tr><td colspan="5" class="deduction-empty">暂无商品扣减汇总。</td></tr>
+    <?php endif; ?>
+    <?php foreach ($deductionProductSummary as $summaryItem): ?>
+        <tr>
+            <td>
+                <div class="deduction-product-cell">
+                    <img class="deduction-product-img" src="<?= htmlspecialchars(img_url($summaryItem['image'] ?? '')) ?>" alt="">
+                    <div>
+                        <strong><?= htmlspecialchars(qii_text($summaryItem['product_name'])) ?></strong>
+                        <small><?= htmlspecialchars(qii_text($summaryItem['variant_name'] ?: '默认规格')) ?></small>
+                    </div>
+                </div>
+            </td>
+            <td><?= htmlspecialchars($summaryItem['sku'] ?: '-') ?></td>
+            <td><?= number_format((int)$summaryItem['order_count']) ?></td>
+            <td>RM <?= number_format((float)$summaryItem['price'], 2) ?></td>
+            <td class="deduction-total-qty">-<?= number_format((int)$summaryItem['deduct_qty']) ?></td>
+        </tr>
+    <?php endforeach;
+    return ob_get_clean();
+}
+
+function render_deduction_detail_rows(array $deductionHistory): string {
+    ob_start();
+    if (!$deductionHistory): ?>
+        <tr><td colspan="8" class="deduction-empty">暂无订单商品扣减记录。</td></tr>
+    <?php endif; ?>
+    <?php foreach ($deductionHistory as $historyItem): ?>
+        <tr>
+            <td><?= htmlspecialchars(date('Y-m-d H:i', strtotime($historyItem['order_created_at']))) ?></td>
+            <td><img class="deduction-product-img" src="<?= htmlspecialchars(img_url($historyItem['item_image'] ?? '')) ?>" alt=""></td>
+            <td><?= htmlspecialchars($historyItem['order_number']) ?></td>
+            <td><?= htmlspecialchars(qii_text($historyItem['product_name'])) ?></td>
+            <td><?= htmlspecialchars(qii_text($historyItem['variant_name'] ?: '默认规格')) ?></td>
+            <td><?= htmlspecialchars($historyItem['sku'] ?: '-') ?></td>
+            <td>RM <?= number_format((float)$historyItem['price'], 2) ?></td>
+            <td class="deduction-qty">-<?= (int)$historyItem['quantity'] ?></td>
+        </tr>
+    <?php endforeach;
+    return ob_get_clean();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $type = $_POST['type'] ?? 'product';
@@ -307,6 +352,19 @@ foreach ($deductionProductSummary as &$summaryItem) {
 }
 unset($summaryItem);
 usort($deductionProductSummary, fn($a, $b) => $b['deduct_qty'] <=> $a['deduct_qty']);
+if (($_GET['ajax_deduction'] ?? '') === '1') {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'success' => true,
+        'month' => $deductionMonth,
+        'total_qty' => $monthDeductQty,
+        'order_count' => $monthDeductOrderCount,
+        'line_count' => $monthDeductLines,
+        'summary_html' => render_deduction_summary_rows($deductionProductSummary),
+        'detail_html' => render_deduction_detail_rows($deductionHistory),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 $todayAdjustStmt = $pdo->query("
     SELECT COALESCE(SUM(oi.quantity), 0)
     FROM order_items oi
@@ -576,7 +634,7 @@ $msg = $_GET['msg'] ?? '';
         <h2><i class="fa-solid fa-clock-rotate-left"></i> 库存扣减记录</h2>
         <p>默认显示本月，可切换其他月份查看商品汇总和订单明细。</p>
       </div>
-      <form method="get" class="deduction-month-form">
+      <form method="get" class="deduction-month-form" id="deductionMonthForm">
         <?php foreach ($_GET as $key => $value): if ($key === 'deduction_month' || is_array($value)) continue; ?>
           <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value) ?>">
         <?php endforeach; ?>
@@ -587,9 +645,9 @@ $msg = $_GET['msg'] ?? '';
     </div>
     <div class="deduction-history-body">
       <div class="deduction-summary">
-        <div><span>本月扣减商品数</span><strong><?= number_format($monthDeductQty) ?></strong></div>
-        <div><span>涉及订单</span><strong><?= number_format($monthDeductOrderCount) ?></strong></div>
-        <div><span>扣减记录</span><strong><?= number_format($monthDeductLines) ?></strong></div>
+        <div><span>本月扣减商品数</span><strong data-deduction-stat="total_qty"><?= number_format($monthDeductQty) ?></strong></div>
+        <div><span>涉及订单</span><strong data-deduction-stat="order_count"><?= number_format($monthDeductOrderCount) ?></strong></div>
+        <div><span>扣减记录</span><strong data-deduction-stat="line_count"><?= number_format($monthDeductLines) ?></strong></div>
       </div>
       <div class="deduction-tabs" role="tablist" aria-label="扣减记录视图">
         <button type="button" class="deduction-tab active" data-deduction-tab="summary">商品汇总</button>
@@ -598,45 +656,16 @@ $msg = $_GET['msg'] ?? '';
       <section class="deduction-panel" data-deduction-panel="summary">
         <table class="deduction-history-table">
           <thead><tr><th>商品</th><th>SKU</th><th>订单数</th><th>单价</th><th>合计扣减</th></tr></thead>
-          <tbody>
-            <?php if (!$deductionProductSummary): ?><tr><td colspan="5" class="deduction-empty">暂无商品扣减汇总。</td></tr><?php endif; ?>
-            <?php foreach ($deductionProductSummary as $summaryItem): ?>
-              <tr>
-                <td>
-                  <div class="deduction-product-cell">
-                    <img class="deduction-product-img" src="<?= htmlspecialchars(img_url($summaryItem['image'] ?? '')) ?>" alt="">
-                    <div>
-                      <strong><?= htmlspecialchars(qii_text($summaryItem['product_name'])) ?></strong>
-                      <small><?= htmlspecialchars(qii_text($summaryItem['variant_name'] ?: '默认规格')) ?></small>
-                    </div>
-                  </div>
-                </td>
-                <td><?= htmlspecialchars($summaryItem['sku'] ?: '-') ?></td>
-                <td><?= number_format((int)$summaryItem['order_count']) ?></td>
-                <td>RM <?= number_format((float)$summaryItem['price'], 2) ?></td>
-                <td class="deduction-total-qty">-<?= number_format((int)$summaryItem['deduct_qty']) ?></td>
-              </tr>
-            <?php endforeach; ?>
+          <tbody data-deduction-summary-body>
+            <?= render_deduction_summary_rows($deductionProductSummary) ?>
           </tbody>
         </table>
       </section>
       <section class="deduction-panel" data-deduction-panel="detail" hidden>
         <table class="deduction-history-table">
           <thead><tr><th>扣减时间</th><th>图片</th><th>订单号</th><th>商品</th><th>规格</th><th>SKU</th><th>单价</th><th>扣减数量</th></tr></thead>
-          <tbody>
-            <?php if (!$deductionHistory): ?><tr><td colspan="8" class="deduction-empty">暂无订单商品扣减记录。</td></tr><?php endif; ?>
-            <?php foreach ($deductionHistory as $historyItem): ?>
-              <tr>
-                <td><?= htmlspecialchars(date('Y-m-d H:i', strtotime($historyItem['order_created_at']))) ?></td>
-                <td><img class="deduction-product-img" src="<?= htmlspecialchars(img_url($historyItem['item_image'] ?? '')) ?>" alt=""></td>
-                <td><?= htmlspecialchars($historyItem['order_number']) ?></td>
-                <td><?= htmlspecialchars(qii_text($historyItem['product_name'])) ?></td>
-                <td><?= htmlspecialchars(qii_text($historyItem['variant_name'] ?: '默认规格')) ?></td>
-                <td><?= htmlspecialchars($historyItem['sku'] ?: '-') ?></td>
-                <td>RM <?= number_format((float)$historyItem['price'], 2) ?></td>
-                <td class="deduction-qty">-<?= (int)$historyItem['quantity'] ?></td>
-              </tr>
-            <?php endforeach; ?>
+          <tbody data-deduction-detail-body>
+            <?= render_deduction_detail_rows($deductionHistory) ?>
           </tbody>
         </table>
       </section>
@@ -656,6 +685,45 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   deductionDialog?.addEventListener('click', function (event) {
     if (event.target === deductionDialog) deductionDialog.close();
+  });
+
+  const deductionMonthForm = document.getElementById('deductionMonthForm');
+  deductionMonthForm?.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    const button = deductionMonthForm.querySelector('button[type="submit"]');
+    const formData = new FormData(deductionMonthForm);
+    formData.set('ajax_deduction', '1');
+    const params = new URLSearchParams(formData);
+    if (button) button.disabled = true;
+
+    try {
+      const response = await fetch('inventory.php?' + params.toString(), {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error('load failed');
+
+      const formatNumber = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
+      const total = document.querySelector('[data-deduction-stat="total_qty"]');
+      const orders = document.querySelector('[data-deduction-stat="order_count"]');
+      const lines = document.querySelector('[data-deduction-stat="line_count"]');
+      const summaryBody = document.querySelector('[data-deduction-summary-body]');
+      const detailBody = document.querySelector('[data-deduction-detail-body]');
+      if (total) total.textContent = formatNumber(data.total_qty);
+      if (orders) orders.textContent = formatNumber(data.order_count);
+      if (lines) lines.textContent = formatNumber(data.line_count);
+      if (summaryBody) summaryBody.innerHTML = data.summary_html || '';
+      if (detailBody) detailBody.innerHTML = data.detail_html || '';
+
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set('deduction_month', data.month || formData.get('deduction_month'));
+      history.replaceState(history.state, '', nextUrl.toString());
+    } catch (error) {
+      alert('扣减记录加载失败，请再试一次。');
+    } finally {
+      if (button) button.disabled = false;
+    }
   });
 
   document.querySelectorAll('[data-deduction-tab]').forEach(function (tab) {

@@ -19,6 +19,71 @@ function qii_text($text) {
 
 require_once __DIR__ . '/../../app/bootstrap.php';
 
+function qii_receipt_item_image(PDO $pdo, array $item): string
+{
+    static $cache = [];
+
+    $direct = trim((string)($item['img'] ?? $item['image_url'] ?? $item['product_image'] ?? ''));
+    if ($direct !== '') return qii_asset_path($direct);
+
+    $variantId = (int)($item['variant_id'] ?? 0);
+    if ($variantId > 0) {
+        $key = 'variant:' . $variantId;
+        if (!array_key_exists($key, $cache)) {
+            $stmt = $pdo->prepare("
+                SELECT COALESCE(NULLIF(v.image_url, ''), p.image_url) AS image_url
+                FROM product_variants v
+                INNER JOIN product_groups g ON g.id = v.group_id
+                INNER JOIN products p ON p.id = g.product_id
+                WHERE v.id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$variantId]);
+            $cache[$key] = (string)$stmt->fetchColumn();
+        }
+        if ($cache[$key] !== '') return qii_asset_path($cache[$key]);
+    }
+
+    $productId = (int)($item['product_id'] ?? 0);
+    if ($productId > 0) {
+        $key = 'product:' . $productId;
+        if (!array_key_exists($key, $cache)) {
+            $stmt = $pdo->prepare("SELECT image_url FROM products WHERE id = ? LIMIT 1");
+            $stmt->execute([$productId]);
+            $cache[$key] = (string)$stmt->fetchColumn();
+        }
+        if ($cache[$key] !== '') return qii_asset_path($cache[$key]);
+    }
+
+    $sku = trim((string)($item['sku'] ?? ''));
+    if ($sku !== '') {
+        $key = 'sku:' . $sku;
+        if (!array_key_exists($key, $cache)) {
+            $stmt = $pdo->prepare("
+                SELECT image_url FROM (
+                    SELECT COALESCE(NULLIF(v.image_url, ''), p.image_url) AS image_url, 1 AS priority
+                    FROM product_variants v
+                    INNER JOIN product_groups g ON g.id = v.group_id
+                    INNER JOIN products p ON p.id = g.product_id
+                    WHERE v.sku = ?
+                    UNION ALL
+                    SELECT p.image_url, 2 AS priority
+                    FROM products p
+                    WHERE p.sku = ?
+                ) matched
+                WHERE image_url IS NOT NULL AND image_url <> ''
+                ORDER BY priority
+                LIMIT 1
+            ");
+            $stmt->execute([$sku, $sku]);
+            $cache[$key] = (string)$stmt->fetchColumn();
+        }
+        if ($cache[$key] !== '') return qii_asset_path($cache[$key]);
+    }
+
+    return qii_asset_path('');
+}
+
 $order_number = $_GET['order_number'] ?? '';
 if (!$order_number) die("❌ 订单号缺失");
 
@@ -63,10 +128,11 @@ if (isset($_SESSION['pending_order']) && $_SESSION['pending_order']['order_numbe
 
     foreach ($items as $it) {
         $order_data['items'][] = [
-            "sku"   => $it['sku'],
-            "name"  => qii_text($it['product_name']),
-            "qty"   => $it['quantity'],
-            "price" => $it['price']
+            "sku"          => $it['sku'],
+            "name"         => qii_text($it['product_name']),
+            "variant_name" => qii_text($it['variant_name'] ?? ''),
+            "qty"          => $it['quantity'],
+            "price"        => $it['price']
         ];
     }
 
@@ -189,6 +255,26 @@ td {
   text-align: center;
   padding: 10px;
   border-top: 1px dashed #f5c1d6;
+}
+.receipt-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.receipt-product-img {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #f5c1d6;
+  background: #fff6fa;
+}
+.receipt-product-name {
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 /* Totals */
@@ -350,6 +436,15 @@ td {
     font-size: 14px !important;
     padding: 8px !important;
   }
+  .receipt-product {
+    gap: 7px;
+  }
+  .receipt-product-img {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 8px;
+  }
 
   /* 总价文字 */
   .total {
@@ -456,14 +551,18 @@ td {
       foreach ($order_data['items'] as $item) {
         $subtotal = $item['qty'] * $item['price'];
         $total += $subtotal;
+        $productName = qii_text($item['product_name'] ?? $item['name'] ?? '');
+        $productImage = qii_receipt_item_image($pdo, $item);
 
         echo "<tr>
               <td>{$item['qty']}</td>
-              <td>".htmlspecialchars(qii_text($item['product_name'] ?? $item['name'] ?? ''));
+              <td><div class='receipt-product'>
+                <img class='receipt-product-img' src='" . htmlspecialchars($productImage) . "' alt='" . htmlspecialchars($productName) . "' loading='lazy'>
+                <div class='receipt-product-name'>" . htmlspecialchars($productName);
         if (!empty($item['variant_name'])) {
           echo " <span style='color:#C86A9B;'>（" . htmlspecialchars(qii_text($item['variant_name'])) . "）</span>";
         }
-        echo "</td>
+        echo "</div></div></td>
               <td>RM ".number_format($item['price'],2)."</td>
               <td>RM ".number_format($subtotal,2)."</td>
             </tr>";

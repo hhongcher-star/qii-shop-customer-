@@ -24,7 +24,13 @@ $variantEditableContent = [
 #variantModal .close-btn { position: absolute; top: 18px; right: 14px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #9b7a8a; font-size: 25px; line-height: 1; cursor: pointer; }
 #variantModal .close-btn:hover { color: #e43f88; }
 .variant-product-head { display: flex; gap: 12px; padding: 0 2px 16px; border-bottom: 1px solid #f6dbe7; }
-#variantModal #modalImg { width: 110px; height: 110px; border-radius: 12px; object-fit: cover; border: 1px solid #f3c4d8; flex: 0 0 auto; }
+#variantModal #modalImg { width: 110px; height: 110px; border-radius: 12px; object-fit: cover; border: 1px solid #f3c4d8; flex: 0 0 auto; cursor: zoom-in; transition: transform .18s ease, box-shadow .18s ease; }
+#variantModal #modalImg:hover { transform: scale(1.02); box-shadow: 0 6px 16px rgba(187,72,126,.22); }
+.variant-img-preview { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(18, 12, 16, .78); z-index: 7000; }
+.variant-img-preview.is-open { display: flex; }
+.variant-img-preview img { max-width: min(94vw, 720px); max-height: 86vh; border-radius: 14px; object-fit: contain; background: #fff; box-shadow: 0 18px 44px rgba(0,0,0,.32); animation: variantPreviewZoom .2s ease; }
+.variant-img-preview-close { position: fixed; top: 18px; right: 18px; width: 42px; height: 42px; border: 0; border-radius: 50%; background: rgba(255,255,255,.92); color: #7a5366; font-size: 30px; line-height: 1; cursor: pointer; }
+@keyframes variantPreviewZoom { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
 .variant-product-meta { min-width: 0; flex: 1; padding-right: 26px; }
 #variantModal h3 { margin: 4px 0 8px; color: #e43f88; font-size: 14px; font-weight: 800; line-height: 1.3; word-break: break-word; }
 .variant-product-code { margin-bottom: 7px; color: #9b8790; font-size: 11px; }
@@ -157,6 +163,12 @@ $variantEditableContent = [
 
 </div>
 </div>
+</div>
+
+<div id="variantImgPreview" class="variant-img-preview" aria-hidden="true">
+  <button type="button" class="variant-img-preview-close" aria-label="关闭图片预览">&times;</button>
+  <img id="variantImgPreviewPic" src="" alt="">
+</div>
 
 <script>
 const qiiVariantEditableContent = <?= json_encode($variantEditableContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -208,6 +220,51 @@ function changeVariantQty(delta) {
     const next = Math.min(max, Math.max(1, parseInt(qty.value || 1, 10) + delta));
     qty.value = next;
 }
+
+function openVariantImagePreview() {
+    const sourceImg = document.getElementById("modalImg");
+    const preview = document.getElementById("variantImgPreview");
+    const previewImg = document.getElementById("variantImgPreviewPic");
+    if (!sourceImg || !preview || !previewImg || !sourceImg.src) return;
+    previewImg.src = sourceImg.src;
+    preview.classList.add("is-open");
+    preview.setAttribute("aria-hidden", "false");
+}
+
+function closeVariantImagePreview() {
+    const preview = document.getElementById("variantImgPreview");
+    const previewImg = document.getElementById("variantImgPreviewPic");
+    if (!preview || !previewImg) return;
+    preview.classList.remove("is-open");
+    preview.setAttribute("aria-hidden", "true");
+    previewImg.src = "";
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const modalImg = document.getElementById("modalImg");
+    const preview = document.getElementById("variantImgPreview");
+    const closeBtn = document.querySelector(".variant-img-preview-close");
+    const previewImg = document.getElementById("variantImgPreviewPic");
+
+    if (modalImg) {
+        modalImg.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openVariantImagePreview();
+        });
+    }
+    if (preview) {
+        preview.addEventListener("click", closeVariantImagePreview);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener("click", closeVariantImagePreview);
+    }
+    if (previewImg) {
+        previewImg.addEventListener("click", function (e) {
+            e.stopPropagation();
+        });
+    }
+});
 
 /* æ‰“å¼€å¼¹çª— */
 function openVariantModal(p) {
