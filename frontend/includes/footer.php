@@ -168,6 +168,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   animation: fadeIn .3s ease;
+  max-height: min(86vh, 720px);
+  max-height: min(86dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 @keyframes fadeIn { from {opacity:0;transform:translate(-50%,-55%);} to {opacity:1;transform:translate(-50%,-50%);} }
 .close {
@@ -177,6 +182,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 .close:hover { color: #e5679c; }
 .modal-card h2 { text-align: center; color: #e5679c; }
 
+.cart-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
 .cart-content ul { list-style: none; padding: 0; margin: 0; }
 .cart-item {
   display: flex; align-items: flex-start;
@@ -249,6 +261,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 }
 
 .cart-footer {
+  flex: 0 0 auto;
   margin-top: 15px;
   display: flex; justify-content: space-around;
 }
@@ -284,9 +297,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 }
 
 @media (max-width: 600px) {
+  .modal {
+    height: 100dvh;
+  }
   .modal-card {
-    width: 80%;
-    padding: 15px;
+    width: calc(100% - 24px);
+    max-width: 420px;
+    max-height: calc(100dvh - 112px - env(safe-area-inset-bottom, 0px));
+    padding: 15px 14px calc(15px + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px;
   }
   .qii-on-bag {
     width: 110px;

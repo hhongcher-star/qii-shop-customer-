@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+  <defs>
+    <style>
+      .bg{fill:#f7f5f1}
+      .title{font:800 38px Arial,sans-serif;letter-spacing:10px;fill:#111}
+      .sub{font:800 20px Arial,sans-serif;letter-spacing:7px;fill:#111}
+      .legend{font:700 12px Arial,sans-serif;letter-spacing:3px;fill:#222}
+      .page{fill:#111}
+      .section{fill:#fff;stroke:#333;stroke-width:1.5}
+      .api{fill:#e9f6ff;stroke:#2aa6df;stroke-width:1.5}
+      .shared{fill:#d5a91e}
+      .auth{fill:#f4eee6;stroke:#a48772;stroke-width:1.5}
+      .nodeText{font:700 14px Arial,sans-serif;fill:#fff}
+      .darkText{font:700 12px Arial,sans-serif;fill:#111}
+      .smallText{font:700 11px Arial,sans-serif;fill:#111}
+      .line{stroke:#caa019;stroke-width:4;fill:none}
+      .thin{stroke:#555;stroke-width:1.5;fill:none}
+      .foot{font:14px Arial,sans-serif;fill:#555}
+    </style>
+  </defs>
+
+  <rect class="bg" width="1800" height="1100"/>
+  <text x="900" y="54" text-anchor="middle" class="title">◆ QII SHOPPP</text>
+  <text x="900" y="110" text-anchor="middle" class="sub">FRONTEND WEBSITE SITEMAP</text>
+
+  <rect x="585" y="132" width="14" height="14" class="page"/>
+  <text x="615" y="144" class="legend">PAGE</text>
+  <rect x="665" y="132" width="14" height="14" class="section"/>
+  <text x="695" y="144" class="legend">SECTION / FUNCTION</text>
+  <rect x="865" y="132" width="14" height="14" class="shared"/>
+  <text x="895" y="144" class="legend">SHARED COMPONENT</text>
+  <rect x="1080" y="132" width="14" height="14" class="api"/>
+  <text x="1110" y="144" class="legend">FRONTEND API</text>
+  <rect x="1218" y="132" width="14" height="14" class="auth"/>
+  <text x="1248" y="144" class="legend">AUTH / CUSTOMER</text>
+
+  <rect x="795" y="185" width="210" height="44" fill="#2aa6df"/>
+  <text x="900" y="213" text-anchor="middle" class="nodeText">Customer Website</text>
+  <path class="line" d="M900 229 V292 H115 M900 292 H1685"/>
+
+  <g>
+    <rect x="55" y="323" width="150" height="44" class="page"/>
+    <text x="130" y="350" text-anchor="middle" class="nodeText">Home</text>
+    <path class="line" d="M130 367 V398 H88 M130 398 H172"/>
+    <rect x="50" y="420" width="160" height="36" class="section"/>
+    <text x="130" y="443" text-anchor="middle" class="darkText">Hero Content</text>
+    <path class="line" d="M130 456 V472"/>
+    <rect x="50" y="472" width="160" height="36" class="section"/>
+    <text x="130" y="495" text-anchor="middle" class="darkText">Featured Products</text>
+    <path class="line" d="M130 508 V524"/>
+    <rect x="50" y="524" width="160" height="36" class="section"/>
+    <text x="130" y="547" text-anchor="middle" class="darkText">Brand / Contact CTA</text>
+  </g>
+
+  <g>
+    <rect x="285" y="323" width="160" height="44" class="page"/>
+    <text x="365" y="350" text-anchor="middle" class="nodeText">Shop</text>
+    <path class="line" d="M365 367 V398 H322 M365 398 H408"/>
+    <rect x="285" y="420" width="160" height="36" class="section"/>
+    <text x="365" y="443" text-anchor="middle" class="darkText">Category Sidebar</text>
+    <path class="line" d="M365 456 V472"/>
+    <rect x="285" y="472" width="160" height="36" class="section"/>
+    <text x="365" y="495" text-anchor="middle" class="darkText">Product Cards</text>
+    <path class="line" d="M365 508 V524"/>
+    <rect x="285" y="524" width="160" height="36" class="section"/>
+    <text x="365" y="547" text-anchor="middle" class="darkText">Pagination / AJAX</text>
+    <path class="line" d="M365 560 V580"/>
+    <rect x="280" y="580" width="170" height="36" class="shared"/>
+    <text x="365" y="603" text-anchor="middle" class="darkText">product_card.php</text>
+  </g>
+
+  <g>
+    <rect x="525" y="323" width="160" height="44" class="page"/>
+    <text x="605" y="350" text-anchor="middle" class="nodeText">Product Modal</text>
+    <path class="line" d="M605 367 V398 H560 M605 398 H650"/>
+    <rect x="520" y="420" width="170" height="36" class="shared"/>
+    <text x="605" y="443" text-anchor="middle" class="darkText">variant_modal.php</text>
+    <path class="line" d="M605 456 V472"/>
+    <rect x="520" y="472" width="170" height="36" class="api"/>
+    <text x="605" y="495" text-anchor="middle" class="darkText">variant_box_front.php</text>
+    <path class="line" d="M605 508 V524"/>
+    <rect x="520" y="524" width="170" height="36" class="api"/>
+    <text x="605" y="547" text-anchor="middle" class="darkText">add_to_cart.php</text>
+    <path class="line" d="M605 560 V580"/>
+    <rect x="520" y="580" width="170" height="36" class="api"/>
+    <text x="605" y="603" text-anchor="middle" class="darkText">toggle_favorite.php</text>
+  </g>
+
+  <g>
+    <rect x="765" y="323" width="160" height="44" class="page"/>
+    <text x="845" y="350" text-anchor="middle" class="nodeText">Search</text>
+    <path class="line" d="M845 367 V398 H800 M845 398 H890"/>
+    <rect x="760" y="420" width="170" height="36" class="section"/>
+    <text x="845" y="443" text-anchor="middle" class="darkText">Keyword Results</text>
+    <path class="line" d="M845 456 V472"/>
+    <rect x="760" y="472" width="170" height="36" class="section"/>
+    <text x="845" y="495" text-anchor="middle" class="darkText">Product Navigation</text>
+    <path class="line" d="M845 508 V524"/>
+    <rect x="760" y="524" width="170" height="36" class="api"/>
+    <text x="845" y="547" text-anchor="middle" class="darkText">search_suggest.php</text>
+  </g>
+
+  <g>
+    <rect x="1010" y="323" width="160" height="44" class="auth"/>
+    <text x="1090" y="350" text-anchor="middle" class="darkText">Customer Auth</text>
+    <path class="line" d="M1090 367 V398 H1038 M1090 398 H1142"/>
+    <rect x="1000" y="420" width="180" height="36" class="auth"/>
+    <text x="1090" y="443" text-anchor="middle" class="darkText">login.php / register.php</text>
+    <path class="line" d="M1090 456 V472"/>
+    <rect x="1000" y="472" width="180" height="36" class="auth"/>
+    <text x="1090" y="495" text-anchor="middle" class="darkText">Email Verification</text>
+    <path class="line" d="M1090 508 V524"/>
+    <rect x="1000" y="524" width="180" height="36" class="auth"/>
+    <text x="1090" y="547" text-anchor="middle" class="darkText">Password Reset</text>
+    <path class="line" d="M1090 560 V580"/>
+    <rect x="1000" y="580" width="180" height="36" class="auth"/>
+    <text x="1090" y="603" text-anchor="middle" class="darkText">logout.php</text>
+  </g>
+
+  <g>
+    <rect x="1260" y="323" width="160" height="44" class="page"/>
+    <text x="1340" y="350" text-anchor="middle" class="nodeText">Account</text>
+    <path class="line" d="M1340 367 V398 H1295 M1340 398 H1385"/>
+    <rect x="1255" y="420" width="170" height="36" class="section"/>
+    <text x="1340" y="443" text-anchor="middle" class="darkText">Profile Details</text>
+    <path class="line" d="M1340 456 V472"/>
+    <rect x="1255" y="472" width="170" height="36" class="section"/>
+    <text x="1340" y="495" text-anchor="middle" class="darkText">Address Book</text>
+    <path class="line" d="M1340 508 V524"/>
+    <rect x="1255" y="524" width="170" height="36" class="api"/>
+    <text x="1340" y="547" text-anchor="middle" class="darkText">save_address.php</text>
+  </g>
+
+  <g>
+    <rect x="1510" y="323" width="160" height="44" class="page"/>
+    <text x="1590" y="350" text-anchor="middle" class="nodeText">Checkout</text>
+    <path class="line" d="M1590 367 V398 H1545 M1590 398 H1635"/>
+    <rect x="1505" y="420" width="170" height="36" class="api"/>
+    <text x="1590" y="443" text-anchor="middle" class="darkText">checkout.php</text>
+    <path class="line" d="M1590 456 V472"/>
+    <rect x="1505" y="472" width="170" height="36" class="api"/>
+    <text x="1590" y="495" text-anchor="middle" class="darkText">submit_order.php</text>
+    <path class="line" d="M1590 508 V524"/>
+    <rect x="1505" y="524" width="170" height="36" class="api"/>
+    <text x="1590" y="547" text-anchor="middle" class="darkText">coupon APIs</text>
+    <path class="line" d="M1590 560 V580"/>
+    <rect x="1505" y="580" width="170" height="36" class="page"/>
+    <text x="1590" y="603" text-anchor="middle" class="nodeText">receipt.php</text>
+  </g>
+
+  <g>
+    <rect x="420" y="720" width="220" height="46" class="shared"/>
+    <text x="530" y="748" text-anchor="middle" class="darkText">Shared Frontend Layout</text>
+    <path class="line" d="M530 766 V802"/>
+    <rect x="325" y="802" width="410" height="62" class="section"/>
+    <text x="530" y="828" text-anchor="middle" class="darkText">header.php / footer.php / seo.php</text>
+    <text x="530" y="847" text-anchor="middle" class="smallText">Main nav · SEO meta · Footer links · Floating cart</text>
+  </g>
+
+  <g>
+    <rect x="825" y="720" width="220" height="46" class="shared"/>
+    <text x="935" y="748" text-anchor="middle" class="darkText">Shop Assets</text>
+    <path class="line" d="M935 766 V802"/>
+    <rect x="740" y="802" width="390" height="62" class="section"/>
+    <text x="935" y="828" text-anchor="middle" class="darkText">shop.css / shop-page.css / shop-mobile.css</text>
+    <text x="935" y="847" text-anchor="middle" class="smallText">Desktop layout · Mobile layout · Product interactions</text>
+  </g>
+
+  <g>
+    <rect x="1230" y="720" width="220" height="46" class="auth"/>
+    <text x="1340" y="748" text-anchor="middle" class="darkText">Customer Session</text>
+    <path class="line" d="M1340 766 V802"/>
+    <rect x="1145" y="802" width="390" height="62" class="section"/>
+    <text x="1340" y="828" text-anchor="middle" class="darkText">customers.php / Protected Account Flow</text>
+    <text x="1340" y="847" text-anchor="middle" class="smallText">Favorites · Account · Checkout · Saved addresses</text>
+  </g>
+
+  <text x="900" y="980" text-anchor="middle" class="foot">Frontend sitemap showing customer-facing pages, shared layout, product browsing, cart actions, account flows, checkout APIs, and receipt output.</text>
+</svg>
