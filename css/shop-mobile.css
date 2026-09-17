@@ -1,4 +1,9 @@
 ﻿/* Extracted mobile and pagination styles for the shop page. */
+.mobile-shop-top,
+.mobile-bottom-nav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   body {
     background: #fff4f8;
@@ -319,7 +324,7 @@
   .floating-buttons {
     right: 12px !important;
     bottom: 92px !important;
-    z-index: 1900;
+    z-index: 6500;
   }
 
   .floating-cart,

@@ -5,6 +5,48 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../app/customers.php';
 qii_ensure_customer_tables($pdo);
 
+$customerOrderStatuses = ['pending', 'awaiting_payment', 'payment_received', 'paid', 'shipped', 'cancelled'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_customer'])) {
+    verify_csrf();
+    $customerId = (int)($_POST['customer_id'] ?? 0);
+    if ($customerId > 0) {
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('UPDATE orders SET customer_id=NULL WHERE customer_id=?')->execute([$customerId]);
+            $pdo->prepare('DELETE FROM customer_addresses WHERE customer_id=?')->execute([$customerId]);
+            $pdo->prepare('DELETE FROM customer_remember_tokens WHERE customer_id=?')->execute([$customerId]);
+            $pdo->prepare('DELETE FROM customer_action_tokens WHERE customer_id=?')->execute([$customerId]);
+            $pdo->prepare('DELETE FROM customers WHERE id=?')->execute([$customerId]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
+    header('Location: customers.php?deleted=1');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_customer_order_status'])) {
+    verify_csrf();
+    $customerId = (int)($_POST['customer_id'] ?? 0);
+    $orderId = (int)($_POST['order_id'] ?? 0);
+    $status = (string)($_POST['status'] ?? '');
+    $currentStatus = '';
+    if ($customerId > 0 && $orderId > 0) {
+        $currentStmt = $pdo->prepare('SELECT order_status FROM orders WHERE id=? AND customer_id=? LIMIT 1');
+        $currentStmt->execute([$orderId, $customerId]);
+        $currentStatus = (string)$currentStmt->fetchColumn();
+    }
+    if ($customerId > 0 && $orderId > 0 && (in_array($status, $customerOrderStatuses, true) || ($currentStatus !== '' && $status === $currentStatus))) {
+        $stmt = $pdo->prepare('UPDATE orders SET order_status=?, updated_at=NOW() WHERE id=? AND customer_id=?');
+        $stmt->execute([$status, $orderId, $customerId]);
+    }
+    header('Location: customers.php?customer_id=' . $customerId . '&status_saved=1');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_customer_notes'])) {
     verify_csrf();
     $customerId = (int)($_POST['customer_id'] ?? 0);
@@ -65,13 +107,24 @@ if ($selected) {
 
 function customer_status(string $status): string {
     return [
-        'pending'=>'待付款','awaiting_payment'=>'待付款','paid'=>'待发货','shipped'=>'已发货',
+        'pending'=>'待付款','awaiting_payment'=>'待付款','payment_received'=>'已付款','paid'=>'待发货','free_shipping_ready'=>'已免邮可发货','shipped'=>'已发货',
         'completed'=>'已完成','stored_uncombined'=>'存单未合单','stored_combined'=>'存单已合单',
         'cancelled'=>'已取消','draft'=>'草稿',
     ][$status] ?? $status;
 }
 
-function render_customer_orders(array $orders): void {
+function render_customer_status_options(string $currentStatus): void {
+    $displayStatuses = ['pending', 'payment_received', 'paid', 'shipped', 'cancelled'];
+    if ($currentStatus !== '' && !in_array($currentStatus, $displayStatuses, true) && $currentStatus !== 'awaiting_payment') {
+        echo '<option value="' . htmlspecialchars($currentStatus) . '" selected hidden>' . htmlspecialchars(customer_status($currentStatus)) . '</option>';
+    }
+    foreach ($displayStatuses as $status) {
+        $selected = ($currentStatus === $status || ($status === 'pending' && $currentStatus === 'awaiting_payment')) ? ' selected' : '';
+        echo '<option value="' . htmlspecialchars($status) . '"' . $selected . '>' . htmlspecialchars(customer_status($status)) . '</option>';
+    }
+}
+
+function render_customer_orders(array $orders, int $customerId): void {
     if (!$orders) {
         echo '<div class="empty">暂无记录</div>';
         return;
@@ -85,7 +138,13 @@ function render_customer_orders(array $orders): void {
         echo '<td>' . (int)$o['item_count'] . ' 件</td>';
         echo '<td>RM ' . number_format((float)($o['grand_total'] ?: $o['total']), 2) . '</td>';
         echo '<td><span class="pill">' . htmlspecialchars(customer_status((string)$o['order_status'])) . '</span></td>';
-        echo '<td><a class="view" target="_blank" href="' . htmlspecialchars($receipt) . '">查看</a></td></tr>';
+        echo '<td><form method="post" class="customer-order-status-form">' . csrf_field()
+            . '<input type="hidden" name="customer_id" value="' . $customerId . '">'
+            . '<input type="hidden" name="order_id" value="' . (int)$o['id'] . '">'
+            . '<select name="status">';
+        render_customer_status_options((string)$o['order_status']);
+        echo '</select><button name="update_customer_order_status" type="submit">保存</button></form>';
+        echo '<a class="view" target="_blank" href="' . htmlspecialchars($receipt) . '">查看</a></td></tr>';
     }
     echo '</tbody></table></div>';
 }
@@ -97,7 +156,7 @@ function render_customer_orders(array $orders): void {
   <title>用户管理 | Qii.shop Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    *{box-sizing:border-box}body{margin:0;background:#fff7fb;color:#413642;font-family:Arial,sans-serif}.main{margin-left:280px;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:16px}h1{margin:0 0 6px;color:#ed4d94}.top p{margin:0;color:#8d7b86;font-size:13px}.search{display:flex;background:#fff;border:1px solid #f5d8e5;border-radius:7px;padding:5px}.search input{width:230px;border:0;outline:0;padding:0 10px}.search button,.save-btn{border:0;border-radius:5px;background:#ed4d94;color:#fff;padding:10px 16px;font-weight:800}.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px}.panel{background:#fff;border:1px solid #f4dbe6;border-radius:8px;overflow:hidden;box-shadow:0 8px 22px rgba(201,75,130,.06)}.list-title{padding:15px;border-bottom:1px solid #f5e3eb;font-weight:900}.customer{display:grid;grid-template-columns:42px 1fr;gap:10px;padding:13px;border-bottom:1px solid #f6e6ed;text-decoration:none;color:#413642}.customer:hover,.customer.active{background:#fff0f6}.avatar,.profile-avatar{display:grid;place-items:center;border-radius:50%;background:#ffe8f2;color:#ed4d94}.avatar{width:42px;height:42px}.customer small{display:block;color:#8d7b86;font-size:11px;margin-top:3px}.customer-meta{display:flex;gap:7px;margin-top:5px;font-size:10px;color:#9e8995}.profile{position:relative;display:flex;align-items:center;gap:18px;min-height:145px;padding:22px;background:linear-gradient(110deg,#fff,#fff0f7);overflow:hidden}.profile:after{content:"";position:absolute;right:20px;bottom:-20px;width:150px;height:120px;background:url("../images/27.png") center/contain no-repeat;opacity:.65}.profile-avatar{width:82px;height:82px;flex:0 0 82px;font-size:30px;border:4px solid #fff}.profile-copy{position:relative;z-index:1}.profile-copy h2{margin:0 0 8px}.profile-copy p{margin:5px 0;color:#796973;font-size:13px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px;border-top:1px solid #f5e3eb}.stat{padding:14px;background:#fff7fb;border-radius:7px}.stat span,.stat strong{display:block}.stat span{font-size:11px;color:#97838f;margin-bottom:6px}.stat strong{color:#ed4d94;font-size:18px}.tabs{display:flex;gap:28px;padding:0 18px;border-top:1px solid #f5e3eb;border-bottom:1px solid #f5e3eb}.tab{border:0;background:none;padding:15px 4px 12px;color:#8d7b86;cursor:pointer}.tab.active{color:#ed4d94;border-bottom:2px solid #ed4d94;font-weight:900}.tab-panel{display:none}.tab-panel.active{display:block}.panel-title{padding:15px 18px;font-weight:900}.empty{padding:34px;text-align:center;color:#8d7b86}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 15px;text-align:left;border-top:1px solid #f6e6ed;font-size:12px}th{background:#fff7fb;color:#8d7b86}.pill{display:inline-flex;padding:5px 9px;border-radius:999px;background:#fff0f6;color:#ed4d94;font-weight:900}.view{color:#ed4d94;text-decoration:none;font-weight:900}.notes-form{padding:18px}.notes-form label{display:block;margin-bottom:7px;font-weight:900;font-size:13px}.notes-form input,.notes-form textarea{width:100%;border:1px solid #f0ccd9;border-radius:7px;padding:11px;margin-bottom:16px;outline:none}.notes-form textarea{min-height:150px;resize:vertical}.saved{margin-bottom:14px;padding:10px;background:#eafaf1;color:#24844c;border-radius:6px}
+    *{box-sizing:border-box}body{margin:0;background:#fff7fb;color:#413642;font-family:Arial,sans-serif}.main{margin-left:280px;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:16px}h1{margin:0 0 6px;color:#ed4d94}.top p{margin:0;color:#8d7b86;font-size:13px}.search{display:flex;background:#fff;border:1px solid #f5d8e5;border-radius:7px;padding:5px}.search input{width:230px;border:0;outline:0;padding:0 10px}.search button,.save-btn{border:0;border-radius:5px;background:#ed4d94;color:#fff;padding:10px 16px;font-weight:800}.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px}.panel{background:#fff;border:1px solid #f4dbe6;border-radius:8px;overflow:hidden;box-shadow:0 8px 22px rgba(201,75,130,.06)}.list-title{padding:15px;border-bottom:1px solid #f5e3eb;font-weight:900}.customer{display:grid;grid-template-columns:42px 1fr;gap:10px;padding:13px;border-bottom:1px solid #f6e6ed;text-decoration:none;color:#413642}.customer:hover,.customer.active{background:#fff0f6}.avatar,.profile-avatar{display:grid;place-items:center;border-radius:50%;background:#ffe8f2;color:#ed4d94}.avatar{width:42px;height:42px}.customer small{display:block;color:#8d7b86;font-size:11px;margin-top:3px}.customer-meta{display:flex;gap:7px;margin-top:5px;font-size:10px;color:#9e8995}.profile{position:relative;display:flex;align-items:center;gap:18px;min-height:145px;padding:22px;background:linear-gradient(110deg,#fff,#fff0f7);overflow:hidden}.profile:after{content:"";position:absolute;right:20px;bottom:-20px;width:150px;height:120px;background:url("../images/27.png") center/contain no-repeat;opacity:.65}.profile-avatar{width:82px;height:82px;flex:0 0 82px;font-size:30px;border:4px solid #fff}.profile-copy{position:relative;z-index:1}.profile-copy h2{margin:0 0 8px}.profile-copy p{margin:5px 0;color:#796973;font-size:13px}.profile-actions{position:relative;z-index:2;margin-left:auto}.delete-customer-form{margin:0}.delete-customer-btn{border:1px solid #ff9cbc;background:#fff;color:#d92f72;border-radius:6px;min-height:38px;padding:0 14px;font-weight:900;cursor:pointer}.delete-customer-btn:hover{background:#fff0f6}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px;border-top:1px solid #f5e3eb}.stat{padding:14px;background:#fff7fb;border-radius:7px}.stat span,.stat strong{display:block}.stat span{font-size:11px;color:#97838f;margin-bottom:6px}.stat strong{color:#ed4d94;font-size:18px}.tabs{display:flex;gap:28px;padding:0 18px;border-top:1px solid #f5e3eb;border-bottom:1px solid #f5e3eb}.tab{border:0;background:none;padding:15px 4px 12px;color:#8d7b86;cursor:pointer}.tab.active{color:#ed4d94;border-bottom:2px solid #ed4d94;font-weight:900}.tab-panel{display:none}.tab-panel.active{display:block}.panel-title{padding:15px 18px;font-weight:900}.empty{padding:34px;text-align:center;color:#8d7b86}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:12px 15px;text-align:left;border-top:1px solid #f6e6ed;font-size:12px}th{background:#fff7fb;color:#8d7b86}.pill{display:inline-flex;padding:5px 9px;border-radius:999px;background:#fff0f6;color:#ed4d94;font-weight:900}.view{display:inline-flex;margin-top:4px;color:#ed4d94;text-decoration:none;font-weight:900}.customer-order-status-form{display:flex;gap:6px;align-items:center;margin:0 0 8px}.customer-order-status-form select{height:34px;border:1px solid #f0ccd9;border-radius:5px;background:#fff;padding:0 8px;color:#413642}.customer-order-status-form button{height:34px;border:0;border-radius:5px;background:#ed4d94;color:#fff;font-weight:900;padding:0 10px;cursor:pointer}.notes-form{padding:18px}.notes-form label{display:block;margin-bottom:7px;font-weight:900;font-size:13px}.notes-form input,.notes-form textarea{width:100%;border:1px solid #f0ccd9;border-radius:7px;padding:11px;margin-bottom:16px;outline:none}.notes-form textarea{min-height:150px;resize:vertical}.saved{margin-bottom:14px;padding:10px;background:#eafaf1;color:#24844c;border-radius:6px}
     @media(max-width:900px){.main{margin-left:0;padding:14px 10px 90px}.top,.layout{display:block}.search{margin-top:12px}.search input{width:100%}.panel{margin-bottom:12px}.profile:after{opacity:.15}.stats{grid-template-columns:1fr 1fr}.tabs{overflow-x:auto;white-space:nowrap}.customer-meta{flex-wrap:wrap}}
   </style>
 </head>
@@ -110,11 +169,11 @@ function render_customer_orders(array $orders): void {
     <aside class="panel"><div class="list-title">客户列表（<?= count($customers) ?>）</div><?php if(!$customers):?><div class="empty">暂无用户</div><?php endif;?><?php foreach($customers as $c):?><a class="customer <?= (int)$c['id']===$selectedId?'active':'' ?>" href="?customer_id=<?= (int)$c['id'] ?>"><span class="avatar"><i class="fa-solid fa-user"></i></span><span><strong><?= htmlspecialchars($c['name']) ?></strong><small><?= htmlspecialchars($c['phone'] ?: $c['email']) ?></small><span class="customer-meta"><b><?= (int)$c['order_count'] ?> 订单</b><b><?= (int)$c['hold_count'] ?> 存单</b><b>RM <?= number_format((float)$c['total_spent'],2) ?></b></span></span></a><?php endforeach;?></aside>
     <section class="panel">
       <?php if(!$selected):?><div class="empty">请选择一个用户</div><?php else:?>
-      <div class="profile"><span class="profile-avatar"><i class="fa-solid fa-user"></i></span><div class="profile-copy"><h2><?= htmlspecialchars($selected['name']) ?></h2><p><i class="fa-regular fa-envelope"></i> <?= htmlspecialchars($selected['email']) ?></p><p><i class="fa-solid fa-phone"></i> <?= htmlspecialchars($selected['phone'] ?: '未填写电话') ?></p><p>加入时间：<?= date('Y-m-d',strtotime($selected['created_at'])) ?></p></div></div>
+      <div class="profile"><span class="profile-avatar"><i class="fa-solid fa-user"></i></span><div class="profile-copy"><h2><?= htmlspecialchars($selected['name']) ?></h2><p><i class="fa-regular fa-envelope"></i> <?= htmlspecialchars($selected['email']) ?></p><p><i class="fa-solid fa-phone"></i> <?= htmlspecialchars($selected['phone'] ?: '未填写电话') ?></p><p>加入时间：<?= date('Y-m-d',strtotime($selected['created_at'])) ?></p></div><div class="profile-actions"><form class="delete-customer-form" method="post" onsubmit="return confirm('确定删除这个用户吗？旧订单会保留，但会解除账号绑定。');"><?= csrf_field() ?><input type="hidden" name="customer_id" value="<?= (int)$selectedId ?>"><button class="delete-customer-btn" name="delete_customer" type="submit"><i class="fa-regular fa-trash-can"></i> 删除用户</button></form></div></div>
       <div class="stats"><div class="stat"><span>总订单</span><strong><?= (int)$selected['order_count'] ?></strong></div><div class="stat"><span>存单</span><strong><?= (int)$selected['hold_count'] ?></strong></div><div class="stat"><span>总消费</span><strong>RM <?= number_format((float)$selected['total_spent'],2) ?></strong></div><div class="stat"><span>最后下单</span><strong style="font-size:13px"><?= $selected['last_order_at']?date('Y-m-d',strtotime($selected['last_order_at'])):'-' ?></strong></div></div>
       <div class="tabs"><button class="tab active" data-tab="history">历史订单</button><button class="tab" data-tab="holds">存单记录</button><button class="tab" data-tab="notes">备注 / 标签</button></div>
-      <div class="tab-panel active" data-panel="history"><div class="panel-title">历史订单（<?= count($orders) ?>）</div><?php render_customer_orders($orders); ?></div>
-      <div class="tab-panel" data-panel="holds"><div class="panel-title">存单记录（<?= count($holdOrders) ?>）</div><?php render_customer_orders($holdOrders); ?></div>
+      <div class="tab-panel active" data-panel="history"><div class="panel-title">历史订单（<?= count($orders) ?>）</div><?php render_customer_orders($orders, $selectedId); ?></div>
+      <div class="tab-panel" data-panel="holds"><div class="panel-title">存单记录（<?= count($holdOrders) ?>）</div><?php render_customer_orders($holdOrders, $selectedId); ?></div>
       <div class="tab-panel" data-panel="notes"><form class="notes-form" method="post"><?= csrf_field() ?><input type="hidden" name="customer_id" value="<?= (int)$selectedId ?>"><?php if(isset($_GET['saved'])):?><div class="saved">备注和标签已保存</div><?php endif;?><label for="admin_tags">标签</label><input id="admin_tags" name="admin_tags" value="<?= htmlspecialchars((string)($selected['admin_tags'] ?? '')) ?>" placeholder="例如：VIP, 常买文创, 需要优先联系"><label for="admin_notes">管理员备注</label><textarea id="admin_notes" name="admin_notes" placeholder="只有管理员可以看到"><?= htmlspecialchars((string)($selected['admin_notes'] ?? '')) ?></textarea><button class="save-btn" name="save_customer_notes">保存备注与标签</button></form></div>
       <?php endif;?>
     </section>

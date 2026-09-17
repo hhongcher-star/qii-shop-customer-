@@ -65,12 +65,21 @@ CREATE TABLE IF NOT EXISTS customers (
   KEY idx_customers_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS customer_favorites (
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT NOT NULL,
-  product_id INT NOT NULL,
+  recipient_name VARCHAR(160) NOT NULL,
+  phone VARCHAR(80) NULL,
+  address TEXT NULL,
+  postcode VARCHAR(20) NULL,
+  state VARCHAR(80) NULL,
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  last_used_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (customer_id, product_id),
-  KEY idx_favorites_product (product_id)
+  updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_addresses_customer (customer_id),
+  KEY idx_addresses_default (customer_id, is_default),
+  KEY idx_addresses_used (customer_id, last_used_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS customer_remember_tokens (

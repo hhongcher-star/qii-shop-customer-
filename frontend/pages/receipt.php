@@ -2,7 +2,10 @@
 session_start();
 require __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 date_default_timezone_set("Asia/Kuala_Lumpur");
+require_once __DIR__ . '/../../app/bootstrap.php';
+require_once __DIR__ . '/../../app/customers.php';
 
+if (!function_exists('qii_text')) {
 function qii_text($text) {
     $text = (string)$text;
     if ($text === '') return '';
@@ -16,8 +19,7 @@ function qii_text($text) {
 
     return $text;
 }
-
-require_once __DIR__ . '/../../app/bootstrap.php';
+}
 
 function qii_receipt_item_image(PDO $pdo, array $item): string
 {
@@ -137,6 +139,18 @@ if (isset($_SESSION['pending_order']) && $_SESSION['pending_order']['order_numbe
     }
 
     $data_source = "database";
+}
+
+$savedAddresses = [];
+try {
+    qii_ensure_customer_tables($pdo);
+    $receiptCustomerId = qii_customer_id();
+    if ($receiptCustomerId) {
+        $savedAddresses = qii_customer_addresses($pdo, (int)$receiptCustomerId, 6);
+    }
+} catch (Throwable $e) {
+    error_log('Receipt saved addresses failed: ' . $e->getMessage());
+    $savedAddresses = [];
 }
 
 // 格式化时间
@@ -327,44 +341,109 @@ td {
   text-align:center;
 }
 
-/* First Screen */
-#qii-thankyou {
-  position: fixed; inset:0;
-  background: linear-gradient(180deg,#FFF6FA,#FFE9F0);
-  display:flex; flex-direction:column;
-  justify-content:center; align-items:center;
-  z-index:3000;
-  transition: opacity .8s ease;
+.address-panel {
+  background:white;
+  padding:25px;
+  border-radius:18px;
+  width:min(520px, 92vw);
+  max-height:88vh;
+  overflow:auto;
+  text-align:left;
+  box-shadow:0 8px 20px rgba(0,0,0,0.25);
 }
-#qii-thankyou.fade-out { opacity:0; pointer-events:none; }
-
-.qii-img {
-  width:200px; height:200px;
-  border-radius:50%; object-fit:cover;
-  animation: float 3s infinite ease-in-out;
+.address-panel h3 {
+  color:#E5679C;
+  text-align:center;
+  margin:0 0 16px;
 }
-@keyframes float {
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-8px);}
+.saved-address-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 10px;
+  color:#4a3b43;
+  font-weight:900;
 }
-
-.qii-close-btn {
-    margin-top: 15px;
-    padding: 10px 24px;
-    border: none;
-    border-radius: 30px;
-    background: linear-gradient(180deg, #fbc7d4, #f49ac1);
-    color: white;
-    font-weight: bold;
-    font-size: 16px;
-    box-shadow: 0 4px 10px rgba(244,154,193,0.4);
-    cursor: pointer;
-    transition: 0.25s ease;
+.saved-address-list {
+  display:grid;
+  gap:8px;
+  margin-bottom:14px;
 }
-
-.qii-close-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(244,154,193,0.55);
+.saved-address-list.is-collapsed .saved-address-card:not(:first-child) {
+  display:none;
+}
+.saved-address-tools {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.saved-address-more {
+  border:0;
+  background:#ffe8f1;
+  color:#D65286;
+  border-radius:999px;
+  padding:5px 12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.saved-address-card {
+  width:100%;
+  border:1px solid #f4b8cd;
+  border-radius:12px;
+  background:#fff8fb;
+  padding:11px 12px;
+  color:#4a3b43;
+  text-align:left;
+  cursor:pointer;
+}
+.saved-address-card:hover,
+.saved-address-card.is-selected {
+  border-color:#E5679C;
+  background:#fff0f7;
+}
+.saved-address-card strong,
+.saved-address-card span,
+.saved-address-card small {
+  display:block;
+}
+.saved-address-card strong {
+  font-size:15px;
+  color:#2f2730;
+}
+.saved-address-card span {
+  font-size:14px;
+  margin-top:3px;
+}
+.saved-address-card small {
+  color:#A0587E;
+  margin-top:3px;
+}
+.address-badge {
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:2px 7px;
+  background:#ffe8f1;
+  color:#D65286;
+  font-size:12px;
+  margin-left:6px;
+}
+.address-form-fields input,
+.address-form-fields textarea {
+  width:100%;
+  box-sizing:border-box;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:10px;
+  border:1px solid #f4b8cd;
+  font:inherit;
+}
+.address-actions {
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  text-align:center;
 }
 
 /* ============================
@@ -484,6 +563,10 @@ td {
     padding: 18px !important;
   }
 
+  .address-actions {
+    flex-direction:column;
+  }
+
   input {
     font-size: 15px !important;
     padding: 8px !important;
@@ -496,16 +579,8 @@ td {
 </style>
 </head>
 
-<!-- 🎀 Qii Thank You Screen -->
-<div id="qii-thankyou" style="display:none;">
-  <img src="images/29.png" class="qii-img">
-  <h2 style="color:#E5679C;">谢谢你光顾 <span style="color:#D65286;">Qii.shoppp</span> 🎀</h2>
-  <p style="color:#A0587E;">小东西也能带来大心情 💕<br>谢谢你喜欢 Qii 的小可爱。</p>
-  <button class="qii-close-btn" onclick="closeQii()">关闭</button>
-</div>
-
 <!-- 🌸 Receipt -->
-<div id="receipt-content" style="display:none;">
+<div id="receipt-content">
   <div class="bg-hearts">
     <span>❤</span><span>♡</span><span>💗</span><span>💖</span><span>💕</span>
   </div>
@@ -569,13 +644,16 @@ td {
       }
 
       // 运费规则
-      $region = $order_data['region'] ?? 'west';
-      if ($region === 'hold')
-          $shipping = 0;
-      elseif ($region === 'west')
-          $shipping = $total >= 65 ? 0 : 10;
-      else
-          $shipping = $total >= 80 ? 0 : 15;
+      $region = (string)($order_data['region'] ?? 'west');
+      if (array_key_exists('shipping', $order_data) && is_numeric($order_data['shipping'])) {
+        $shipping = (float)$order_data['shipping'];
+      } else {
+        try {
+          $shipping = qii_shipping_for_region((float)$total, $region);
+        } catch (Throwable $e) {
+          $shipping = 0.0;
+        }
+      }
 
       // Apply coupon code from session; discount is calculated server-side.
       $couponCode = $_SESSION['coupon_code'][$order_number] ?? ($_SESSION['coupon_code_pending'] ?? '');
@@ -602,13 +680,7 @@ td {
     <?php endif; ?>
     <p class="total">总价：RM <?= number_format($grand_total,2) ?></p>
 
-    <div class="shipping-box">
-      <?= ($region === 'hold')
-          ? "📦 存单：运费 RM0.00"
-          : (($region === 'west')
-              ? "📦 西马：RM10 满 RM65 免邮"
-              : "📦 东马：RM15 满 RM80 免邮") ?>
-</div>
+    <div class="shipping-box">运费：RM <?= number_format($shipping, 2) ?></div>
 
 <!-- Coupon Modal -->
 <div id="couponModal" style=
@@ -652,21 +724,6 @@ function qiiCsrfHeaders(extra = {}) {
   return token ? { ...extra, "X-QII-CSRF-Token": token } : extra;
 }
 
-window.addEventListener("load", () => {
-  document.getElementById("qii-thankyou").style.display = "flex";
-});
-
-// 关闭动画
-function closeQii(){
-  let qii = document.getElementById("qii-thankyou");
-  // 先显示收据内容，再淡出感谢层，避免中间空白
-  document.getElementById("receipt-content").style.display = "block";
-  qii.classList.add("fade-out");
-  setTimeout(()=> {
-    qii.style.display = "none";
-  }, 800);
-}
-
 // Coupon modal controls
 function openCoupon(){
     document.getElementById("couponModal").style.display = "flex";
@@ -678,9 +735,33 @@ function closeCoupon(){
 // Address modal controls
 function openAddress(){
     document.getElementById("addressModal").style.display = "flex";
+    const nameInput = document.getElementById("addr_name");
+    if (qiiSavedAddresses.length && nameInput && !nameInput.value.trim()) {
+        fillAddress(qiiSavedAddresses[0], document.querySelector(".saved-address-card"));
+    }
 }
 function closeAddress(){
     document.getElementById("addressModal").style.display = "none";
+}
+
+const qiiSavedAddresses = <?= json_encode($savedAddresses, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+
+function fillAddress(address, button){
+    document.getElementById("addr_name").value = address.recipient_name || "";
+    document.getElementById("addr_phone").value = address.phone || "";
+    document.getElementById("addr_address").value = address.address || "";
+    document.getElementById("addr_postcode").value = address.postcode || "";
+    document.getElementById("addr_state").value = address.state || "";
+
+    document.querySelectorAll(".saved-address-card").forEach(card => card.classList.remove("is-selected"));
+    if (button) button.classList.add("is-selected");
+}
+
+function toggleSavedAddresses(button){
+    const list = document.querySelector(".saved-address-list");
+    if (!list) return;
+    const expanded = !list.classList.toggle("is-collapsed");
+    button.textContent = expanded ? "收起" : "其他";
 }
 
 function submitAddress(){
@@ -776,32 +857,54 @@ function closePay(){
             justify-content:center; align-items:center;
             z-index:5000;">
   
-  <div style="background:white; padding:25px; border-radius:18px;
-              width:320px; text-align:center;
-              box-shadow:0 8px 20px rgba(0,0,0,0.25);">
+  <div class="address-panel">
 
-      <h3 style="color:#E5679C;">填写收货地址 🩷</h3>
+      <h3>填写收货地址</h3>
 
-      <input id="addr_name" type="text" placeholder="收件人姓名"
-             style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
+      <?php if ($savedAddresses): ?>
+        <div class="saved-address-head">
+          <span>常用地址</span>
+          <div class="saved-address-tools">
+            <small>点击即可套用</small>
+            <?php if (count($savedAddresses) > 1): ?>
+              <button class="saved-address-more" type="button" onclick="toggleSavedAddresses(this)">其他</button>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="saved-address-list<?= count($savedAddresses) > 1 ? ' is-collapsed' : '' ?>">
+          <?php foreach ($savedAddresses as $addressIndex => $savedAddress): ?>
+            <button
+              class="saved-address-card"
+              type="button"
+              onclick="fillAddress(qiiSavedAddresses[<?= (int)$addressIndex ?>], this)"
+            >
+              <strong>
+                <?= htmlspecialchars((string)$savedAddress['recipient_name']) ?>
+                <?php if (!empty($savedAddress['is_default'])): ?><span class="address-badge">默认</span><?php endif; ?>
+              </strong>
+              <span><?= htmlspecialchars(trim((string)($savedAddress['address'] ?? '')) ?: '未填写详细地址') ?></span>
+              <small>
+                <?= htmlspecialchars(trim((string)($savedAddress['state'] ?? '') . ' ' . (string)($savedAddress['postcode'] ?? ''))) ?>
+                <?= htmlspecialchars((string)($savedAddress['phone'] ?? '')) ?>
+              </small>
+            </button>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
-      <input id="addr_phone" type="text" placeholder="联系电话（选填）"
-             style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
+      <div class="address-form-fields">
+        <input id="addr_name" type="text" placeholder="收件人姓名" value="<?= htmlspecialchars((string)($order_data['addr_name'] ?? '')) ?>">
+        <input id="addr_phone" type="text" placeholder="联系电话（选填）" value="<?= htmlspecialchars((string)($order_data['addr_phone'] ?? '')) ?>">
+        <input id="addr_address" type="text" placeholder="详细地址（选填）" value="<?= htmlspecialchars((string)($order_data['addr_address'] ?? '')) ?>">
+        <input id="addr_postcode" type="text" placeholder="邮编（选填）" value="<?= htmlspecialchars((string)($order_data['addr_postcode'] ?? '')) ?>">
+        <input id="addr_state" type="text" placeholder="州属（选填）" value="<?= htmlspecialchars((string)($order_data['addr_state'] ?? '')) ?>">
+        <textarea id="order_note" maxlength="500" rows="3" placeholder="订单备注（选填）"><?= htmlspecialchars((string)($order_data['order_note'] ?? '')) ?></textarea>
+      </div>
 
-      <input id="addr_address" type="text" placeholder="详细地址（选填）"
-             style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
-
-      <input id="addr_postcode" type="text" placeholder="邮编（选填）"
-             style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
-
-      <input id="addr_state" type="text" placeholder="州属（选填）"
-             style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd;">
-
-      <textarea id="order_note" maxlength="500" rows="3" placeholder="订单备注（选填）"
-                style="width:90%; padding:10px; margin-bottom:10px; border-radius:10px; border:1px solid #f4b8cd; resize:vertical; font:inherit;"></textarea>
-
-      <button class="btn btn-pink" onclick="submitAddress()">确认付款</button>
-      <button class="btn btn-pink" onclick="closeAddress()">取消</button>
+      <div class="address-actions">
+        <button class="btn btn-pink" onclick="submitAddress()">确认付款</button>
+        <button class="btn btn-pink" onclick="closeAddress()">取消</button>
+      </div>
   </div>
 
 </div>

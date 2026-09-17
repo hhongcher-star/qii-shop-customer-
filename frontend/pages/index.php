@@ -1,5 +1,6 @@
-﻿<!DOCTYPE html>
 <?php
+require_once __DIR__ . '/../../app/bootstrap.php';
+qii_start_session();
 require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/content_settings.php';
 $heroTitle = qii_sanitize_rich_text(qii_content($pdo, 'hero_title', 'Welcome to qii.shoppp'));
@@ -26,7 +27,33 @@ $heroTextColor = qii_content($pdo, 'hero_text_color', '#A0336B');
 $sectionTitleColor = qii_content($pdo, 'section_title_color', '#D9488B');
 $sectionTextColor = qii_content($pdo, 'section_text_color', '#8A2F61');
 $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
+
+$heroTitle = trim(strip_tags($heroTitle)) === '' ? 'Welcome to qii.shoppp' : $heroTitle;
+$heroSubtitle = trim(strip_tags($heroSubtitle)) === '' ? '发现每一份可爱的生活小物' : $heroSubtitle;
+$heroDescription = trim(strip_tags($heroDescription)) === '' ? '让每一天，都有一点粉色的温柔与惊喜。' : $heroDescription;
+$heroButton = trim(strip_tags($heroButton)) === '' ? '立即购物' : $heroButton;
+$heroImageAlt = trim($heroImageAlt) === '' ? 'Qiqi with Cart' : $heroImageAlt;
+$heroImage = trim($heroImage) === '' ? 'images/qii-hero.png' : $heroImage;
+$aboutTitle = trim(strip_tags($aboutTitle)) === '' ? '关于 qii.shoppp 💌' : $aboutTitle;
+$aboutText = trim(strip_tags($aboutText)) === '' ? 'qii.shoppp 是一个关于温柔与日常的小角落。<br>我们相信，每个女孩都值得一点被生活宠爱的可爱。<br>每件商品，都像一份心意 - 小小、但刚刚好。' : $aboutText;
+$aboutImageAlt = trim($aboutImageAlt) === '' ? 'Qiqi Bag' : $aboutImageAlt;
+$aboutImage = trim($aboutImage) === '' ? 'images/qii-bag.png' : $aboutImage;
+$giftTitle = trim(strip_tags($giftTitle)) === '' ? '🎁 每一份礼物' : $giftTitle;
+$giftText = trim(strip_tags($giftText)) === '' ? '每一份礼物都承载着特别的心意。<br>我们为你准备的，不只是商品，而是一份温柔的陪伴。<br>让可爱成为生活的一部分。' : $giftText;
+$giftImageAlt = trim($giftImageAlt) === '' ? 'Qiqi Gift' : $giftImageAlt;
+$giftImage = trim($giftImage) === '' ? 'images/qii-gift.png' : $giftImage;
+$dailyTitle = trim(strip_tags($dailyTitle)) === '' ? '🌸 粉色的日常' : $dailyTitle;
+$dailyText = trim(strip_tags($dailyText)) === '' ? '每一个小物件，都能让生活多一点甜。<br>我们希望，在你的每一天里，都能遇见一点粉色的温柔。<br>qii.shoppp - 温柔从这里开始。' : $dailyText;
+$dailyImageAlt = trim($dailyImageAlt) === '' ? 'Qiqi Flower' : $dailyImageAlt;
+$dailyImage = trim($dailyImage) === '' ? 'images/2.png' : $dailyImage;
+$heroTitleColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($heroTitleColor)) ? trim($heroTitleColor) : '#D9488B';
+$heroSubtitleColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($heroSubtitleColor)) ? trim($heroSubtitleColor) : '#C43A80';
+$heroTextColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($heroTextColor)) ? trim($heroTextColor) : '#A0336B';
+$sectionTitleColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($sectionTitleColor)) ? trim($sectionTitleColor) : '#D9488B';
+$sectionTextColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($sectionTextColor)) ? trim($sectionTextColor) : '#8A2F61';
+$heroButtonColor = preg_match('/^#[0-9a-f]{3,8}$/i', trim($heroButtonColor)) ? trim($heroButtonColor) : '#E5679C';
 ?>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -698,14 +725,30 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
   <!-- 🌸 动画控制（原逻辑保留，仅loader加了文字不用改JS） -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script>
-    AOS.init({ duration: 800, offset: 100, once: true });
-    window.addEventListener("load", () => {
+    if (window.AOS) {
+      AOS.init({ duration: 800, offset: 100, once: true });
+    } else {
+      document.querySelectorAll("[data-aos]").forEach((el) => {
+        el.removeAttribute("data-aos");
+      });
+    }
+
+    function hideIndexLoader() {
       const loader = document.getElementById("loader");
+      if (!loader || loader.dataset.hidden === "1") return;
+      loader.dataset.hidden = "1";
       setTimeout(() => {
         loader.classList.add("fade-out");
         setTimeout(() => { loader.style.display = "none"; }, 600);
-      }, 2000);
-    });
+      }, 900);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideIndexLoader);
+    } else {
+      hideIndexLoader();
+    }
+    window.addEventListener("load", hideIndexLoader);
 
     /* 🍔 Hamburger Menu Toggle */
     const hamburger = document.querySelector(".hamburger");
@@ -721,5 +764,3 @@ $heroButtonColor = qii_content($pdo, 'hero_button_color', '#E5679C');
   
 </body>
 </html>
-
-

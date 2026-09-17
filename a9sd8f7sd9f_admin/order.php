@@ -6,14 +6,15 @@ require_once __DIR__ . '/../app/customers.php';
 qii_ensure_customer_tables($pdo);
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-$allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'stored_uncombined', 'stored_combined', 'cancelled'];
-$displayStatuses = ['pending', 'paid', 'shipped', 'completed', 'stored_uncombined', 'stored_combined', 'cancelled'];
+$displayStatuses = ['pending', 'payment_received', 'paid', 'shipped', 'cancelled'];
 
 function status_label(string $status): string {
     return [
         'pending' => '待付款',
         'awaiting_payment' => '待付款',
-        'paid' => '已付款',
+        'payment_received' => '已付款',
+        'paid' => '待发货',
+        'free_shipping_ready' => '已免邮可发货',
         'shipped' => '已发货',
         'completed' => '已完成',
         'stored_uncombined' => '存单未合单',
@@ -25,7 +26,9 @@ function status_label(string $status): string {
 
 function status_class(string $status): string {
     return match ($status) {
+        'payment_received' => 'paid',
         'paid' => 'ship',
+        'free_shipping_ready' => 'ship',
         'shipped' => 'sent',
         'completed' => 'done',
         'stored_uncombined' => 'hold',
@@ -33,6 +36,17 @@ function status_class(string $status): string {
         'cancelled' => 'cancel',
         default => 'pending',
     };
+}
+
+function render_order_status_options(string $currentStatus, array $displayStatuses): void {
+    if ($currentStatus !== '' && !in_array($currentStatus, $displayStatuses, true) && $currentStatus !== 'awaiting_payment') {
+        echo '<option value="' . htmlspecialchars($currentStatus) . '" selected hidden>' . htmlspecialchars(status_label($currentStatus)) . '</option>';
+    }
+
+    foreach ($displayStatuses as $status) {
+        $selected = ($currentStatus === $status || ($status === 'pending' && $currentStatus === 'awaiting_payment')) ? ' selected' : '';
+        echo '<option value="' . htmlspecialchars($status) . '"' . $selected . '>' . htmlspecialchars(status_label($status)) . '</option>';
+    }
 }
 
 function redirect_order(array $extra = []): void {
@@ -120,7 +134,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     verify_csrf();
     $orderNumber = trim($_POST['order_number'] ?? '');
     $status = $_POST['status'] ?? '';
-    if ($orderNumber && in_array($status, $allowedStatuses, true)) {
+    $currentStatus = '';
+    if ($orderNumber) {
+        $currentStmt = $pdo->prepare("SELECT order_status FROM orders WHERE order_number=? LIMIT 1");
+        $currentStmt->execute([$orderNumber]);
+        $currentStatus = (string)$currentStmt->fetchColumn();
+    }
+    $statusAllowed = in_array($status, $displayStatuses, true) || ($currentStatus !== '' && $status === $currentStatus);
+    if ($orderNumber && $statusAllowed) {
         $stmt = $pdo->prepare("UPDATE orders SET order_status=?, updated_at=NOW() WHERE order_number=?");
         $stmt->execute([$status, $orderNumber]);
         if (is_ajax_request()) {
@@ -145,8 +166,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         $in = implode(',', array_fill(0, count($ids), '?'));
         if ($_POST['bulk_action'] === 'ship') {
             $pdo->prepare("UPDATE orders SET order_status='shipped', updated_at=NOW() WHERE id IN ($in)")->execute($ids);
-        } elseif ($_POST['bulk_action'] === 'complete') {
-            $pdo->prepare("UPDATE orders SET order_status='completed', updated_at=NOW() WHERE id IN ($in)")->execute($ids);
         } elseif ($_POST['bulk_action'] === 'delete') {
             foreach ($ids as $id) {
                 restore_order_stock($pdo, (int)$id);
@@ -190,14 +209,12 @@ if ($search !== '') {
     $where[] = "(o.order_number LIKE ? OR o.addr_name LIKE ? OR o.addr_phone LIKE ?)";
     array_push($params, "%$search%", "%$search%", "%$search%");
 }
-if ($orderStatus !== '' && in_array($orderStatus, $allowedStatuses, true)) {
+if ($orderStatus !== '' && in_array($orderStatus, $displayStatuses, true)) {
     $where[] = "o.order_status=?";
     $params[] = $orderStatus;
 }
-if ($payStatus === 'hold') {
-    $where[] = "o.order_status IN ('stored_uncombined','stored_combined')";
-} elseif ($payStatus === 'paid') {
-    $where[] = "o.order_status IN ('paid','shipped','completed')";
+if ($payStatus === 'paid') {
+    $where[] = "o.order_status IN ('payment_received','paid','shipped')";
 } elseif ($payStatus === 'unpaid') {
     $where[] = "o.order_status IN ('pending','awaiting_payment')";
 }
@@ -233,9 +250,9 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stats = [
     'all' => (int)$pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn(),
     'pending' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('pending','awaiting_payment')")->fetchColumn(),
+    'paid_payment' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('payment_received','paid','free_shipping_ready','shipped','completed')")->fetchColumn(),
     'paid' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='paid'")->fetchColumn(),
     'shipped' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='shipped'")->fetchColumn(),
-    'completed' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status='completed'")->fetchColumn(),
     'stored' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('stored_uncombined','stored_combined')")->fetchColumn(),
 ];
 
@@ -284,33 +301,33 @@ $msg = $_GET['msg'] ?? '';
       cursor: pointer;
     }
     .delete-order-btn:hover { background: #ffe7ef; }
-   .table-top-scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  height: 18px;
-  margin: 0 0 8px 0;
-}
-
-.table-top-scroll div {
-  height: 1px;
-}
-
-.order-table-card {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  scrollbar-width: none; /* Firefox */
-}
-
-.order-table-card::-webkit-scrollbar {
-  display: none; /* Chrome */
-}
-
-.order-table-card table {
-  min-width: 1500px;
-  width: max-content;
-}
+    .table-top-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      height: 18px;
+      margin: 0 0 8px 0;
+      scrollbar-color: #8c8c8c transparent;
+      scrollbar-width: auto;
+    }
+    .table-top-scroll::-webkit-scrollbar { height: 12px; }
+    .table-top-scroll::-webkit-scrollbar-thumb { background: #8c8c8c; border-radius: 999px; }
+    .table-top-scroll div { height: 1px; }
+    .order-table-card {
+      width: 100%;
+      overflow-x: auto !important;
+      overflow-y: visible !important;
+      scrollbar-color: #8c8c8c transparent;
+      scrollbar-width: auto;
+    }
+    .order-table-card::-webkit-scrollbar {
+      display: block;
+      height: 12px;
+    }
+    .order-table-card::-webkit-scrollbar-thumb { background: #8c8c8c; border-radius: 999px; }
+    .order-table-card table {
+      min-width: 1500px;
+      width: 1500px;
+    }
     .date-range-form { margin: 0; }
     .date-range-form .date-pill { gap: 8px; padding: 7px 10px; }
     .date-field { display: grid; gap: 2px; padding: 5px 10px; border: 1px solid #f5ccdd; border-radius: 11px; background: #fff; }
@@ -421,11 +438,11 @@ $msg = $_GET['msg'] ?? '';
   </header>
 
   <section class="order-stats">
-    <article class="stat-card"><span><i class="fa-solid fa-bag-shopping"></i></span><div><p>全部订单</p><strong><?= $stats['all'] ?></strong><small>较昨日 ↑ 12%</small></div></article>
-    <article class="stat-card orange"><span><i class="fa-solid fa-clock"></i></span><div><p>待付款</p><strong><?= $stats['pending'] ?></strong><small>较昨日 ↑ 8%</small></div></article>
-    <article class="stat-card purple"><span><i class="fa-solid fa-truck"></i></span><div><p>待发货</p><strong><?= $stats['paid'] ?></strong><small>较昨日 ↑ 15%</small></div></article>
-    <article class="stat-card blue"><span><i class="fa-solid fa-box"></i></span><div><p>已发货</p><strong><?= $stats['shipped'] ?></strong><small>较昨日 ↑ 10%</small></div></article>
-    <article class="stat-card green"><span><i class="fa-solid fa-circle-check"></i></span><div><p>已完成</p><strong><?= $stats['completed'] ?></strong><small>较昨日 ↑ 18%</small></div></article>
+    <article class="stat-card"><span><i class="fa-solid fa-bag-shopping"></i></span><div><p>全部订单</p><strong data-stat-count="all"><?= $stats['all'] ?></strong><small>较昨日 ↑ 12%</small></div></article>
+    <article class="stat-card orange"><span><i class="fa-solid fa-clock"></i></span><div><p>待付款</p><strong data-stat-count="pending"><?= $stats['pending'] ?></strong><small>较昨日 ↑ 8%</small></div></article>
+    <article class="stat-card green"><span><i class="fa-solid fa-check"></i></span><div><p>已付款</p><strong data-stat-count="paid_payment"><?= $stats['paid_payment'] ?></strong><small>较昨日 ↑ 8%</small></div></article>
+    <article class="stat-card purple"><span><i class="fa-solid fa-truck"></i></span><div><p>待发货</p><strong data-stat-count="paid"><?= $stats['paid'] ?></strong><small>较昨日 ↑ 15%</small></div></article>
+    <article class="stat-card blue"><span><i class="fa-solid fa-box"></i></span><div><p>已发货</p><strong data-stat-count="shipped"><?= $stats['shipped'] ?></strong><small>较昨日 ↑ 10%</small></div></article>
   </section>
 
   <?php if ($msg): ?><div class="order-msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
@@ -444,7 +461,6 @@ $msg = $_GET['msg'] ?? '';
           <option value="">邮费 / 支付状态</option>
           <option value="paid" <?= $payStatus==='paid'?'selected':'' ?>>已支付</option>
           <option value="unpaid" <?= $payStatus==='unpaid'?'selected':'' ?>>待付款</option>
-          <option value="hold" <?= $payStatus==='hold'?'selected':'' ?>>存单</option>
         </select>
         <a href="order.php" class="reset-btn"><i class="fa-solid fa-rotate-right"></i> 重置</a>
       </div>
@@ -478,7 +494,7 @@ $msg = $_GET['msg'] ?? '';
         <?php foreach ($orders as $o): ?>
           <?php
             $isHoldOrder = in_array($o['order_status'], ['stored_uncombined', 'stored_combined'], true);
-            $paid = in_array($o['order_status'], ['paid', 'shipped', 'completed'], true);
+            $paid = in_array($o['order_status'], ['payment_received', 'paid', 'free_shipping_ready', 'shipped', 'completed'], true);
             $amount = (float)($o['grand_total'] ?: $o['total']);
             $fullAddress = trim(implode(' ', array_filter([
                 $o['addr_address'] ?? '',
@@ -486,7 +502,7 @@ $msg = $_GET['msg'] ?? '';
                 $o['addr_state'] ?? '',
             ])));
           ?>
-          <tr class="order-row" data-order-row>
+          <tr class="order-row" data-order-row data-order-status="<?= htmlspecialchars((string)$o['order_status']) ?>">
             <td class="check-cell"><input form="bulkForm" type="checkbox" name="order_ids[]" value="<?= (int)$o['id'] ?>"></td>
             <td class="order-info"><strong><?= htmlspecialchars($o['order_number']) ?></strong><small>共 <?= (int)$o['item_count'] ?> 件商品</small></td>
             <td><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></td>
@@ -498,7 +514,7 @@ $msg = $_GET['msg'] ?? '';
               </small>
             </td>
             <td><strong>RM <?= number_format($amount, 2) ?></strong></td>
-            <td><span class="state-pill <?= $isHoldOrder ? 'hold' : ($paid ? 'paid' : 'unpaid') ?>"><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
+            <td><span class="state-pill <?= $isHoldOrder ? 'hold' : ($paid ? 'paid' : 'unpaid') ?>" data-payment-status-pill><?= $isHoldOrder ? '存单' : ($paid ? '已支付' : '待付款') ?></span></td>
             <td><span class="state-pill <?= status_class($o['order_status']) ?>" data-order-status-pill><?= status_label($o['order_status']) ?></span></td>
             <td class="delivery-cell">
               <strong><?= htmlspecialchars($fullAddress ?: '未填写地址') ?></strong>
@@ -511,7 +527,7 @@ $msg = $_GET['msg'] ?? '';
                   <?= csrf_field() ?>
                   <input type="hidden" name="order_number" value="<?= htmlspecialchars($o['order_number']) ?>">
                   <select name="status">
-                    <?php foreach ($displayStatuses as $status): ?><option value="<?= htmlspecialchars($status) ?>" <?= ($o['order_status']===$status || ($status === 'pending' && $o['order_status'] === 'awaiting_payment'))?'selected':'' ?>><?= status_label($status) ?></option><?php endforeach; ?>
+                    <?php render_order_status_options((string)$o['order_status'], $displayStatuses); ?>
                   </select>
                   <button type="submit" name="update_status">
   <i class="fa-solid fa-check"></i> 保存
@@ -611,7 +627,12 @@ const tableScroll = document.getElementById('orderTableScroll');
 const table = tableScroll?.querySelector('table');
 
 if (topScroll && topInner && tableScroll && table) {
-  topInner.style.width = table.offsetWidth + 'px';
+  const syncTableScrollWidth = () => {
+    topInner.style.width = `${table.scrollWidth}px`;
+  };
+
+  syncTableScrollWidth();
+  window.addEventListener('resize', syncTableScrollWidth);
 
   topScroll.addEventListener('scroll', () => {
     tableScroll.scrollLeft = topScroll.scrollLeft;
@@ -663,12 +684,36 @@ document.querySelectorAll('[data-new-order-seen-form]').forEach((form) => {
   });
 });
 
+function orderStatBuckets(status) {
+  const buckets = [];
+  if (['pending', 'awaiting_payment'].includes(status)) buckets.push('pending');
+  if (['payment_received', 'paid', 'free_shipping_ready', 'shipped', 'completed'].includes(status)) buckets.push('paid_payment');
+  if (status === 'paid') buckets.push('paid');
+  if (status === 'shipped') buckets.push('shipped');
+  return buckets;
+}
+
+function adjustOrderStat(key, amount) {
+  const target = document.querySelector(`[data-stat-count="${key}"]`);
+  if (!target) return;
+  const current = parseInt(target.textContent || '0', 10) || 0;
+  target.textContent = String(Math.max(0, current + amount));
+}
+
+function syncOrderStats(previousStatus, nextStatus) {
+  if (!previousStatus || previousStatus === nextStatus) return;
+  orderStatBuckets(previousStatus).forEach((key) => adjustOrderStat(key, -1));
+  orderStatBuckets(nextStatus).forEach((key) => adjustOrderStat(key, 1));
+}
+
 document.querySelectorAll('.status-form').forEach((form) => {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const button = form.querySelector('button[type="submit"]');
     const row = form.closest('[data-order-row]');
     const pill = row?.querySelector('[data-order-status-pill]');
+    const paymentPill = row?.querySelector('[data-payment-status-pill]');
+    const previousStatus = row?.dataset.orderStatus || '';
     const formData = new FormData(form);
     formData.append('update_status', '1');
     button.disabled = true;
@@ -681,10 +726,24 @@ document.querySelectorAll('.status-form').forEach((form) => {
       });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error('save failed');
+      const savedStatus = data.status || formData.get('status');
       if (pill) {
         pill.className = `state-pill ${data.class || 'pending'}`;
-        pill.textContent = data.label || formData.get('status');
+        pill.textContent = data.label || savedStatus;
       }
+      if (paymentPill) {
+        const holdStatuses = ['stored_uncombined', 'stored_combined'];
+        const paidStatuses = ['payment_received', 'paid', 'free_shipping_ready', 'shipped', 'completed'];
+        if (holdStatuses.includes(savedStatus)) {
+          paymentPill.className = 'state-pill hold';
+          paymentPill.textContent = '存单';
+        } else {
+          paymentPill.className = `state-pill ${paidStatuses.includes(savedStatus) ? 'paid' : 'unpaid'}`;
+          paymentPill.textContent = paidStatuses.includes(savedStatus) ? '已支付' : '待付款';
+        }
+      }
+      syncOrderStats(previousStatus, savedStatus);
+      if (row) row.dataset.orderStatus = savedStatus;
     } catch (error) {
       alert('保存失败，请再按一次。');
     } finally {

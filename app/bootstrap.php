@@ -2,9 +2,7 @@
 declare(strict_types=1);
 
 const QII_APP_ENV = 'production';
-// Temporarily hide customer accounts and favorites without removing their code.
-const QII_CUSTOMER_FEATURES_ENABLED = false;
-const QII_FAVORITES_ENABLED = false;
+const QII_CUSTOMER_FEATURES_ENABLED = true;
 
 if (QII_APP_ENV === 'production') {
     error_reporting(E_ALL);
@@ -96,9 +94,7 @@ function qii_asset_path($path): string
 if (!function_exists('qii_shipping_for_region')) {
 function qii_shipping_for_region(float $subtotal, string $region): float
 {
-    if ($region === 'west') return $subtotal >= 65 ? 0.0 : 10.0;
-    if ($region === 'east') return $subtotal >= 80 ? 0.0 : 15.0;
-    if ($region === 'hold') return 0.0;
+    if (in_array($region, ['west', 'east', 'hold', 'free_ship'], true)) return 0.0;
     throw new InvalidArgumentException('INVALID_REGION');
 }
 }

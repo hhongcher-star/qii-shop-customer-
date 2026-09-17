@@ -96,7 +96,7 @@ if ($mode === 'add') {
 
     $stock = (int)$row['stock'];
     if ($stock <= 0) {
-        echo json_encode(['success' => false, 'message' => '库存不足'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'message' => '已到库存上限', 'stock_limit' => true, 'stock' => $stock], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -104,7 +104,14 @@ if ($mode === 'add') {
     foreach ($_SESSION['cart'] as &$item) {
         if ((int)$item['product_id'] === $productId && (int)$item['variant_id'] === $variantId) {
             if ((int)$item['qty'] + $qty > $stock) {
-                echo json_encode(['success' => false, 'message' => '库存不足'], JSON_UNESCAPED_UNICODE);
+                echo json_encode([
+                    'success' => false,
+                    'message' => '已到库存上限',
+                    'stock_limit' => true,
+                    'stock' => $stock,
+                    'count' => array_sum(array_column($_SESSION['cart'], 'qty')),
+                    'cart' => qii_normalize_cart(array_values($_SESSION['cart'])),
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
             $item['qty'] += $qty;
@@ -115,6 +122,18 @@ if ($mode === 'add') {
     unset($item);
 
     if (!$found) {
+        if ($qty > $stock) {
+            echo json_encode([
+                'success' => false,
+                'message' => '已到库存上限',
+                'stock_limit' => true,
+                'stock' => $stock,
+                'count' => array_sum(array_column($_SESSION['cart'], 'qty')),
+                'cart' => qii_normalize_cart(array_values($_SESSION['cart'])),
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $_SESSION['cart'][] = [
             'product_id' => $productId,
             'product_name' => qii_text($row['product_name']),

@@ -28,12 +28,21 @@ function qii_ensure_customer_tables(PDO $pdo): void
     }
 
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS customer_favorites (
+        CREATE TABLE IF NOT EXISTS customer_addresses (
+          id INT AUTO_INCREMENT PRIMARY KEY,
           customer_id INT NOT NULL,
-          product_id INT NOT NULL,
+          recipient_name VARCHAR(160) NOT NULL,
+          phone VARCHAR(80) NULL,
+          address TEXT NULL,
+          postcode VARCHAR(20) NULL,
+          state VARCHAR(80) NULL,
+          is_default TINYINT(1) NOT NULL DEFAULT 0,
+          last_used_at DATETIME NULL,
           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (customer_id, product_id),
-          KEY idx_favorites_product (product_id)
+          updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_addresses_customer (customer_id),
+          KEY idx_addresses_default (customer_id, is_default),
+          KEY idx_addresses_used (customer_id, last_used_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -90,6 +99,114 @@ function qii_send_customer_mail(string $email, string $subject, string $message)
     return @mail($email, $subject, $message, $headers);
 }
 
+function qii_safe_next_path(string $next, string $fallback = 'account.php'): string
+{
+    $next = trim($next);
+    if ($next === '') {
+        return $fallback;
+    }
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $next) || str_starts_with($next, '//') || str_contains($next, "\r") || str_contains($next, "\n")) {
+        return $fallback;
+    }
+    if (str_starts_with($next, '/')) {
+        $scriptDir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? ''))), '/');
+        return $scriptDir !== '' && str_starts_with($next, $scriptDir . '/')
+            ? ltrim(substr($next, strlen($scriptDir)), '/')
+            : $fallback;
+    }
+    if (str_contains($next, '..')) {
+        return $fallback;
+    }
+    return $next;
+}
+
+function qii_customer_addresses(PDO $pdo, int $customerId, int $limit = 6): array
+{
+    $limit = max(1, min(20, $limit));
+    $stmt = $pdo->prepare("
+        SELECT id, recipient_name, phone, address, postcode, state, is_default, last_used_at
+        FROM customer_addresses
+        WHERE customer_id=?
+        ORDER BY is_default DESC, last_used_at DESC, updated_at DESC, id DESC
+        LIMIT $limit
+    ");
+    $stmt->execute([$customerId]);
+    $addresses = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    if ($addresses) {
+        return $addresses;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT
+          0 AS id,
+          addr_name AS recipient_name,
+          addr_phone AS phone,
+          addr_address AS address,
+          addr_postcode AS postcode,
+          addr_state AS state,
+          0 AS is_default,
+          MAX(updated_at) AS last_used_at
+        FROM orders
+        WHERE customer_id=? AND addr_name IS NOT NULL AND addr_name <> ''
+        GROUP BY addr_name, addr_phone, addr_address, addr_postcode, addr_state
+        ORDER BY MAX(updated_at) DESC, MAX(created_at) DESC
+        LIMIT $limit
+    ");
+    $stmt->execute([$customerId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+}
+
+function qii_save_customer_address(PDO $pdo, int $customerId, string $name, string $phone, string $address, string $postcode, string $state): void
+{
+    $name = trim($name);
+    $phone = trim($phone);
+    $address = trim($address);
+    $postcode = trim($postcode);
+    $state = trim($state);
+
+    if ($customerId <= 0 || $name === '') {
+        return;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT id
+        FROM customer_addresses
+        WHERE customer_id=? AND recipient_name=? AND COALESCE(phone, '')=? AND COALESCE(address, '')=?
+        LIMIT 1
+    ");
+    $stmt->execute([$customerId, $name, $phone, $address]);
+    $existingId = $stmt->fetchColumn();
+
+    if ($existingId) {
+        $stmt = $pdo->prepare("
+            UPDATE customer_addresses
+            SET postcode=?, state=?, last_used_at=NOW(), updated_at=NOW()
+            WHERE id=? AND customer_id=?
+        ");
+        $stmt->execute([$postcode ?: null, $state ?: null, (int)$existingId, $customerId]);
+        return;
+    }
+
+    $hasDefaultStmt = $pdo->prepare('SELECT COUNT(*) FROM customer_addresses WHERE customer_id=?');
+    $hasDefaultStmt->execute([$customerId]);
+    $isDefault = (int)$hasDefaultStmt->fetchColumn() === 0 ? 1 : 0;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO customer_addresses
+            (customer_id, recipient_name, phone, address, postcode, state, is_default, last_used_at, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    ");
+    $stmt->execute([
+        $customerId,
+        $name,
+        $phone ?: null,
+        $address ?: null,
+        $postcode ?: null,
+        $state ?: null,
+        $isDefault,
+    ]);
+}
+
 function qii_customer(): ?array
 {
     qii_start_session();
@@ -101,6 +218,19 @@ function qii_customer(): ?array
     }
     if (empty($_SESSION['customer_id'])) {
         return null;
+    }
+
+    global $pdo;
+    if ($pdo instanceof PDO) {
+        $stmt = $pdo->prepare("SELECT id, name, email FROM customers WHERE id=? AND status='active' LIMIT 1");
+        $stmt->execute([(int)$_SESSION['customer_id']]);
+        $fresh = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fresh) {
+            qii_logout_customer($pdo);
+            return null;
+        }
+        $_SESSION['customer_name'] = (string)$fresh['name'];
+        $_SESSION['customer_email'] = (string)$fresh['email'];
     }
 
     return [

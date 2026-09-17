@@ -6,22 +6,21 @@ qii_ensure_customer_tables($pdo);
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    qii_verify_frontend_csrf();
     $name = trim((string)($_POST['name'] ?? ''));
     $email = strtolower(trim((string)($_POST['email'] ?? '')));
     $phone = trim((string)($_POST['phone'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6) {
-        $error = '请填写姓名、正确邮箱，密码至少 6 位';
+    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
+        $error = '请填写姓名、正确邮箱，密码至少 8 位';
     } else {
         try {
-            $stmt = $pdo->prepare('INSERT INTO customers (name, email, phone, password_hash, created_at) VALUES (?, ?, ?, ?, NOW())');
+            $stmt = $pdo->prepare('INSERT INTO customers (name, email, phone, password_hash, email_verified_at, created_at) VALUES (?, ?, ?, ?, NOW(), NOW())');
             $stmt->execute([$name, $email, $phone ?: null, password_hash($password, PASSWORD_DEFAULT)]);
             $customer = ['id' => (int)$pdo->lastInsertId(), 'name' => $name, 'email' => $email];
-            $verifyToken = qii_create_customer_action_token($pdo, (int)$customer['id'], 'verify_email', 86400);
-            $base = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-            qii_send_customer_mail($email, 'Qii.shop 验证邮箱', "请在 24 小时内打开：\n$base/verify_email.php?token=$verifyToken");
             qii_login_customer($customer, $pdo);
+            $pdo->prepare('UPDATE customers SET last_login_at=NOW() WHERE id=?')->execute([(int)$customer['id']]);
             header('Location: account.php');
             exit;
         } catch (Throwable $e) {
@@ -54,8 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <main class="auth-wrap">
     <form class="auth-box" method="post">
       <h1>注册会员</h1>
-      <p>注册后订单会自动归档到你的账号。</p>
+      <p>注册后订单会自动归档到你的账号，也可以保存常用地址。</p>
       <?php if ($error): ?><div class="auth-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
       <label for="name">姓名</label>
       <input id="name" name="name" required>
       <label for="email">邮箱</label>
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label for="phone">手机号码</label>
       <input id="phone" name="phone">
       <label for="password">密码</label>
-      <input id="password" name="password" type="password" minlength="6" required>
+      <input id="password" name="password" type="password" minlength="8" required>
       <button type="submit">注册</button>
       <div class="auth-links">
         <a href="login.php">已有账号？登录</a>

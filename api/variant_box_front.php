@@ -62,10 +62,6 @@ if (empty($groups) || $variantCount === 0) {
 }
 ?>
 
-<script>
-var CURRENT_PRODUCT_ID = <?= $product_id ?>;
-</script>
-
 <?php foreach ($groups as $g): ?>
 
 <div class="variant-group-title">
@@ -89,9 +85,6 @@ foreach ($variants as $v):
      data-vstock="<?= $v['stock'] ?>"
      data-vimg="<?= htmlspecialchars($v['image_url'] ? qii_asset_path($v['image_url']) : '') ?>"
 >
-    <?php if (!empty($v['image_url'])): ?>
-    <img src="<?= htmlspecialchars(qii_asset_path($v['image_url'])) ?>" alt="">
-    <?php endif; ?>
     <div>
         <div class="variant-name"><?= htmlspecialchars(qii_text($v['variant_name'])) ?></div>
         <div class="variant-stock">库存：<?= (int)$v['stock'] ?></div>
@@ -103,40 +96,3 @@ foreach ($variants as $v):
 </div>
 
 <?php endforeach; ?>
-
-<script>
-function updateModal(card){
-    if (!card) return;
-
-    parent.document.getElementById('selectedVariantId').value = card.dataset.vid;
-    parent.document.getElementById('selectedVariantName').value = card.dataset.vname;
-
-    parent.document.getElementById('modalPrice').textContent =
-        parseFloat(card.dataset.vprice).toFixed(2);
-
-    parent.document.getElementById('modalStock').textContent =
-        '库存：' + card.dataset.vstock;
-
-    parent.document.getElementById('modalImg').src = parent.qiiAssetPath
-        ? parent.qiiAssetPath(card.dataset.vimg)
-        : card.dataset.vimg;
-}
-
-document.addEventListener('click', function(e){
-    let card = e.target.closest('.variant-card');
-    if(!card) return;
-
-    document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-
-    updateModal(card);
-});
-
-window.addEventListener('DOMContentLoaded', ()=>{
-    let first = document.querySelector('.variant-card');
-    if(first){
-        first.classList.add('active');
-        updateModal(first);
-    }
-});
-</script>

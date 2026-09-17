@@ -29,7 +29,7 @@ if (!$po || ($po['order_number'] ?? '') !== $order_number || empty($po['items'])
 }
 
 $region = (string)($po['region'] ?? '');
-if (!in_array($region, ['west', 'east', 'hold'], true)) exit('INVALID_REGION');
+if (!in_array($region, ['west', 'east', 'hold', 'free_ship'], true)) exit('INVALID_REGION');
 $receiptToken = (string)($po['receipt_token'] ?? '');
 
 $couponCode = '';
@@ -41,6 +41,7 @@ if (!empty($_SESSION['coupon_code'][$order_number])) {
 
 qii_ensure_order_security_columns($pdo);
 qii_ensure_customer_tables($pdo);
+$customerId = qii_customer_id();
 $pdo->beginTransaction();
 
 try {
@@ -53,7 +54,7 @@ try {
         if ((int)$stmt->fetchColumn() > 0) {
             $pdo->commit();
             echo 'OK';
-            unset($_SESSION['pending_order'], $_SESSION['coupon_code'][$order_number], $_SESSION['coupon_code_pending']);
+            unset($_SESSION['pending_order'], $_SESSION['cart'], $_SESSION['coupon_code'][$order_number], $_SESSION['coupon_code_pending']);
             exit;
         }
     }
@@ -107,7 +108,7 @@ try {
     }
 
     $shipping = qii_shipping_for_region($subtotal, $region);
-    $newOrderStatus = $region === 'hold' ? 'stored_uncombined' : 'pending';
+    $newOrderStatus = 'pending';
     $discount = 0.0;
     $couponId = null;
     if ($couponCode !== '') {
@@ -121,7 +122,6 @@ try {
 
     if ($existingOrderId) {
         $orderId = (int)$existingOrderId;
-        $customerId = qii_customer_id();
         $stmt = $pdo->prepare("
             UPDATE orders SET
                 customer_id=COALESCE(customer_id, ?),
@@ -139,8 +139,12 @@ try {
                 order_status, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([qii_customer_id(), $order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus]);
+        $stmt->execute([$customerId, $order_number, $receiptToken ?: null, $subtotal, $shipping, $discount, $couponCode ?: null, $grandTotal, $region, $name, $phone, $address, $postcode, $state, $orderNote ?: null, $newOrderStatus]);
         $orderId = (int)$pdo->lastInsertId();
+    }
+
+    if ($customerId) {
+        qii_save_customer_address($pdo, $customerId, $name, $phone, $address, $postcode, $state);
     }
 
     foreach ($freshItems as $item) {
@@ -172,5 +176,5 @@ try {
 }
 
 echo 'OK';
-unset($_SESSION['pending_order'], $_SESSION['coupon_code'][$order_number], $_SESSION['coupon_code_pending']);
+unset($_SESSION['pending_order'], $_SESSION['cart'], $_SESSION['coupon_code'][$order_number], $_SESSION['coupon_code_pending']);
 ?>

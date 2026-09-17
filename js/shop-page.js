@@ -1,4 +1,4 @@
-﻿// Extracted from frontend/pages/shop.php. Keep page-specific shop behavior here.
+// Extracted from frontend/pages/shop.php. Keep page-specific shop behavior here.
 (() => {
       const productArea = document.querySelector('.product-area');
       const categoryTitle = document.querySelector('.category-title');
@@ -40,8 +40,7 @@
             }
           });
 
-          if (updateHistory) history.pushState({ category: data.category, page: data.page }, '', `shop.php?cat=${encodeURIComponent(data.category)}&page=${data.page}#shop-products`);
-          productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (updateHistory) history.pushState({ category: data.category, page: data.page }, '', `shop.php?cat=${encodeURIComponent(data.category)}&page=${data.page}`);
         } catch (error) {
           if (error.name !== 'AbortError') alert('商品加载失败，请稍后再试。');
         } finally {
@@ -87,37 +86,15 @@ document.querySelectorAll(".sakura").forEach((el, i) => {
 });
 // ÃƒÂ°Ã…Â¸Ã¢â‚¬â€œÃ‚Â¼ÃƒÂ¯Ã‚Â¸Ã‚Â ÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â»ÃƒÂ¥Ã¢â‚¬Â¢Ã¢â‚¬Â ÃƒÂ¥Ã¢â‚¬Å“Ã‚ÂÃƒÂ¥Ã¢â‚¬ÂºÃ‚Â¾ÃƒÂ§Ã¢â‚¬Â°Ã¢â‚¬Â¡ ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ÃƒÂ¦Ã¢â‚¬ÂÃ‚Â¾ÃƒÂ¥Ã‚Â¤Ã‚Â§ÃƒÂ©Ã‚Â¢Ã¢â‚¬Å¾ÃƒÂ¨Ã‚Â§Ã‹â€ 
 document.addEventListener("click", function(e) {
-  const favoriteButton = e.target.closest("[data-favorite-product]");
-  if (favoriteButton) {
+  const chooseButton = e.target.closest(".choose-btn[data-product-payload]");
+  if (chooseButton) {
     e.preventDefault();
     e.stopPropagation();
-    const token = document.querySelector('meta[name="qii-csrf-token"]')?.content || "";
-    const body = new URLSearchParams({ product_id: favoriteButton.dataset.favoriteProduct });
-    fetch("api/toggle_favorite.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-QII-CSRF-Token": token
-      },
-      body
-    }).then(async response => {
-      const data = await response.json();
-      if (response.status === 401 || data.login_required) {
-        location.href = "login.php?next=" + encodeURIComponent(location.pathname + location.search);
-        return;
-      }
-      if (!data.success) throw new Error(data.message || "Favorite failed");
-      favoriteButton.classList.toggle("active", data.favorite);
-      const icon = favoriteButton.querySelector("i");
-      if (icon) {
-        icon.classList.toggle("fa-solid", data.favorite);
-        icon.classList.toggle("fa-regular", !data.favorite);
-      } else {
-        favoriteButton.textContent = data.favorite ? "已收藏" : "收藏";
-      }
-    }).catch(() => {
-      alert("收藏失败，请稍后再试。");
-    });
+    try {
+      openVariantModal(JSON.parse(chooseButton.dataset.productPayload));
+    } catch (error) {
+      console.error("Invalid product payload", error);
+    }
     return;
   }
 

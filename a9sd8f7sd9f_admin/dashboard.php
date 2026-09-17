@@ -35,7 +35,7 @@ $avgOrder = (float)scalar($pdo, "SELECT COALESCE(AVG(grand_total),0) FROM orders
 
 $todayOrders = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE DATE(created_at)=CURDATE()");
 $awaitingPayment = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE order_status IN ('pending','awaiting_payment')");
-$toShip = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE order_status='paid'");
+$toShip = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE order_status IN ('paid','free_shipping_ready')");
 $completed = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE order_status='completed'");
 $cancelled = (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE order_status='cancelled'");
 

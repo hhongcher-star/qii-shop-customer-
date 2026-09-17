@@ -1,19 +1,28 @@
 <?php
 require_once __DIR__ . '/../../app/content_settings.php';
 require_once __DIR__ . '/../../app/customers.php';
-$favoritesEnabled = defined('QII_FAVORITES_ENABLED') && QII_FAVORITES_ENABLED;
+if (!function_exists('qii_variant_readable_content')) {
+function qii_variant_readable_content(string $value, string $fallback): string {
+  return $fallback;
+}
+}
 $variantEditableContent = [
-  'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '🎀 选择规格')),
-  'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '🛒 数量')),
-  'variant_max_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_max_text', '💗 最多可购买')),
-  'variant_shipping_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_shipping_text', '🚚 西马满 RM60 / 东马满 RM80 免运费')),
-  'variant_quality_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quality_text', '✨ 100% 正品保证')),
-  'variant_return_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_return_text', '💖 24小时以内 退换保障')),
-  'variant_cart_button' => qii_sanitize_rich_text(qii_content($pdo, 'variant_cart_button', '🛍 加入购物袋')),
+  'variant_choose_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_choose_title', '&#127872; &#36873;&#25321;&#35268;&#26684;')),
+  'variant_quantity_title' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quantity_title', '&#128722; &#25968;&#37327;')),
+  'variant_max_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_max_text', '&#128151; &#26368;&#22810;&#21487;&#36141;&#20080;')),
+  'variant_quality_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_quality_text', '&#10024; 100%&#27491;&#21697;&#20445;&#35777;')),
+  'variant_return_text' => qii_sanitize_rich_text(qii_content($pdo, 'variant_return_text', '&#128150;&#25910;&#21040;&#36135;<br>24&#23567;&#26102;&#20197;&#20869;<br>&#36864;&#25442;&#20445;&#38556;')),
+  'variant_cart_button' => qii_sanitize_rich_text(qii_content($pdo, 'variant_cart_button', '&#128717; &#21152;&#20837;&#36141;&#29289;&#34955;')),
 ];
+$variantEditableContent['variant_choose_title'] = qii_variant_readable_content($variantEditableContent['variant_choose_title'], '&#127872; &#36873;&#25321;&#35268;&#26684;');
+$variantEditableContent['variant_quantity_title'] = qii_variant_readable_content($variantEditableContent['variant_quantity_title'], '&#128722; &#25968;&#37327;');
+$variantEditableContent['variant_max_text'] = qii_variant_readable_content($variantEditableContent['variant_max_text'], '&#128151; &#26368;&#22810;&#21487;&#36141;&#20080;');
+$variantEditableContent['variant_quality_text'] = qii_variant_readable_content($variantEditableContent['variant_quality_text'], '&#10024; 100%&#27491;&#21697;&#20445;&#35777;');
+$variantEditableContent['variant_return_text'] = qii_variant_readable_content($variantEditableContent['variant_return_text'], '&#128150;&#25910;&#21040;&#36135;<br>24&#23567;&#26102;&#20197;&#20869;<br>&#36864;&#25442;&#20445;&#38556;');
+$variantEditableContent['variant_cart_button'] = qii_variant_readable_content($variantEditableContent['variant_cart_button'], '&#128717; &#21152;&#20837;&#36141;&#29289;&#34955;');
 ?>
 <!-- ===============================
-      ðŸ’— Qii.shoppp å•†å“è§„æ ¼å¼¹çª—
+      ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Qii.shoppp ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â
 ================================ -->
 
 <style>
@@ -49,17 +58,17 @@ $variantEditableContent = [
 .variant-name { width: 100%; color: #9b536f; font-size: 11px; font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
 .variant-stock { display: none; }
 .variant-card.active { border-color: #ff77b4; background: #fff0f7; box-shadow: 0 0 0 1px #ff77b4 inset; }
-.variant-card.active::after { content: "✓"; position: absolute; top: -7px; right: -6px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #f5368d; color: #fff; font-size: 11px; font-weight: 900; }
+.variant-card.active::after { content: "\2713"; position: absolute; top: -7px; right: -6px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #f5368d; color: #fff; font-size: 11px; font-weight: 900; }
 .variant-card.disabled { opacity: .45; cursor: not-allowed; background: #f8edf3; }
 .variant-group-title { display: none !important; }
 .variant-qty-row { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; height: 42px; border: 1px solid #f4d9e5; border-radius: 12px; background: #fffafd; }
 .variant-qty-btn { border: 0; background: transparent; color: #f5368d; font-size: 22px; line-height: 1; cursor: pointer; }
 #variantQty { border: 0; outline: 0; background: transparent; text-align: center; color: #7a5d6b; font-weight: 800; font-size: 14px; }
 .variant-stock-note { margin-top: 8px; text-align: center; color: #b9879e; font-size: 11px; }
-.variant-benefits { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 14px; padding: 10px 8px; border-radius: 12px; background: #ffe9f3; }
+.variant-benefits { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-top: 14px; padding: 10px 8px; border-radius: 12px; background: #ffe9f3; }
 .variant-benefit { text-align: center; color: #9b536f; font-size: 10px; line-height: 1.45; }
 .variant-benefit strong { display: block; color: #d94b8a; font-size: 11px; }
-.addToCartFinal { width: 100%; min-height: 48px; padding: 0 16px; background: linear-gradient(180deg,#ff62aa 0%,#f5368d 100%); color: #fff; border-radius: 999px; border: none; margin-top: 12px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 18px rgba(245,54,141,.28); }
+.addToCartFinal { position: relative; z-index: 5; width: 100%; min-height: 48px; padding: 0 16px; background: linear-gradient(180deg,#ff62aa 0%,#f5368d 100%); color: #fff; border-radius: 999px; border: none; margin-top: 12px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 18px rgba(245,54,141,.28); pointer-events: auto; touch-action: manipulation; }
 .variant-pagination { margin-top: 12px; display: none; align-items: center; justify-content: center; gap: 12px; }
 .variant-page-button { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #f4c7da; border-radius: 50%; background: #fff; color: #e43f88; font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 5px 12px rgba(213,72,137,.1); }
 .variant-page-button:disabled { opacity: .3; cursor: default; box-shadow: none; }
@@ -67,34 +76,20 @@ $variantEditableContent = [
 .variant-page-dot { width: 7px; height: 7px; border-radius: 50%; background: #f3c6da; }
 .variant-page-dot.active { width: 20px; border-radius: 999px; background: #f5368d; }
 .variant-action-row {
+  position: relative;
+  z-index: 20;
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
-  margin-top: 12px;
+  margin: 12px -14px 18px;
+  padding: 12px 14px calc(34px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(255,247,251,.82), #fff7fb 42%);
 }
 
 .variant-action-row .addToCartFinal {
   margin-top: 0;
 }
 
-.variant-fav-final {
-  width: 110px;
-  height: 48px;
-  border-radius: 999px;
-  border: 1px solid #f5368d;
-  background: #fff;
-  color: #f5368d;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 8px 18px rgba(245,54,141,.12);
-}
-
-.variant-fav-final.active {
-  background: linear-gradient(180deg,#ff62aa 0%,#f5368d 100%);
-  color: #fff;
-  border-color: #f5368d;
-}
 </style>
 
 <!-- Variant bottom sheet -->
@@ -107,36 +102,35 @@ $variantEditableContent = [
       <div class="variant-product-meta">
         <h3 id="modalName"></h3>
         <div class="price-line">RM <span id="modalPrice"></span></div>
-        <div id="modalStock">库存：-</div>
+        <div id="modalStock">&#24211;&#23384;&#65306;-</div>
         
       </div>
     </div>
 
     <div class="variant-section">
-      <div class="variant-section-title">🎀 选择规格</div>
+      <div class="variant-section-title">&#127872; &#36873;&#25321;&#35268;&#26684;</div>
       <div id="variantBox">Loading...</div>
     </div>
 
     <div id="variantPagination" class="variant-pagination">
-      <button id="prevVariantPage" class="variant-page-button" type="button" aria-label="上一页">&#8249;</button>
-      <span id="variantPageInfo" class="variant-page-status" aria-label="规格页码"></span>
-      <button id="nextVariantPage" class="variant-page-button" type="button" aria-label="下一页">&#8250;</button>
+      <button id="prevVariantPage" class="variant-page-button" type="button" aria-label="Previous page">&#8249;</button>
+      <span id="variantPageInfo" class="variant-page-status" aria-label="Variant pages"></span>
+      <button id="nextVariantPage" class="variant-page-button" type="button" aria-label="Next page">&#8250;</button>
     </div>
 
     <div class="variant-section">
-      <div class="variant-section-title">🛒 数量</div>
+      <div class="variant-section-title">&#128722; &#25968;&#37327;</div>
       <div class="variant-qty-row">
-        <button type="button" class="variant-qty-btn" onclick="changeVariantQty(-1)">−</button>
+        <button type="button" class="variant-qty-btn" onclick="changeVariantQty(-1)">-</button>
         <input id="variantQty" type="number" value="1" min="1" inputmode="numeric">
-        <button type="button" class="variant-qty-btn" onclick="changeVariantQty(1)">＋</button>
+        <button type="button" class="variant-qty-btn" onclick="changeVariantQty(1)">+</button>
       </div>
-      <div class="variant-stock-note">💗 最多可购买 <span id="variantMaxQty">-</span> 件</div>
+      <div class="variant-stock-note">&#128151; &#26368;&#22810;&#21487;&#36141;&#20080; <span id="variantMaxQty">-</span> &#20214;</div>
     </div>
 
     <div class="variant-benefits">
-      <div class="variant-benefit"><strong>🚚 西马满 RM60 / 东马满 RM80 免运费</strong>  </div>
-      <div class="variant-benefit"><strong>✨ 100% 正品保证</strong></div>
-      <div class="variant-benefit"><strong>💖 24小时以内 退换保障</strong></div>
+      <div class="variant-benefit"><strong>&#10024; 100%&#27491;&#21697;&#20445;&#35777;</strong></div>
+      <div class="variant-benefit"><strong>&#128150;&#25910;&#21040;&#36135;<br>24&#23567;&#26102;&#20197;&#20869;<br>&#36864;&#25442;&#20445;&#38556;</strong></div>
     </div>
 
     <input type="hidden" id="selectedVariantId">
@@ -144,29 +138,15 @@ $variantEditableContent = [
     <input type="hidden" id="selectedProductId">
 
     <div class="variant-action-row">
-  
-  <button class="addToCartFinal" onclick="finalAddToCart(false)">
-    🛍 加入购物袋
-  </button>
-
-  <?php if ($favoritesEnabled && qii_customer_id()): ?>
-    <button 
-      type="button"
-      id="variantFavoriteButton"
-      class="variant-fav-final"
-      data-favorite-product=""
-      aria-label="收藏商品"
-    >
-      收藏
-    </button>
-  <?php endif; ?>
-
-</div>
+      <button type="button" class="addToCartFinal">
+        &#128717; &#21152;&#20837;&#36141;&#29289;&#34955;
+      </button>
+    </div>
 </div>
 </div>
 
 <div id="variantImgPreview" class="variant-img-preview" aria-hidden="true">
-  <button type="button" class="variant-img-preview-close" aria-label="关闭图片预览">&times;</button>
+  <button type="button" class="variant-img-preview-close" aria-label="Close image preview">&times;</button>
   <img id="variantImgPreviewPic" src="" alt="">
 </div>
 
@@ -177,12 +157,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const maxNote = document.querySelector("#variantModal .variant-stock-note");
   const benefits = document.querySelectorAll("#variantModal .variant-benefit strong");
   const cartButton = document.querySelector("#variantModal .addToCartFinal");
+  if (cartButton) {
+    const handleAddClick = function (event) {
+      event.preventDefault();
+      finalAddToCart(false);
+    };
+    cartButton.onmousedown = handleAddClick;
+    cartButton.onclick = handleAddClick;
+  }
   const bindings = [
     [titles[0], "variant_choose_title"],
     [titles[1], "variant_quantity_title"],
-    [benefits[0], "variant_shipping_text"],
-    [benefits[1], "variant_quality_text"],
-    [benefits[2], "variant_return_text"],
+    [benefits[0], "variant_quality_text"],
+    [benefits[1], "variant_return_text"],
     [cartButton, "variant_cart_button"]
   ];
   bindings.forEach(([element, key]) => {
@@ -194,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const maxLabel = document.createElement("span");
     maxLabel.dataset.contentKey = "variant_max_text";
     maxLabel.innerHTML = qiiVariantEditableContent.variant_max_text;
-    maxNote.replaceChildren(maxLabel, document.createTextNode(" "), document.getElementById("variantMaxQty"), document.createTextNode(" 件"));
+    maxNote.replaceChildren(maxLabel, document.createTextNode(" "), document.getElementById("variantMaxQty"), document.createTextNode(" \u4ef6"));
   }
 });
 function qiiAssetPath(path) {
@@ -266,9 +253,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-/* æ‰“å¼€å¼¹çª— */
+/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â */
+const qiiVariantBoxCache = new Map();
+let qiiVariantOpenKey = "";
+
+function hydrateVariantBox() {
+    const noVariantEl = document.querySelector("#variantBox .no-variant");
+    if (noVariantEl) {
+        document.getElementById("selectedVariantId").value = "0";
+        document.getElementById("selectedVariantName").value = "";
+        document.getElementById("modalImg").src = qiiAssetPath(noVariantEl.dataset.img);
+        document.getElementById("modalPrice").textContent = noVariantEl.dataset.price;
+        document.getElementById("modalStock").textContent = "\u5e93\u5b58\uff1a" + noVariantEl.dataset.stock;
+        setVariantMaxQty(noVariantEl.dataset.stock || 1);
+        document.getElementById("variantPagination").style.display = "none";
+        return;
+    }
+    autoSelectFirstCard();
+    setupVariantPagination();
+}
+
 function openVariantModal(p) {
     const modal = document.getElementById("variantModal");
+    const variantBox = document.getElementById("variantBox");
+    const productKey = String(p.id);
+    qiiVariantOpenKey = productKey;
 
     document.getElementById("modalName").textContent = p.name;
     document.getElementById("modalPrice").textContent = parseFloat(p.price).toFixed(2);
@@ -276,47 +285,45 @@ function openVariantModal(p) {
     document.getElementById("variantQty").value = 1;
 
     document.getElementById("selectedProductId").value = p.id;
-    const favoriteButton = document.getElementById("variantFavoriteButton");
-    if (favoriteButton) {
-        favoriteButton.dataset.favoriteProduct = p.id;
-        favoriteButton.classList.toggle("active", Boolean(p.favorite));
-        favoriteButton.textContent = p.favorite ? "已收藏" : "收藏";
-    }
     document.getElementById("selectedVariantId").value = "";
     document.getElementById("selectedVariantName").value = "";
     document.getElementById("modalStock").textContent =
-        p.stock ? ("库存：" + p.stock) : "库存：-";
+        p.stock ? ("\u5e93\u5b58\uff1a" + p.stock) : "\u5e93\u5b58\uff1a-";
     setVariantMaxQty(p.stock || 1);
 
     if (String(p.has_variant) === "0") {
         document.getElementById("selectedVariantId").value = "0";
         document.getElementById("selectedVariantName").value = "";
-        document.getElementById("variantBox").innerHTML =
-            '<div class="no-variant" data-novariant="1" style="padding:12px; font-size:13px; color:#C94B82;">无需选择规格</div>';
+        variantBox.innerHTML =
+            '<div class="no-variant" data-novariant="1" style="padding:12px; font-size:13px; color:#C94B82;">&#26080;&#38656;&#36873;&#25321;&#35268;&#26684;</div>';
         document.getElementById("variantPagination").style.display = "none";
         modal.style.display = "flex";
         return;
     }
 
-    fetch("api/variant_box_front.php?product_id=" + p.id)
+    if (qiiVariantBoxCache.has(productKey)) {
+        variantBox.innerHTML = qiiVariantBoxCache.get(productKey);
+        hydrateVariantBox();
+        modal.style.display = "flex";
+        return;
+    }
+
+    variantBox.innerHTML = '<div style="padding:12px; font-size:13px; color:#C94B82;">Loading...</div>';
+
+    const variantBoxUrl = typeof qiiApiUrl === "function"
+        ? qiiApiUrl("api/variant_box_front.php?product_id=" + p.id)
+        : "api/variant_box_front.php?product_id=" + p.id;
+    fetch(variantBoxUrl)
         .then(res => res.text())
         .then(html => {
-            document.getElementById("variantBox").innerHTML = html;
-            const noVariantEl = document.querySelector("#variantBox .no-variant");
-            if (noVariantEl) {
-                document.getElementById("selectedVariantId").value = "0";
-                document.getElementById("selectedVariantName").value = "";
-                document.getElementById("modalImg").src = qiiAssetPath(noVariantEl.dataset.img);
-                document.getElementById("modalPrice").textContent = noVariantEl.dataset.price;
-                document.getElementById("modalStock").textContent = "库存：" + noVariantEl.dataset.stock;
-                setVariantMaxQty(noVariantEl.dataset.stock || 1);
-                document.getElementById("variantPagination").style.display = "none";
-                return;
-            }
-            setTimeout(() => {
-                autoSelectFirstCard();
-                setupVariantPagination();
-            }, 50);
+            qiiVariantBoxCache.set(productKey, html);
+            if (qiiVariantOpenKey !== productKey) return;
+            variantBox.innerHTML = html;
+            hydrateVariantBox();
+        })
+        .catch(() => {
+            if (qiiVariantOpenKey !== productKey) return;
+            variantBox.innerHTML = '<div style="padding:12px; font-size:13px; color:#C94B82;">Load failed, please retry.</div>';
         });
 
     modal.style.display = "flex";
@@ -325,32 +332,36 @@ function closeVariantModal() {
     document.getElementById("variantModal").style.display = "none";
 }
 
-/* åŠ å…¥è´­ç‰©è½¦ */
+/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ */
 function finalAddToCart(goCheckout = false) {
+    if (window.qiiAddingToCart) return;
+    window.qiiAddingToCart = true;
     let vid = document.getElementById("selectedVariantId").value;
     let vname = document.getElementById("selectedVariantName").value;
     const price = document.getElementById("modalPrice").textContent;
     const pname = document.getElementById("modalName").textContent;
     const pid = document.getElementById("selectedProductId").value;
 
-    // å…è®¸æ— è§„æ ¼å•†å“ï¼šè‹¥å­˜åœ¨ .no-variant ä¸”æœªå¡« idï¼Œåˆ™è®¾ä¸º 0
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ .no-variant ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« idÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº 0
     const noVariantEl = document.querySelector("#variantBox .no-variant");
     if (noVariantEl && (vid === "" || vid === undefined)) {
         vid = "0";
         vname = vname || pname;
     }
 
-    // æœ‰è§„æ ¼å•†å“æ‰è¦æ±‚é€‰æ‹©
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©
     if (!noVariantEl && vid === "") {
         if (typeof qiiToast === "function") {
-            qiiToast("请先选择商品规格");
+            qiiToast("\u8bf7\u5148\u9009\u62e9\u5546\u54c1\u89c4\u683c");
         } else {
-            alert("请先选择商品规格");
+            alert("\u8bf7\u5148\u9009\u62e9\u5546\u54c1\u89c4\u683c");
         }
+        window.qiiAddingToCart = false;
         return;
     }
     if (!pid) {
-        alert("商品资料异常，请刷新后重试");
+        alert("\u5546\u54c1\u8d44\u6599\u5f02\u5e38\uff0c\u8bf7\u5237\u65b0\u540e\u91cd\u8bd5");
+        window.qiiAddingToCart = false;
         return;
     }
 
@@ -362,31 +373,36 @@ function finalAddToCart(goCheckout = false) {
     form.append("price", price);
     form.append("qty", Math.max(1, parseInt(document.getElementById("variantQty").value || 1, 10)));
 
-    fetch("api/add_to_cart.php", {
+    const addToCartUrl = typeof qiiApiUrl === "function"
+        ? qiiApiUrl("api/add_to_cart.php")
+        : "api/add_to_cart.php";
+    fetch(addToCartUrl, {
         method: "POST",
         headers: qiiCsrfHeaders(),
+        credentials: "same-origin",
         body: form
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            if (typeof getCartAndUpdate === "function") getCartAndUpdate();
+            if (typeof updateCartUI === "function") updateCartUI(data);
             if (goCheckout) {
                 closeVariantModal();
                 window.location.href = "checkout.php";
                 return;
             }
             document.getElementById("variantQty").value = 1;
+            closeVariantModal();
             if (typeof qiiToast === "function") {
-                qiiToast("已加入购物袋，可以继续选购");
+                qiiToast("\u5df2\u52a0\u5165\u8d2d\u7269\u888b\uff0c\u53ef\u4ee5\u7ee7\u7eed\u9009\u8d2d");
             } else {
-                alert("已加入购物袋，可以继续选购");
+                alert("\u5df2\u52a0\u5165\u8d2d\u7269\u888b\uff0c\u53ef\u4ee5\u7ee7\u7eed\u9009\u8d2d");
             }
         } else {
-            const msg = data.message || "加入购物袋失败，请稍后再试";
+            const msg = data.stock_limit ? "\u6b64\u89c4\u683c\u5df2\u8fbe\u5230\u5e93\u5b58\u4e0a\u9650" : (data.message || "\u52a0\u5165\u8d2d\u7269\u888b\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5");
             if (typeof qiiToast === "function") {
-                if (msg.includes("库存") || msg.includes("stock")) {
-                    qiiToast("此规格已达到库存上限");
+                if (data.stock_limit || msg.includes("\u5e93\u5b58") || msg.includes("stock")) {
+                    qiiToast("\u6b64\u89c4\u683c\u5df2\u8fbe\u5230\u5e93\u5b58\u4e0a\u9650");
                 } else {
                     qiiToast(msg);
                 }
@@ -394,47 +410,56 @@ function finalAddToCart(goCheckout = false) {
                 alert(msg);
             }
         }
+        window.qiiAddingToCart = false;
+    })
+    .catch(() => {
+        if (typeof qiiToast === "function") {
+            qiiToast("\u52a0\u5165\u8d2d\u7269\u888b\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5");
+        } else {
+            alert("\u52a0\u5165\u8d2d\u7269\u888b\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5");
+        }
+        window.qiiAddingToCart = false;
     });
 }
 // ===================================================
-// ðŸ©· è®©è§„æ ¼å¡ç‰‡ç‚¹å‡»åŽèƒ½æ›´æ–° modal å†…å®¹ï¼ˆæœ€å…³é”®ï¼‰
+// ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° modal ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°
 // ===================================================
 
-// ç»™ variant_box_front.php æ³¨å…¥äº‹ä»¶ï¼ˆåŠ¨æ€å†…å®¹éœ€è¦äº‹ä»¶ä»£ç†ï¼‰
+// ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ variant_box_front.php ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°
 document.addEventListener("click", function(e){
     let card = e.target.closest(".variant-card");
     if(!card) return;
 
-    // ä¸æ˜¯å¼¹çª—å†…çš„ variant card â†’ æ— è§†
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ variant card ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â 
     if(!document.getElementById("variantModal").contains(card)) return;
 
-    // ç§»é™¤æ—§ active
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ active
     document.querySelectorAll("#variantModal .variant-card")
         .forEach(c => c.classList.remove("active"));
 
-    // è®¾ç½® active
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â® active
     card.classList.add("active");
 
-    // æ›´æ–°éšè—å­—æ®µ
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµ
     document.getElementById("selectedVariantId").value = card.dataset.vid;
     document.getElementById("selectedVariantName").value = card.dataset.vname;
 
-    // æ›´æ–° modal å›¾ç‰‡
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° modal ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡
     document.getElementById("modalImg").src = qiiAssetPath(card.dataset.vimg);
 
-    // æ›´æ–° modal Price
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° modal Price
     document.getElementById("modalPrice").textContent =
         parseFloat(card.dataset.vprice).toFixed(2);
 
-    // æ›´æ–°åº“å­˜
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“
     document.getElementById("modalStock").textContent =
-        "库存：" + card.dataset.vstock;
+        "\u5e93\u5b58\uff1a" + card.dataset.vstock;
     setVariantMaxQty(card.dataset.vstock || 1);
 });
 
 
 // ===================================================
-// ðŸ©· è‡ªåŠ¨é€‰ä¸­ç¬¬ä¸€ä¸ªè§„æ ¼ï¼ˆç¬¬ä¸€æ¬¡æ‰“å¼€ modal æ—¶ï¼‰
+// ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ modal ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°
 // ===================================================
 function autoSelectFirstCard(){
     let first = document.querySelector("#variantModal .variant-card");
@@ -447,24 +472,24 @@ function autoSelectFirstCard(){
         document.getElementById("modalPrice").textContent =
             parseFloat(first.dataset.vprice).toFixed(2);
         document.getElementById("modalStock").textContent =
-            "库存：" + first.dataset.vstock;
+            "\u5e93\u5b58\uff1a" + first.dataset.vstock;
         setVariantMaxQty(first.dataset.vstock || 1);
     }
 }
 
-// æ¯æ¬¡ modal è½½å…¥è§„æ ¼å®ŒæˆåŽè‡ªåŠ¨é€‰ä¸­ç¬¬ä¸€ä¸ª
+// ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ modal ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂªÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âª
 document.addEventListener("DOMContentLoaded", () => {
-    // åœ¨ openVariantModal çš„ fetch load å®Œä¹‹åŽ 0.1 ç§’è¿è¡Œ
+    // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ openVariantModal ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ fetch load ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ 0.1 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢
     setTimeout(autoSelectFirstCard, 150);
 });
 /* ==================================================
-   ðŸŒ¸ Variant åˆ†é¡µé€»è¾‘ï¼ˆæ¯é¡µ 5 æ¡ï¼‰
+   ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ Variant ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂµÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã¢â‚¬Â¹ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµ 5 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°
 ================================================== */
 let variantList = [];
 let variantPage = 1;
 const variantPerPage = 6;
 
-/* åœ¨è½½å…¥ variant_box_front.php åŽè§¦å‘ */
+/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥ variant_box_front.php ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¹Ã…â€œ */
 function setupVariantPagination() {
     const cards = document.querySelectorAll("#variantModal .variant-card");
     variantList = Array.from(cards);
@@ -497,7 +522,7 @@ function renderVariantPage() {
     document.getElementById("nextVariantPage").disabled = variantPage === totalPage;
 }
 
-/* æŒ‰é’®ç‚¹å‡» */
+/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¥ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â» */
 document.getElementById("prevVariantPage").onclick = () => {
     if (variantPage > 1) {
         variantPage--;

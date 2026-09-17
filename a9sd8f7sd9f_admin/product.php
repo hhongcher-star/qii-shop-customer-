@@ -8,9 +8,14 @@ require_once __DIR__ . '/../app/product_images.php';
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
 $categoryRows = qii_categories($pdo, false);
+$activeCategoryRows = qii_categories($pdo, true);
 $categories = [];
 foreach ($categoryRows as $key => $row) {
     $categories[$key] = $row['name'];
+}
+$activeCategories = [];
+foreach ($activeCategoryRows as $key => $row) {
+    $activeCategories[$key] = $row['name'];
 }
 
 function product_img(?string $path): string {
@@ -85,6 +90,7 @@ function product_json_response(array $payload): void {
 
 $deleteError = '';
 $categoryError = '';
+$bulkProductError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_category') {
     verify_csrf();
@@ -221,41 +227,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     $deleteId = (int)($_POST['product_id'] ?? 0);
 
     if ($deleteId > 0) {
-        $pdo->beginTransaction();
-
         try {
-            $pdo->prepare("
-                DELETE v FROM product_variants v
-                INNER JOIN product_groups g ON g.id = v.group_id
-                WHERE g.product_id = ?
-            ")->execute([$deleteId]);
-
-            $pdo->prepare("DELETE FROM product_groups WHERE product_id = ?")->execute([$deleteId]);
-            $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$deleteId]);
-
-            $pdo->commit();
+            $pdo->prepare("UPDATE products SET status = 'inactive', updated_at = NOW() WHERE id = ?")
+                ->execute([$deleteId]);
 
             header('Location: product.php?deleted=1');
             exit;
         } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-
             error_log(sprintf('Product delete failed (product_id=%d): %s', $deleteId, $e->getMessage()));
             $deleteError = '删除失败，请稍后重试。';
         }
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_product_status') {
+    verify_csrf();
+
+    $bulkMode = ($_POST['bulk_mode'] ?? '') === 'restore' ? 'restore' : 'delete';
+    $targetStatus = $bulkMode === 'restore' ? 'active' : 'inactive';
+    $replacementCategory = trim((string)($_POST['replacement_category'] ?? ''));
+    $postedProductIds = $_POST['product_ids'] ?? [];
+    $selectedIds = is_array($postedProductIds)
+        ? array_values(array_unique(array_filter(array_map('intval', $postedProductIds))))
+        : [];
+
+    if (!$selectedIds) {
+        $bulkProductError = '请先选择商品。';
+    } else {
+        try {
+            $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
+            if ($bulkMode === 'restore') {
+                $missingCategoryStmt = $pdo->prepare("
+                    SELECT p.id
+                    FROM products p
+                    LEFT JOIN product_categories c
+                        ON c.category_key = p.category
+                       AND c.status = 'active'
+                    WHERE p.id IN ($placeholders)
+                      AND c.id IS NULL
+                ");
+                $missingCategoryStmt->execute($selectedIds);
+                $missingCategoryIds = array_map('intval', $missingCategoryStmt->fetchAll(PDO::FETCH_COLUMN));
+
+                if ($missingCategoryIds) {
+                    if (!isset($activeCategories[$replacementCategory])) {
+                        $bulkProductError = '此分类已没，请选择新分类后再复原。';
+                        throw new RuntimeException('RESTORE_CATEGORY_REQUIRED');
+                    }
+
+                    $missingPlaceholders = implode(',', array_fill(0, count($missingCategoryIds), '?'));
+                    $replaceStmt = $pdo->prepare("UPDATE products SET category = ?, updated_at = NOW() WHERE id IN ($missingPlaceholders)");
+                    $replaceStmt->execute(array_merge([$replacementCategory], $missingCategoryIds));
+                }
+            }
+
+            $stmt = $pdo->prepare("UPDATE products SET status = ?, updated_at = NOW() WHERE id IN ($placeholders)");
+            $stmt->execute(array_merge([$targetStatus], $selectedIds));
+
+            $redirectFlag = $bulkMode === 'restore' ? 'restored' : 'bulk_deleted';
+            header('Location: product.php?' . $redirectFlag . '=' . (int)$stmt->rowCount());
+            exit;
+        } catch (Throwable $e) {
+            if ($e->getMessage() !== 'RESTORE_CATEGORY_REQUIRED') {
+                error_log(sprintf('Bulk product status failed (mode=%s): %s', $bulkMode, $e->getMessage()));
+                $bulkProductError = '批量处理失败，请稍后重试。';
+            }
+        }
+    }
+}
+
 $search = trim($_GET['search'] ?? '');
 $cat = $_GET['cat'] ?? '';
-$status = $_GET['status'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
 $perPage = 32;
 $page = max(1, (int)($_GET['page'] ?? 1));
 
-$where = [];
+$where = ["COALESCE(p.status, 'active') = 'active'"];
 $params = [];
 
 if ($search !== '') {
@@ -269,16 +316,11 @@ if ($cat !== '' && isset($categories[$cat])) {
     $params[] = $cat;
 }
 
-if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
-    $where[] = "p.status = ?";
-    $params[] = $status;
-}
-
 $countSql = "SELECT COUNT(*) FROM products p" . ($where ? " WHERE " . implode(" AND ", $where) : '');
 $countStmt = $pdo->prepare($countSql);
 $countStmt->execute($params);
 $filteredProductCount = (int)$countStmt->fetchColumn();
-$totalProductCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
+$totalProductCount = (int)$pdo->query("SELECT COUNT(*) FROM products WHERE COALESCE(status, 'active') = 'active'")->fetchColumn();
 $totalPages = max(1, (int)ceil($filteredProductCount / $perPage));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $perPage;
@@ -311,7 +353,15 @@ $sql .= " GROUP BY p.id ORDER BY {$orderSql} LIMIT {$perPage} OFFSET {$offset}";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
+$bulkProductsStmt = $pdo->query("
+    SELECT id, name, category, status, image_url
+    FROM products
+    ORDER BY COALESCE(status, 'active') = 'inactive', id DESC
+");
+$bulkProducts = $bulkProductsStmt->fetchAll(PDO::FETCH_ASSOC);
+$productListQuery = $_GET;
+unset($productListQuery['status']);
+$productListReturnUrl = 'product.php' . ($productListQuery ? '?' . http_build_query($productListQuery) : '');
 ?>
 
 <!DOCTYPE html>
@@ -335,7 +385,7 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
         <div>
             <h1>商品管理</h1>
             <p>管理所有商品，查看库存、规格和上架状态</p>
-            <div class="product-count-monitor"><i class="fa-solid fa-chart-simple"></i> 当前共有 <strong><?= number_format($totalProductCount) ?></strong> 个商品</div>
+            <div class="product-count-monitor"><i class="fa-solid fa-chart-simple"></i> 当前上架 <strong><?= number_format($totalProductCount) ?></strong> 个商品</div>
         </div>
 
         <div class="product-topbar-actions">
@@ -343,6 +393,10 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
                 <i class="fa-solid fa-plus"></i>
                 新增商品
             </a>
+            <button type="button" class="primary-action bulk-action" onclick="document.getElementById('bulkProductManager').showModal()">
+                <i class="fa-solid fa-layer-group"></i>
+                批量下架/复原
+            </button>
             <button type="button" class="primary-action category-action" onclick="document.getElementById('categoryManager').showModal()">
                 <i class="fa-solid fa-folder-plus"></i>
                 分类管理
@@ -370,12 +424,6 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
             <?php endforeach; ?>
         </select>
 
-        <select name="status">
-            <option value="">全部状态</option>
-            <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>上架中</option>
-            <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>已下架</option>
-        </select>
-
         <select name="sort">
             <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>最新商品</option>
             <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>价格低到高</option>
@@ -392,6 +440,12 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
     <?php if ($deleteError): ?>
         <div class="editor-alert">
             <?= htmlspecialchars($deleteError) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($bulkProductError): ?>
+        <div class="editor-alert">
+            <?= htmlspecialchars($bulkProductError) ?>
         </div>
     <?php endif; ?>
 
@@ -455,9 +509,96 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
         </div>
     </dialog>
 
+    <dialog id="bulkProductManager" class="bulk-product-dialog">
+        <form method="post" data-bulk-product-form>
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="bulk_product_status">
+            <input type="hidden" name="bulk_mode" value="delete" data-bulk-product-mode>
+            <input type="hidden" name="replacement_category" value="" data-bulk-replacement-category>
+
+            <div class="category-dialog-head">
+                <div>
+                    <h2>批量商品处理</h2>
+                    <p>下架后商品会从前台隐藏，之后可以在这里复原。</p>
+                </div>
+                <button type="button" class="category-dialog-close" onclick="this.closest('dialog').close()" aria-label="关闭">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="bulk-product-toolbar">
+                <button type="button" class="soft-button" data-bulk-select="active"><i class="fa-solid fa-check-double"></i> 选择上架商品</button>
+                <button type="button" class="soft-button" data-bulk-select="inactive"><i class="fa-solid fa-clock-rotate-left"></i> 选择已下架</button>
+                <button type="button" class="soft-button" data-bulk-select="all"><i class="fa-solid fa-border-all"></i> 全选</button>
+                <button type="button" class="soft-button" data-bulk-select="none"><i class="fa-regular fa-square"></i> 清空</button>
+                <span class="bulk-product-selected">已选择 <b data-bulk-selected-count>0</b> 个</span>
+            </div>
+
+            <div class="bulk-product-grid" aria-label="全部商品">
+                <?php foreach ($bulkProducts as $p): ?>
+                    <?php
+                        $isBulkActive = ($p['status'] ?? 'active') === 'active';
+                        $bulkProductCategory = $p['category'] ?? '';
+                        $hasActiveCategory = isset($activeCategories[$bulkProductCategory]);
+                    ?>
+                    <label class="bulk-product-tile <?= $isBulkActive ? 'is-active' : 'is-inactive' ?>">
+                        <input type="checkbox" name="product_ids[]" value="<?= (int)$p['id'] ?>" data-bulk-product-checkbox data-status="<?= $isBulkActive ? 'active' : 'inactive' ?>" data-category-active="<?= $hasActiveCategory ? '1' : '0' ?>">
+                        <span class="bulk-product-check"><i class="fa-solid fa-check"></i></span>
+                        <img src="<?= htmlspecialchars(product_img($p['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars($p['name'] ?? '') ?>">
+                        <strong><?= htmlspecialchars($p['name'] ?? '') ?></strong>
+                        <small><?= category_name_admin_html((string)($categories[$bulkProductCategory] ?? $bulkProductCategory)) ?></small>
+                        <em><?= $isBulkActive ? '上架中' : '已下架，可复原' ?></em>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="bulk-product-footer">
+                <button type="button" class="soft-button" onclick="this.closest('dialog').close()">取消</button>
+                <button type="submit" class="outline-action" data-bulk-submit="restore"><i class="fa-solid fa-rotate-left"></i> 复原选中商品</button>
+                <button type="submit" class="save-action danger-action" data-bulk-submit="delete"><i class="fa-solid fa-eye-slash"></i> 下架选中商品</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="restoreCategoryDialog" class="restore-category-dialog">
+        <div class="category-dialog-head">
+            <div>
+                <h2>此分类已没</h2>
+                <p>选中的商品原本分类已经不在前台，要不要换分类后再复原？</p>
+            </div>
+            <button type="button" class="category-dialog-close" data-restore-category-cancel aria-label="关闭">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <label class="restore-category-field">
+            <span>换去分类</span>
+            <select data-restore-category-select>
+                <?php foreach ($activeCategories as $key => $label): ?>
+                    <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars(str_replace("\n", ' / ', category_name_plain((string)$label))) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <div class="restore-category-actions">
+            <button type="button" class="soft-button" data-restore-category-cancel>取消</button>
+            <button type="button" class="save-action" data-restore-category-confirm><i class="fa-solid fa-rotate-left"></i> 换分类并复原</button>
+        </div>
+    </dialog>
+
     <?php if (isset($_GET['deleted'])): ?>
         <div class="editor-alert success">
-            商品已删除
+            商品已下架，可在“批量下架/复原”里复原。
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['bulk_deleted'])): ?>
+        <div class="editor-alert success">
+            已下架 <?= (int)$_GET['bulk_deleted'] ?> 个商品，可在“批量下架/复原”里复原。
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['restored'])): ?>
+        <div class="editor-alert success">
+            已复原 <?= (int)$_GET['restored'] ?> 个商品。
         </div>
     <?php endif; ?>
 
@@ -531,13 +672,13 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
                         查看详情
                     </a>
 
-                    <form method="post" onsubmit="return confirm('确定删除这个商品吗？');">
+                    <form method="post" onsubmit="return confirm('确定下架这个商品吗？商品会从前台隐藏，之后可以复原。');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="delete_product">
                         <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
 
-                        <button type="submit" class="icon-button danger" title="删除">
-                            <i class="fa-solid fa-trash"></i>
+                        <button type="submit" class="icon-button danger" title="下架">
+                            <i class="fa-solid fa-eye-slash"></i>
                         </button>
                     </form>
                 </footer>
@@ -561,13 +702,49 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
 <style>
 .product-topbar { grid-template-columns: 1fr auto; }
 .product-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.product-filters { grid-template-columns: minmax(260px, 1.5fr) repeat(2, minmax(160px, 1fr)) auto; }
 .product-count-monitor { display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:8px 13px; border:1px solid #f4c9dc; border-radius:999px; background:rgba(255,255,255,.72); color:#7b5267; font-size:14px; }
 .product-count-monitor strong { color:#d93682; font-size:17px; }
 .admin-pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin:28px 0 8px; }
 .admin-pagination a, .admin-pagination span { padding:11px 16px; border-radius:12px; background:#fff; border:1px solid #f2c9da; color:#795568; text-decoration:none; font-weight:700; }
 .category-action { border: 0; cursor: pointer; }
+.bulk-action { border: 0; cursor: pointer; background: linear-gradient(135deg, #7c3aed, #ec4899); }
 .category-dialog { width: min(760px, calc(100% - 32px)); max-height: min(82vh, 700px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
 .category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
+.bulk-product-dialog { width: min(1180px, calc(100% - 32px)); max-height: min(88vh, 820px); border: 0; border-radius: 20px; padding: 24px; overflow: hidden; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
+.bulk-product-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
+.restore-category-dialog { width: min(520px, calc(100% - 32px)); border: 0; border-radius: 20px; padding: 24px; box-shadow: 0 24px 70px rgba(100,40,75,.25); }
+.restore-category-dialog::backdrop { background: rgba(45,25,38,.35); backdrop-filter: blur(4px); }
+.bulk-product-dialog[open] form { display: flex; flex-direction: column; max-height: calc(min(88vh, 820px) - 48px); min-height: 0; }
+.bulk-product-dialog .category-dialog-head p { margin: 6px 0 0; color: #8f7182; font-weight: 700; }
+.restore-category-dialog .category-dialog-head p { margin: 6px 0 0; color: #8f7182; font-weight: 700; }
+.restore-category-field { display: grid; gap: 10px; margin: 18px 0 22px; color: #2d2340; font-weight: 800; }
+.restore-category-field select { width: 100%; min-height: 52px; padding: 0 14px; border: 1px solid #f2c9da; border-radius: 14px; background: #fff; color: #2d2340; font: inherit; }
+.restore-category-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.restore-category-actions button { border: 0; cursor: pointer; }
+.bulk-product-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+.bulk-product-toolbar .soft-button { min-height: 40px; border-radius: 12px; cursor: pointer; }
+.bulk-product-selected { margin-left: auto; color: #76596b; font-weight: 800; }
+.bulk-product-selected b { color: #d93682; }
+.bulk-product-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; min-height: 0; overflow-y: auto; padding: 2px 4px 12px 0; }
+.bulk-product-tile { position: relative; display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid #f2c9da; border-radius: 14px; background: #fff; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.bulk-product-tile:hover { transform: translateY(-2px); border-color: #ff8ec4; box-shadow: 0 14px 32px rgba(255,79,163,.12); }
+.bulk-product-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.bulk-product-tile img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; background: #fff0f7; }
+.bulk-product-tile strong { min-height: 38px; overflow: hidden; color: #2d2340; font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.bulk-product-tile small { overflow: hidden; color: #ff4fa3; font-weight: 800; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.bulk-product-tile em { width: fit-content; padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-style: normal; font-weight: 800; font-size: 11px; }
+.bulk-product-tile.is-inactive { background: #f8fafc; }
+.bulk-product-tile.is-inactive img { filter: grayscale(.45); opacity: .72; }
+.bulk-product-tile.is-inactive em { background: #e2e8f0; color: #64748b; }
+.bulk-product-check { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #f2c9da; border-radius: 50%; background: rgba(255,255,255,.92); color: transparent; }
+.bulk-product-tile.is-selected,
+.bulk-product-tile:has(input:checked) { border-color: #ff4fa3; box-shadow: 0 0 0 3px rgba(255,79,163,.16); }
+.bulk-product-tile.is-selected .bulk-product-check,
+.bulk-product-tile:has(input:checked) .bulk-product-check { background: #ff4fa3; color: #fff; border-color: #ff4fa3; }
+.bulk-product-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid #f4d5e3; }
+.bulk-product-footer button { border: 0; cursor: pointer; }
+.danger-action { background: linear-gradient(135deg, #ef4444, #ff2f91); }
 .category-dialog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .category-dialog-head h2 { margin: 0; color: #29203d; }
 .category-dialog-head .category-dialog-close { position: static; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: #fff5fa; box-shadow: none; font-size: 22px; color: #796d7d; cursor: pointer; }
@@ -611,11 +788,15 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
 }
 @media (max-width: 700px) {
   html:has(.category-dialog[open]),
-  body:has(.category-dialog[open]) {
+  body:has(.category-dialog[open]),
+  html:has(.bulk-product-dialog[open]),
+  body:has(.bulk-product-dialog[open]),
+  html:has(.restore-category-dialog[open]),
+  body:has(.restore-category-dialog[open]) {
     overflow: hidden !important;
   }
   .product-topbar { grid-template-columns: 1fr; }
-  .product-topbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
+  .product-topbar-actions { display: grid; grid-template-columns: 1fr; width: 100%; gap: 10px; }
   .product-topbar-actions .primary-action { width: 100%; min-width: 0; min-height: 50px; padding: 0 10px; justify-content: center; font-size: 14px; }
   .category-dialog {
     position: fixed;
@@ -636,6 +817,32 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
     display: flex !important;
     flex-direction: column;
   }
+  .bulk-product-dialog {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 18px 14px 14px;
+    border-radius: 20px;
+    overflow: hidden !important;
+  }
+  .bulk-product-dialog[open] form { max-height: 100%; }
+  .bulk-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bulk-product-toolbar { display: grid; grid-template-columns: 1fr 1fr; }
+  .bulk-product-selected { grid-column: 1 / -1; margin-left: 0; }
+  .bulk-product-footer { display: grid; grid-template-columns: 1fr; }
+  .restore-category-dialog {
+    width: auto !important;
+    margin: auto 12px !important;
+    padding: 18px 14px;
+  }
+  .restore-category-actions { display: grid; grid-template-columns: 1fr; }
   .category-dialog-head {
     position: static;
     flex: 0 0 auto;
@@ -699,6 +906,91 @@ $productListReturnUrl = 'product.php' . (!empty($_SERVER['QUERY_STRING']) ? '?' 
       sessionStorage.setItem(scrollKey, String(window.scrollY || window.pageYOffset || 0));
     });
   });
+
+  const bulkForm = document.querySelector('[data-bulk-product-form]');
+  if (bulkForm) {
+    const selectedCount = bulkForm.querySelector('[data-bulk-selected-count]');
+    const modeInput = bulkForm.querySelector('[data-bulk-product-mode]');
+    const replacementCategoryInput = bulkForm.querySelector('[data-bulk-replacement-category]');
+    const checkboxes = [...bulkForm.querySelectorAll('[data-bulk-product-checkbox]')];
+    const restoreCategoryDialog = document.getElementById('restoreCategoryDialog');
+    const restoreCategorySelect = restoreCategoryDialog?.querySelector('[data-restore-category-select]');
+    const restoreCategoryConfirm = restoreCategoryDialog?.querySelector('[data-restore-category-confirm]');
+
+    const syncBulkCount = () => {
+      checkboxes.forEach((box) => {
+        box.closest('.bulk-product-tile')?.classList.toggle('is-selected', box.checked);
+      });
+      if (selectedCount) selectedCount.textContent = String(checkboxes.filter((box) => box.checked).length);
+    };
+
+    bulkForm.querySelectorAll('[data-bulk-select]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.dataset.bulkSelect;
+        checkboxes.forEach((box) => {
+          box.checked = target === 'all' || (target !== 'none' && box.dataset.status === target);
+        });
+        syncBulkCount();
+      });
+    });
+
+    checkboxes.forEach((box) => box.addEventListener('change', syncBulkCount));
+
+    bulkForm.querySelectorAll('[data-bulk-submit]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (modeInput) modeInput.value = button.dataset.bulkSubmit === 'restore' ? 'restore' : 'delete';
+        if (replacementCategoryInput && button.dataset.bulkSubmit !== 'restore') replacementCategoryInput.value = '';
+      });
+    });
+
+    bulkForm.addEventListener('submit', (event) => {
+      const checked = checkboxes.filter((box) => box.checked);
+      const mode = modeInput?.value === 'restore' ? 'restore' : 'delete';
+      if (!checked.length) {
+        event.preventDefault();
+        alert('请先选择商品。');
+        return;
+      }
+
+      if (mode === 'restore') {
+        const missingCategory = checked.some((box) => box.dataset.categoryActive !== '1');
+        if (missingCategory && replacementCategoryInput && !replacementCategoryInput.value) {
+          event.preventDefault();
+          restoreCategoryDialog?.showModal();
+          return;
+        }
+      }
+
+      if (mode === 'delete') {
+        const activeCount = checked.filter((box) => box.dataset.status === 'active').length;
+        if (!confirm(`确定下架 ${checked.length} 个商品吗？商品会从前台隐藏，但之后可以复原。${activeCount ? '' : ' 你选到的都是已下架商品。'}`)) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (!confirm(`确定复原 ${checked.length} 个商品吗？复原后会重新上架。`)) {
+        event.preventDefault();
+      }
+    });
+
+    restoreCategoryDialog?.querySelectorAll('[data-restore-category-cancel]').forEach((button) => {
+      button.addEventListener('click', () => restoreCategoryDialog.close());
+    });
+
+    restoreCategoryConfirm?.addEventListener('click', () => {
+      if (!restoreCategorySelect?.value) {
+        alert('请先选择分类。');
+        return;
+      }
+      if (replacementCategoryInput) replacementCategoryInput.value = restoreCategorySelect.value;
+      if (modeInput) modeInput.value = 'restore';
+      restoreCategoryDialog?.close();
+      bulkForm.requestSubmit(bulkForm.querySelector('[data-bulk-submit="restore"]'));
+    });
+
+    syncBulkCount();
+  }
 
   function syncCategoryEditor(form) {
     const editor = form.querySelector('[data-category-name-editor]');

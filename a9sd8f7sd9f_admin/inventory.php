@@ -172,6 +172,7 @@ $sql = "
 
 $where = [];
 $params = [];
+$where[] = "COALESCE(p.status, 'active') = 'active'";
 
 if ($search !== '') {
     $where[] = "(p.name LIKE ? OR p.sku LIKE ? OR v.variant_name LIKE ? OR v.sku LIKE ?)";
@@ -273,12 +274,18 @@ $page = min($page, $totalPages);
 
 $totalStock = (int)$pdo->query("
     SELECT COALESCE(SUM(stock), 0) FROM (
-      SELECT v.stock FROM product_variants v
+      SELECT v.stock
+      FROM product_variants v
+      INNER JOIN product_groups g ON g.id = v.group_id
+      INNER JOIN products p ON p.id = g.product_id
+      WHERE COALESCE(p.status, 'active') = 'active'
       UNION ALL
-      SELECT p.stock FROM products p
+      SELECT p.stock
+      FROM products p
       WHERE NOT EXISTS (
         SELECT 1 FROM product_groups g INNER JOIN product_variants v2 ON v2.group_id=g.id WHERE g.product_id=p.id
       )
+      AND COALESCE(p.status, 'active') = 'active'
     ) x
 ")->fetchColumn();
 

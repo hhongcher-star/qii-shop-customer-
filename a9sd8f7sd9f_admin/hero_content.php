@@ -156,6 +156,7 @@ function applyStyle(property, value) {
 frame.addEventListener('load', function () {
   var doc = frame.contentDocument;
   <?php if ($page === 'announcement'): ?>
+  doc.querySelectorAll('.rules-popup').forEach(function (popup) { popup.remove(); });
   if (typeof frame.contentWindow.showAnnouncementPopup === 'function') frame.contentWindow.showAnnouncementPopup();
   <?php elseif ($page === 'variant'): ?>
   var openFirstVariant = function () {
@@ -186,6 +187,8 @@ frame.addEventListener('load', function () {
   });
   doc.querySelectorAll('[data-content-key]').forEach(function (el) {
     el.contentEditable = 'true';
+    el.style.pointerEvents = 'auto';
+    el.removeAttribute('tabindex');
     el.style.outline = '2px dashed rgba(245,54,141,.45)';
     el.style.outlineOffset = '4px';
     el.style.cursor = 'text';

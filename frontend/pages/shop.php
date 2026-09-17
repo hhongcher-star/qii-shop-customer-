@@ -4,17 +4,6 @@ require_once __DIR__ . '/../../a9sd8f7sd9f_admin/config.php';
 require_once __DIR__ . '/../../app/categories.php';
 require_once __DIR__ . '/../../app/content_settings.php';
 require_once __DIR__ . '/../../app/customers.php';
-$favoritesEnabled = defined('QII_FAVORITES_ENABLED') && QII_FAVORITES_ENABLED;
-if ($favoritesEnabled) {
-  qii_ensure_customer_tables($pdo);
-}
-
-$favoriteProductIds = [];
-if ($favoritesEnabled && qii_customer_id()) {
-  $favoriteStmt = $pdo->prepare('SELECT product_id FROM customer_favorites WHERE customer_id=?');
-  $favoriteStmt->execute([qii_customer_id()]);
-  $favoriteProductIds = array_map('intval', $favoriteStmt->fetchAll(PDO::FETCH_COLUMN));
-}
 
 $shopTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_title', '🌸 可爱生活选物'));
 $shopPromoTitle = qii_sanitize_rich_text(qii_content($pdo, 'shop_promo_title', '新品可爱小物上线啦 ✨'));
@@ -51,7 +40,6 @@ function qii_text($text) {
 }
 
 function qii_product_payload($p) {
-  global $favoriteProductIds, $favoritesEnabled;
   return htmlspecialchars(json_encode([
     'id' => (int)$p['id'],
     'name' => qii_text($p['name']),
@@ -59,7 +47,6 @@ function qii_product_payload($p) {
     'stock' => (int)$p['stock'],
     'sku' => $p['sku'] ?? '',
     'has_variant' => isset($p['has_variant']) ? (int)$p['has_variant'] : 0,
-    'favorite' => $favoritesEnabled && in_array((int)$p['id'], $favoriteProductIds, true),
     'img' => qii_asset_path($p['image_url'] ?? ''),
   ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 }
@@ -198,11 +185,84 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     'description' => 'Browse qii.shoppp for cute phone accessories, hair clips, snacks, stationery, dolls, charms and kawaii lifestyle gifts in Malaysia.',
     'path' => '/shop.php',
     'keywords' => 'qii shop, cute phone charms, phone accessories Malaysia, kawaii accessories, hair clips, stationery, cute gifts'
-  ]); ?><link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/shop.css" />
-  <link rel="stylesheet" href="css/shop-page.css" />
-  <link rel="stylesheet" href="css/shop-mobile.css" />
+  ]); ?>
+  <link rel="stylesheet" href="css/style.css?v=20260730-2" />
+  <link rel="stylesheet" href="css/shop.css?v=20260730-2" />
+  <link rel="stylesheet" href="css/shop-page.css?v=20260730-2" />
+  <link rel="stylesheet" href="css/shop-mobile.css?v=20260730-2" />
   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <style id="shop-critical-css">
+    html, body { margin: 0; max-width: 100%; overflow-x: hidden; background: #fff8fb; }
+    body { font-family: "Patrick Hand", "Comic Sans MS", Arial, "Microsoft YaHei", sans-serif; color: #513348; }
+    main { padding-top: 0; }
+    #loader { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg,#fff6fa 0%,#ffe9f0 100%); transition: opacity .3s ease; }
+    #loader.fade-out { opacity: 0; pointer-events: none; }
+    #loader img { width: 160px; height: auto; }
+    .mobile-shop-top, .mobile-bottom-nav { display: none; }
+    .shop-header { width: 100%; padding: 34px 16px 38px; background: linear-gradient(180deg,#ffd1e3 0%,#ffe6f2 100%); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .shop-header img { width: 150px; height: auto; margin-bottom: 10px; }
+    .shop-header h1 { margin: 0; color: #e44b87; font-size: 32px; font-weight: 800; line-height: 1.15; }
+    .shop-layout { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 15px; width: 95%; max-width: 1200px; margin: 30px auto; align-items: start; }
+    .shop-layout > div { min-width: 0; padding: 25px; border: 2px solid #f8c9da; border-radius: 25px; background: linear-gradient(180deg,#fff0f7 0%,#ffe6f0 100%); box-shadow: 0 4px 10px rgba(240,150,180,.15); }
+    .sidebar { position: sticky; top: 100px; max-height: calc(100vh - 140px); overflow-y: auto; padding: 12px; border: 2px solid #f8c9da; border-radius: 15px; background: linear-gradient(180deg,#fff0f7 0%,#ffe6f0 100%); box-shadow: 0 4px 10px rgba(240,150,180,.15); }
+    .sidebar h3 { margin: 0 0 10px; color: #e5679c; font-size: 18px; text-align: center; }
+    .sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; }
+    .sidebar li { margin: 0; padding: 10px; border: 1px solid #f6bdd9; border-radius: 15px; background: #ffe6f0; color: #c94b82; text-align: center; font-size: 15px; line-height: 1.15; }
+    .sidebar li.active { background: #f9b8cf; color: #fff; }
+    .sidebar li a { display: flex; flex-direction: inherit; align-items: center; justify-content: center; gap: 4px; color: inherit; text-decoration: none; }
+    .cat-name { white-space: pre-line; line-height: 1.04; }
+    .category-title { margin: 0 0 16px; color: #e44b87; font-size: 26px; font-weight: 800; line-height: 1.1; white-space: pre-line; }
+    .product-area { display: flex; flex-direction: column; gap: 15px; }
+    .product-card { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; padding: 15px 18px; border: 2px solid #f8c9da; border-radius: 18px; background: #fff6fa; box-shadow: 0 4px 10px rgba(240,150,180,.15); }
+    .product-card > img { width: 80px; height: 80px; flex: 0 0 80px; object-fit: cover; border: 1px solid #f6bdd9; border-radius: 10px; }
+    .product-info { flex: 1; min-width: 0; text-align: left; }
+    .product-info h4 { margin: 0 0 6px; color: #e44b87; font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+    .product-info .price { color: #e44b87; font-size: 15px; font-weight: 800; }
+    .choose-btn, .add-btn { position: relative; z-index: 12; min-height: 38px; border: 0; border-radius: 20px; background: linear-gradient(180deg,#ffbbd4,#ff9ec5); color: #fff; cursor: pointer; }
+    .choose-btn { width: 42px; height: 42px; min-width: 42px; padding: 0; border-radius: 50%; box-shadow: 0 4px 10px rgba(230,103,156,.25); }
+    .choose-btn::before { content: "\1F6D2"; font-size: 18px; line-height: 1; }
+    .add-btn { padding: 8px 16px; }
+    .soldout-tag { position: absolute; top: 8px; left: 8px; z-index: 3; padding: 6px 10px; border-radius: 999px; background: rgba(104,72,87,.86); color: #fff; font-size: 10px; font-weight: 700; }
+    .shop-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 30px auto 12px; padding: 18px 12px; }
+    .shop-pagination a, .shop-pagination span { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border-radius: 999px; text-decoration: none; font-family: Arial, "Microsoft YaHei", sans-serif; font-size: 15px; font-weight: 800; }
+    .shop-pagination a { background: linear-gradient(135deg,#ff72ad,#f5368d); color: #fff; }
+    .shop-pagination span { border: 1px solid #ffc1dc; background: #fff0f7; color: #d92e7c; }
+    .falling-sakura { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; z-index: 1500; }
+    .falling-sakura .sakura { position: absolute; top: -100px; width: 80px; height: auto; max-width: none; opacity: .7; animation: sakuraFall 10s linear infinite; }
+    @keyframes sakuraFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { transform: translateY(100vh) rotate(360deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(390deg); opacity: 0; }
+    }
+    @media (max-width: 768px) {
+      body { padding-bottom: 20px; background: linear-gradient(180deg,#fff5fa 0%,#ffeef6 100%); }
+      #loader, .shop-header { display: none !important; }
+      .mobile-shop-top { display: block; padding: 8px 16px 0; }
+      .mobile-promo { position: relative; min-height: 152px; margin-top: 12px; overflow: hidden; padding: 24px 18px; border: 1px solid #ffd5e4; border-radius: 20px; background: linear-gradient(90deg,rgba(255,201,224,.96),rgba(255,218,234,.9) 46%,rgba(255,242,248,.72)); box-shadow: 0 10px 24px rgba(229,103,156,.12); }
+      .mobile-promo h2 { position: relative; z-index: 2; max-width: 62%; margin: 0 0 8px; color: #f13987; font-size: 23px; line-height: 1.18; }
+      .mobile-promo p { position: relative; z-index: 2; margin: 0 0 16px; color: #5f4653; font-size: 13px; }
+      .mobile-promo a { position: relative; z-index: 2; display: inline-flex; align-items: center; min-height: 32px; padding: 0 16px; border-radius: 999px; background: #f5368d; color: #fff; text-decoration: none; font-size: 13px; font-weight: 700; }
+      .mobile-promo img { position: absolute; right: 6px; bottom: 6px; z-index: 1; width: 42%; max-height: 126px; object-fit: contain; }
+      .shop-layout { display: block; width: auto; margin: 12px 14px 0; }
+      .shop-layout > div { padding: 0; border: 0; background: transparent; box-shadow: none; }
+      .sidebar { position: relative; top: auto; max-height: none; margin: 0 0 14px; padding: 8px 8px 10px; overflow-x: auto; overflow-y: hidden; border-radius: 20px; background: rgba(255,255,255,.9); }
+      .sidebar h3 { display: none; }
+      .sidebar ul { flex-direction: row; gap: 10px; min-width: max-content; }
+      .sidebar li { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 70px; min-height: 66px; padding: 8px 10px; border-radius: 16px; white-space: nowrap; font-size: 12px; }
+      .cat-emoji { display: block; font-size: 19px; line-height: 1; }
+      .cat-name { display: block; font-size: 11px; }
+      .category-title { margin: 16px 4px 12px; font-size: 20px; }
+      .product-area { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+      .product-card { display: flex; flex-direction: column; align-items: stretch; min-height: 250px; padding: 0; overflow: hidden; border-radius: 16px; background: #fff; }
+      .product-card > img { width: 100%; height: auto; flex: none; aspect-ratio: 1/.82; border: 0; border-radius: 0; }
+      .product-info { padding: 10px 10px 48px; }
+      .product-info h4 { display: -webkit-box; min-height: 34px; margin: 0 0 4px; overflow: hidden; color: #42343d; font-family: Arial, "Microsoft YaHei", sans-serif; font-size: 13px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .product-info .price { font-family: Arial, "Microsoft YaHei", sans-serif; font-size: 17px; }
+      .choose-btn, .add-btn { position: absolute; right: 12px; bottom: 12px; width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 50%; font-size: 0; }
+      .add-btn:disabled { width: auto; min-width: 54px; padding: 0 12px; font-size: 12px; }
+    }
+  </style>
 </head>
 
 <body>
@@ -217,7 +277,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     <img id="imgPreviewPic" src="" alt="">
   </div>
 
-  <!-- æŽ‰è½ç³–æžœåŠ¨ç”» -->
   <div class="falling-sakura">
     <img src="images/candy1.png" class="sakura" />
     <img src="images/candy1.png" class="sakura" />
@@ -273,7 +332,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   <?php else: ?>
     <?php foreach ($products as $p): ?>
       <?php
-      $productCardAos = 'fade-up';
+      $productCardAos = '';
       include __DIR__ . '/../components/product_card.php';
       ?>
     <?php endforeach; ?>
@@ -293,7 +352,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
   <?php include __DIR__ . "/../includes/footer.php"; ?>
 <!-- ÃƒÂ¢Ã…â€œÃ‚Â¨ JS ÃƒÂ©Ã†â€™Ã‚Â¨ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â  -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script src="js/shop-page.js"></script>
+  <script src="js/shop-page.js?v=20260729-1"></script>
 
 
 

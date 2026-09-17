@@ -1,16 +1,19 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../../app/bootstrap.php';
 require_once __DIR__ . '/../../app/customers.php';
 qii_start_session();
 $currentPage = basename($_SERVER['PHP_SELF']);
+$announcementEnabled = $currentPage === 'index.php';
 ?>
 
 <footer class="site-footer">
   <div class="floating-buttons">
-    <button class="floating-cart" id="floating-cart">
+    <button class="floating-cart" id="floating-cart" type="button">
       &#128717;<span class="cart-count"><?= isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'qty')) : 0 ?></span>
     </button>
-    <button class="floating-speaker" id="floating-speaker">&#128227;</button>
+    <?php if ($announcementEnabled): ?>
+      <button class="floating-speaker" id="floating-speaker">&#128227;</button>
+    <?php endif; ?>
   </div>
 
   <div class="footer-info">
@@ -126,7 +129,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   position: relative;
 }
 
-/* ðŸ“± æ‰‹æœºæ¨¡å¼æŒ‰é’®å¾€å·¦ä¸€ç‚¹ */
+/* ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Â¹ÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¦Ã‚Â¨Ã‚Â¡ÃƒÂ¥Ã‚Â¼Ã‚ÂÃƒÂ¦Ã…â€™Ã¢â‚¬Â°ÃƒÂ©Ã¢â‚¬â„¢Ã‚Â®ÃƒÂ¥Ã‚Â¾Ã¢â€šÂ¬ÃƒÂ¥Ã‚Â·Ã‚Â¦ÃƒÂ¤Ã‚Â¸Ã¢â€šÂ¬ÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ */
 @media (max-width: 600px) {
   .floating-buttons {
     right: 12px !important;
@@ -150,7 +153,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* è´­ç‰©è¢‹å¼¹çª— */
+/* ÃƒÂ¨Ã‚Â´Ã‚Â­ÃƒÂ§Ã¢â‚¬Â°Ã‚Â©ÃƒÂ¨Ã‚Â¢Ã¢â‚¬Â¹ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ§Ã‚ÂªÃ¢â‚¬â€ */
 .modal {
   display: none; position: fixed;
   left: 0; top: 0; width: 100%; height: 100%;
@@ -224,7 +227,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 }
 .cart-summary strong { font-size:15px; color:#e5679c; }
 
-/* åœ°åŒºé€‰æ‹©ï¼ˆè¥¿é©¬ / ä¸œé©¬ï¼‰ */
+/* ÃƒÂ¥Ã…â€œÃ‚Â°ÃƒÂ¥Ã…â€™Ã‚ÂºÃƒÂ©Ã¢â€šÂ¬Ã¢â‚¬Â°ÃƒÂ¦Ã¢â‚¬Â¹Ã‚Â©ÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ¨Ã‚Â¥Ã‚Â¿ÃƒÂ©Ã‚Â©Ã‚Â¬ / ÃƒÂ¤Ã‚Â¸Ã…â€œÃƒÂ©Ã‚Â©Ã‚Â¬ÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â° */
 .region-select {
   display:flex;
   align-items:center;
@@ -280,7 +283,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   color: #fff;
 }
 
-/* Qii æµ®åŠ¨åŠ¨ç”»ï¼ˆä¸Žå–‡å­/è§„åˆ™å…±ç”¨ï¼‰ */
+/* Qii ÃƒÂ¦Ã‚ÂµÃ‚Â®ÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ§Ã¢â‚¬ÂÃ‚Â»ÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ¤Ã‚Â¸Ã…Â½ÃƒÂ¥Ã¢â‚¬â€œÃ¢â‚¬Â¡ÃƒÂ¥Ã‚ÂÃ‚Â­/ÃƒÂ¨Ã‚Â§Ã¢â‚¬Å¾ÃƒÂ¥Ã‹â€ Ã¢â€žÂ¢ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â±ÃƒÂ§Ã¢â‚¬ÂÃ‚Â¨ÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â° */
 .qii-on-bag {
   position: absolute;
   top: -80px;
@@ -313,7 +316,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   }
 }
 
-/* è§„åˆ™/å…¬å‘Šå¼¹çª—é€šç”¨æ ·å¼ */
+/* ÃƒÂ¨Ã‚Â§Ã¢â‚¬Å¾ÃƒÂ¥Ã‹â€ Ã¢â€žÂ¢/ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ§Ã‚ÂªÃ¢â‚¬â€ÃƒÂ©Ã¢â€šÂ¬Ã…Â¡ÃƒÂ§Ã¢â‚¬ÂÃ‚Â¨ÃƒÂ¦Ã‚Â Ã‚Â·ÃƒÂ¥Ã‚Â¼Ã‚Â */
 .rules-popup {
   position: fixed; inset: 0;
   background: rgba(255,230,240,0.7);
@@ -350,7 +353,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 }
 #closeRules:hover { background: #c94b82; }
 
-/* è§„åˆ™å¼¹çª—å¢žå¼ºæ ·å¼ä¸ŽåŠ¨ç”» */
+/* ÃƒÂ¨Ã‚Â§Ã¢â‚¬Å¾ÃƒÂ¥Ã‹â€ Ã¢â€žÂ¢ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ§Ã‚ÂªÃ¢â‚¬â€ÃƒÂ¥Ã‚Â¢Ã…Â¾ÃƒÂ¥Ã‚Â¼Ã‚ÂºÃƒÂ¦Ã‚Â Ã‚Â·ÃƒÂ¥Ã‚Â¼Ã‚ÂÃƒÂ¤Ã‚Â¸Ã…Â½ÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ§Ã¢â‚¬ÂÃ‚Â» */
 .fade-in { animation: rulesFadeIn 0.45s ease; }
 @keyframes rulesFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 .rules-text { font-size: 14px; line-height: 1.7; color: #b55678; margin-top: 10px; white-space: normal; }
@@ -358,13 +361,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 @keyframes qiiFlyIn { 0% { transform: translate(-50%, -40px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }
 #closeRules { padding: 8px 22px; font-size: 14px; margin-top: 18px; transition: 0.25s; }
 
-/* ðŸŒ¸ å›¾2å…¬å‘Šå¤§å¡ç‰‡å°ºå¯¸ä¼˜åŒ– */
+/* ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸ ÃƒÂ¥Ã¢â‚¬ÂºÃ‚Â¾2ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â ÃƒÂ¥Ã‚Â¤Ã‚Â§ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ§Ã¢â‚¬Â°Ã¢â‚¬Â¡ÃƒÂ¥Ã‚Â°Ã‚ÂºÃƒÂ¥Ã‚Â¯Ã‚Â¸ÃƒÂ¤Ã‚Â¼Ã‹Å“ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œ */
 .big-rules {
   max-width: 500px;
   padding: 30px 25px;
 }
 
-/* æ‰‹æœºä¼˜åŒ– */
+/* ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Â¹ÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¤Ã‚Â¼Ã‹Å“ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œ */
 @media (max-width: 600px) {
   .big-rules {
     width: 90%;
@@ -388,14 +391,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   }
 }
 
-/* ç²‰è‰²æ ‡é¢˜ */
+/* ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â²ÃƒÂ¦Ã‚Â Ã¢â‚¬Â¡ÃƒÂ©Ã‚Â¢Ã‹Å“ */
 .pink-title {
   color: #e5679c;
   font-size: 24px;
   margin-bottom: 10px;
 }
 
-/* ç²‰è‰²å†…å®¹ */
+/* ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â²ÃƒÂ¥Ã¢â‚¬Â Ã¢â‚¬Â¦ÃƒÂ¥Ã‚Â®Ã‚Â¹ */
 .text-block p {
   color: #c94b82;
   font-size: 15px;
@@ -403,14 +406,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   margin: 10px 0;
 }
 
-/* åˆ†éš”çº¿ */
+/* ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ©Ã…Â¡Ã¢â‚¬ÂÃƒÂ§Ã‚ÂºÃ‚Â¿ */
 .text-block hr {
   border: none;
   border-top: 1px solid #f6bdd9;
   margin: 15px 0;
 }
 
-/* ç²‰è‰²æŒ‰é’®ï¼ˆæˆ‘å·²é˜…è¯»å®Œæ¯•ï¼‰ */
+/* ÃƒÂ§Ã‚Â²Ã¢â‚¬Â°ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â²ÃƒÂ¦Ã…â€™Ã¢â‚¬Â°ÃƒÂ©Ã¢â‚¬â„¢Ã‚Â®ÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ¦Ã‹â€ Ã¢â‚¬ËœÃƒÂ¥Ã‚Â·Ã‚Â²ÃƒÂ©Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¨Ã‚Â¯Ã‚Â»ÃƒÂ¥Ã‚Â®Ã…â€™ÃƒÂ¦Ã‚Â¯Ã¢â‚¬Â¢ÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â° */
 .pink-btn {
   background: #e5679c;
   color: white;
@@ -428,7 +431,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   background: #d44a86;
 }
 
-/* æ‰‹æœºç«¯ä¼˜åŒ– */
+/* ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Â¹ÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ§Ã‚Â«Ã‚Â¯ÃƒÂ¤Ã‚Â¼Ã‹Å“ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œ */
 @media (max-width: 600px) {
   .big-rules {
     padding: 20px 18px;
@@ -449,44 +452,71 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   }
 }
 
-/* ðŸŽ€ å…¬å‘Šæ ‡é¢˜æ›´å¯çˆ± */
+/* ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â€šÂ¬ ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â ÃƒÂ¦Ã‚Â Ã¢â‚¬Â¡ÃƒÂ©Ã‚Â¢Ã‹Å“ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¥Ã‚ÂÃ‚Â¯ÃƒÂ§Ã‹â€ Ã‚Â± */
 .popup-title {
   font-size: 24px;
   color: #e5679c;
-  font-weight: 700;
+  font-weight: 900;
   margin-bottom: 12px;
   font-family: "Patrick Hand", cursive;
 }
 
-/* ðŸŽ€ å†…å®¹æ–‡å­—æ›´èˆ’æœ */
+/* ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â€šÂ¬ ÃƒÂ¥Ã¢â‚¬Â Ã¢â‚¬Â¦ÃƒÂ¥Ã‚Â®Ã‚Â¹ÃƒÂ¦Ã¢â‚¬â€œÃ¢â‚¬Â¡ÃƒÂ¥Ã‚Â­Ã¢â‚¬â€ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¨Ã‹â€ Ã¢â‚¬â„¢ÃƒÂ¦Ã…â€œÃ‚Â */
 .popup-text p {
   color: #c94b82;
   font-size: 15px;
   line-height: 1.7;
   margin: 8px 0;
   font-family: "Patrick Hand", cursive;
+  font-weight: 900;
 }
 
-/* é‡ç‚¹æ–‡å­—æ©˜è‰² */
+/* ÃƒÂ©Ã¢â‚¬Â¡Ã‚ÂÃƒÂ§Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ¦Ã¢â‚¬â€œÃ¢â‚¬Â¡ÃƒÂ¥Ã‚Â­Ã¢â‚¬â€ÃƒÂ¦Ã‚Â©Ã‹Å“ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â² */
 .popup-text .highlight {
   color: #e58d6f;
-  font-weight: 600;
+  font-weight: 900;
 }
 
-/* çº¢è‰²è­¦å‘Šæ›´æ¸…æ¥šä½†æ˜¯å¯çˆ± */
+/* ÃƒÂ§Ã‚ÂºÃ‚Â¢ÃƒÂ¨Ã¢â‚¬Â°Ã‚Â²ÃƒÂ¨Ã‚Â­Ã‚Â¦ÃƒÂ¥Ã¢â‚¬ËœÃ…Â ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¦Ã‚Â¸Ã¢â‚¬Â¦ÃƒÂ¦Ã‚Â¥Ã…Â¡ÃƒÂ¤Ã‚Â½Ã¢â‚¬Â ÃƒÂ¦Ã‹Å“Ã‚Â¯ÃƒÂ¥Ã‚ÂÃ‚Â¯ÃƒÂ§Ã‹â€ Ã‚Â± */
 .popup-text .warn {
   color: #e05a86;
-  font-weight: bold;
+  font-weight: 900;
 }
 
-/* åˆ†éš”çº¿æ›´æ·¡æ›´å°‘å¥³ */
+.popup-text .escape-warning {
+  color: #c00000 !important;
+  font-weight: 900;
+}
+
+.rules-popup .popup-title,
+.rules-popup .popup-title *,
+.rules-popup .popup-text p,
+.rules-popup .popup-text p *,
+.rules-popup .pink-confirm-btn,
+.rules-popup .pink-confirm-btn * {
+  font-weight: 900 !important;
+}
+
+.rules-popup .escape-warning,
+.rules-popup .escape-warning * {
+  color: #c00000 !important;
+  font-weight: 900 !important;
+}
+
+.rules-popup .escape-warning-line,
+.rules-popup .escape-warning-line * {
+  color: #c00000 !important;
+  font-weight: 900 !important;
+}
+
+/* ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ©Ã…Â¡Ã¢â‚¬ÂÃƒÂ§Ã‚ÂºÃ‚Â¿ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¦Ã‚Â·Ã‚Â¡ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¥Ã‚Â°Ã¢â‚¬ËœÃƒÂ¥Ã‚Â¥Ã‚Â³ */
 .rules-content hr {
   border: none;
   border-top: 1px dashed #f6bdd9;
   margin: 12px 0;
 }
 
-/* ðŸŽ€ è¶…æ¼‚äº®çš„â€œæˆ‘å·²é˜…è¯»å®Œæ¯•â€æŒ‰é’® */
+/* ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â€šÂ¬ ÃƒÂ¨Ã‚Â¶Ã¢â‚¬Â¦ÃƒÂ¦Ã‚Â¼Ã¢â‚¬Å¡ÃƒÂ¤Ã‚ÂºÃ‚Â®ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÂ¦Ã‹â€ Ã¢â‚¬ËœÃƒÂ¥Ã‚Â·Ã‚Â²ÃƒÂ©Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¨Ã‚Â¯Ã‚Â»ÃƒÂ¥Ã‚Â®Ã…â€™ÃƒÂ¦Ã‚Â¯Ã¢â‚¬Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¦Ã…â€™Ã¢â‚¬Â°ÃƒÂ©Ã¢â‚¬â„¢Ã‚Â® */
 .pink-confirm-btn {
   background: linear-gradient(145deg, #f6bdd9, #e88ab0);
   border: none;
@@ -494,7 +524,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   padding: 12px 28px;
   border-radius: 30px;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 900;
   cursor: pointer;
   margin-top: 20px;
   width: 75%;
@@ -508,14 +538,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   box-shadow: 0 4px 15px rgba(230,103,156,0.35);
 }
 
-/* å¡ç‰‡æ›´ç«‹ä½“ã€æ›´å°‘å¥³ */
+/* ÃƒÂ¥Ã‚ÂÃ‚Â¡ÃƒÂ§Ã¢â‚¬Â°Ã¢â‚¬Â¡ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ§Ã‚Â«Ã¢â‚¬Â¹ÃƒÂ¤Ã‚Â½Ã¢â‚¬Å“ÃƒÂ£Ã¢â€šÂ¬Ã‚ÂÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¥Ã‚Â°Ã¢â‚¬ËœÃƒÂ¥Ã‚Â¥Ã‚Â³ */
 .cute-popup {
   border-radius: 22px;
   background: #ffffff;
   box-shadow: 0 10px 35px rgba(230,103,156,0.25);
 }
 
-/* æ‰‹æœºä¼˜åŒ– */
+/* ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Â¹ÃƒÂ¦Ã…â€œÃ‚ÂºÃƒÂ¤Ã‚Â¼Ã‹Å“ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œ */
 @media (max-width: 600px) {
   .popup-title { font-size: 20px; }
   .popup-text p { font-size: 14px; }
@@ -529,26 +559,38 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 <?php
 require_once __DIR__ . '/../../app/content_settings.php';
+
 $announcementEditableContent = [
-  'announcement_title' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_title', '💕 请阅读完毕~')),
-  'announcement_intro' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_intro', '本店以直播间过款为主，有卖各种可爱商品💕')),
-  'announcement_quality' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_quality', '价格优惠，质量不错')),
-  'announcement_storage' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_storage', '💛 可存单（需付款即可）付款后存多久都没问题')),
-  'announcement_shipping' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_shipping', '西马10满65 🍞 东马15满80 🍞')),
-  'announcement_dispatch' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_dispatch', '发货时间：1-3-6（有发货都会先在群通知）')),
-  'announcement_warning' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_warning', '未满18岁（需父母同意购买✅）<br>如发现逃单一律公开＋拉黑‼')),
-  'announcement_button' => qii_sanitize_rich_text(qii_content($pdo, 'announcement_button', '我已阅读完毕')),
+    'announcement_title' => '💕 请阅读完毕~',
+    'announcement_intro' => '本店以直播间过款为主，有卖各种可爱商品💕',
+    'announcement_quality' => '直播间选款+备注+付款',
+    'announcement_storage' => '💛 可存单（需付款即可）',
+    'announcement_shipping' => '西马10满65📦东马15满80',
+    'announcement_dispatch' => '发货时间：（有发货都会先在群通知）<br>进群请联系店主IG',
+    'announcement_warning' => '未满18岁（需父母同意购买✔）',
+    'announcement_escape_warning' => '发现逃单一律公开＋拉黑‼',
+    'announcement_cancel' => '麻烦大家不要卡库存！下单15分钟后没汇款会自动取消',
+    'announcement_button' => '我已阅读完毕',
 ];
 ?>
 <script>
 const qiiAnnouncementEditableContent = <?= json_encode($announcementEditableContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const qiiAnnouncementEnabled = <?= $announcementEnabled ? 'true' : 'false' ?>;
 function qiiCsrfHeaders(extra = {}) {
   const token = document.querySelector('meta[name="qii-csrf-token"]')?.content || "";
   return token ? { ...extra, "X-QII-CSRF-Token": token } : extra;
 }
 
+function qiiApiUrl(path) {
+  const cleanPath = String(path || "").replace(/^\/+/, "");
+  const pagePath = window.location.pathname;
+  const frontendIndex = pagePath.indexOf("/frontend/");
+  const basePath = frontendIndex >= 0 ? pagePath.slice(0, frontendIndex) : "";
+  return (basePath || "") + "/" + cleanPath;
+}
+
 // ===============
-// ðŸŒ¸ å…¬å‘Šå¼¹çª—å‡½æ•°
+// ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸ ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ§Ã‚ÂªÃ¢â‚¬â€ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â½ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°
 // ===============
 function showAnnouncementPopup() {
   const popup = document.createElement("div");
@@ -559,56 +601,76 @@ function showAnnouncementPopup() {
 
       <img src="images/27.png" class="qii-float" alt="Qii Girl">
 
-      <h2 class="popup-title">&#128149; &#35831;&#38405;&#35835;&#23436;&#27605;~</h2>
+      <h2 class="popup-title">${qiiAnnouncementEditableContent.announcement_title}</h2>
 
       <div class="popup-text">
-        <p>&#26412;&#24215;&#20197;&#30452;&#25773;&#38388;&#36807;&#27454;&#20026;&#20027;&#65292;&#26377;&#21334;&#21508;&#31181;&#21487;&#29233;&#21830;&#21697;&#128149;</p>
-        <p>&#20215;&#26684;&#20248;&#24800;&#65292;&#36136;&#37327;&#19981;&#38169;</p>
+        <p>${qiiAnnouncementEditableContent.announcement_intro}</p>
+        <p>${qiiAnnouncementEditableContent.announcement_quality}</p>
 
-        <p class="highlight">&#128155; &#21487;&#23384;&#21333;&#65288;&#38656;&#20184;&#27454;&#21363;&#21487;&#65289;&#20184;&#27454;&#21518;&#23384;&#22810;&#20037;&#37117;&#27809;&#38382;&#39064;</p>
-
-        <hr>
-
-        <p>&#35199;&#39532;10&#28385;65 &#127838; &#19996;&#39532;15&#28385;80 &#127838;</p>
-        <p>&#21457;&#36135;&#26102;&#38388;&#65306;1-3-6&#65288;&#26377;&#21457;&#36135;&#37117;&#20250;&#20808;&#22312;&#32676;&#36890;&#30693;&#65289;</p>
+        <p class="highlight">${qiiAnnouncementEditableContent.announcement_storage}</p>
 
         <hr>
 
-        <p class="warn">未满18岁(需父母同意购买✅）<br>
-如发现逃单一律公开➕拉黑‼️</p>
+        <p>${qiiAnnouncementEditableContent.announcement_shipping}</p>
+        <p>${qiiAnnouncementEditableContent.announcement_dispatch}</p>
+
+        <hr>
+
+        <p class="warn">${qiiAnnouncementEditableContent.announcement_warning}</p>
+        <p class="escape-warning-line" style="color:#c00000 !important;font-weight:900 !important;">${qiiAnnouncementEditableContent.announcement_escape_warning}</p>
+
+        <hr>
+
+        <p>${qiiAnnouncementEditableContent.announcement_cancel}</p>
       </div>
 
-      <button id="closeSpeakerPopup" class="pink-confirm-btn">&#25105;&#24050;&#38405;&#35835;&#23436;&#27605;</button>
+      <button id="closeSpeakerPopup" class="pink-confirm-btn">${qiiAnnouncementEditableContent.announcement_button}</button>
     </div>
   `;
 
   document.body.appendChild(popup);
 
-  const announcementBindings = [
-    [popup.querySelector(".popup-title"), "announcement_title"],
-    [popup.querySelectorAll(".popup-text p")[0], "announcement_intro"],
-    [popup.querySelectorAll(".popup-text p")[1], "announcement_quality"],
-    [popup.querySelector(".popup-text .highlight"), "announcement_storage"],
-    [popup.querySelectorAll(".popup-text p")[3], "announcement_shipping"],
-    [popup.querySelectorAll(".popup-text p")[4], "announcement_dispatch"],
-    [popup.querySelector(".popup-text .warn"), "announcement_warning"],
-    [popup.querySelector("#closeSpeakerPopup"), "announcement_button"]
-  ];
-  announcementBindings.forEach(([element, key]) => {
-    if (!element) return;
-    element.dataset.contentKey = key;
-    element.innerHTML = qiiAnnouncementEditableContent[key];
+  const enforceEscapeWarning = () => {
+    if (popup.dataset.enforcingEscapeWarning === "1") return;
+    popup.dataset.enforcingEscapeWarning = "1";
+
+    const warningText = popup.querySelector(".popup-text .warn");
+    if (warningText) {
+      warningText.innerHTML = qiiAnnouncementEditableContent.announcement_warning;
+    }
+
+    let escapeLine = popup.querySelector(".popup-text .escape-warning-line");
+    if (!escapeLine && warningText) {
+      escapeLine = document.createElement("p");
+      escapeLine.className = "escape-warning-line";
+      warningText.insertAdjacentElement("afterend", escapeLine);
+    }
+    if (escapeLine) {
+      escapeLine.innerHTML = qiiAnnouncementEditableContent.announcement_escape_warning;
+      escapeLine.style.setProperty("color", "#c00000", "important");
+      escapeLine.style.setProperty("font-weight", "900", "important");
+    }
+
+    popup.dataset.enforcingEscapeWarning = "0";
+  };
+  enforceEscapeWarning();
+  const warningObserver = new MutationObserver(enforceEscapeWarning);
+  warningObserver.observe(popup.querySelector(".popup-text") || popup, {
+    childList: true,
+    subtree: true,
+    characterData: true
   });
 
   document.getElementById("closeSpeakerPopup").onclick = () => {
+    warningObserver.disconnect();
     popup.remove();
     document.dispatchEvent(new CustomEvent("qii:announcement-closed"));
   };
 }
 
-// èŽ·å–è´­ç‰©è¢‹å†…å®¹å¹¶æ›´æ–°
+// ÃƒÂ¨Ã…Â½Ã‚Â·ÃƒÂ¥Ã‚ÂÃ¢â‚¬â€œÃƒÂ¨Ã‚Â´Ã‚Â­ÃƒÂ§Ã¢â‚¬Â°Ã‚Â©ÃƒÂ¨Ã‚Â¢Ã¢â‚¬Â¹ÃƒÂ¥Ã¢â‚¬Â Ã¢â‚¬Â¦ÃƒÂ¥Ã‚Â®Ã‚Â¹ÃƒÂ¥Ã‚Â¹Ã‚Â¶ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â°
 function getCartAndUpdate() {
-  return fetch("api/add_to_cart.php?mode=getCart")
+  return fetch(qiiApiUrl("api/add_to_cart.php?mode=getCart"))
     .then(res => res.json())
     .then(data => { if (data.success) updateCartUI(data); })
     .catch(err => console.error("getCart failed", err));
@@ -627,7 +689,7 @@ function qiiFixText(value) {
   let text = String(value ?? "");
 
   try {
-    if (/[ÃÂâ]/.test(text)) {
+    if (/[ÃƒÆ’Ãƒâ€šÃƒÂ¢]/.test(text)) {
       text = decodeURIComponent(escape(text));
     }
   } catch (e) {}
@@ -644,7 +706,7 @@ function qiiText(value) {
     .replace(/'/g, "&#039;");
 }
 
-// æ›´æ–°è´­ç‰©è¢‹UI
+// ÃƒÂ¦Ã¢â‚¬ÂºÃ‚Â´ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â°ÃƒÂ¨Ã‚Â´Ã‚Â­ÃƒÂ§Ã¢â‚¬Â°Ã‚Â©ÃƒÂ¨Ã‚Â¢Ã¢â‚¬Â¹UI
 function updateCartUI(data) {
   const countEls = document.querySelectorAll(".cart-count");
   const cartContent = document.querySelector(".cart-content");
@@ -655,8 +717,8 @@ function updateCartUI(data) {
     return;
   }
 
-  // å½“å‰åœ°åŒºï¼ˆé»˜è®¤è¥¿é©¬ï¼‰
-  const currentRegion = document.querySelector('input[name="region"]:checked')?.value || 'west';
+  // ÃƒÂ¥Ã‚Â½Ã¢â‚¬Å“ÃƒÂ¥Ã¢â‚¬Â°Ã‚ÂÃƒÂ¥Ã…â€œÃ‚Â°ÃƒÂ¥Ã…â€™Ã‚ÂºÃƒÂ¯Ã‚Â¼Ã‹â€ ÃƒÂ©Ã‚Â»Ã‹Å“ÃƒÂ¨Ã‚Â®Ã‚Â¤ÃƒÂ¨Ã‚Â¥Ã‚Â¿ÃƒÂ©Ã‚Â©Ã‚Â¬ÃƒÂ¯Ã‚Â¼Ã¢â‚¬Â°
+  const currentRegion = 'free_ship';
 
   let html = '<ul>';
   let total = 0;
@@ -687,32 +749,10 @@ function updateCartUI(data) {
       </li>`;
   });
 
-  // åœ°åŒºé€‰æ‹©å™¨ï¼ˆæ’å…¥åœ¨å°è®¡åŒºåŸŸä¹‹å‰ï¼‰
-  html += `</ul>
-    <div class="region-select">
-      <label>
-        <input type="radio" name="region" value="west" ${currentRegion === 'west' ? 'checked' : ''}>
-        西马 RM10
-      </label>
-      <label style="margin-left:15px;">
-        <input type="radio" name="region" value="east" ${currentRegion === 'east' ? 'checked' : ''}>
-        东马 RM15
-      </label>
-      <label style="margin-left:15px;">
-        <input type="radio" name="region" value="hold" ${currentRegion === 'hold' ? 'checked' : ''}>
-        存单 RM0
-      </label>
-    </div>`;
+  html += `</ul>`;
 
-  // æŒ‰åœ°åŒºè®¡ç®—è¿è´¹ä¸Žå…é‚®é—¨æ§›
-  let shipping_cost = 0;
-  if (currentRegion === 'hold') {
-    shipping_cost = 0;
-  } else if (currentRegion === 'west') {
-    shipping_cost = total >= 65 ? 0 : 10;
-  } else {
-    shipping_cost = total >= 80 ? 0 : 15;
-  }
+  // ÃƒÂ¦Ã…â€™Ã¢â‚¬Â°ÃƒÂ¥Ã…â€œÃ‚Â°ÃƒÂ¥Ã…â€™Ã‚ÂºÃƒÂ¨Ã‚Â®Ã‚Â¡ÃƒÂ§Ã‚Â®Ã¢â‚¬â€ÃƒÂ¨Ã‚Â¿Ã‚ÂÃƒÂ¨Ã‚Â´Ã‚Â¹ÃƒÂ¤Ã‚Â¸Ã…Â½ÃƒÂ¥Ã¢â‚¬Â¦Ã‚ÂÃƒÂ©Ã¢â‚¬Å¡Ã‚Â®ÃƒÂ©Ã¢â‚¬â€Ã‚Â¨ÃƒÂ¦Ã‚Â§Ã¢â‚¬Âº
+  const shipping_cost = 0;
   const grand_total = total + shipping_cost;
 
   html += `
@@ -724,30 +764,42 @@ function updateCartUI(data) {
   cartContent.innerHTML = html;
 }
 
-// åˆå§‹åŒ–äº¤äº’
+// ÃƒÂ¥Ã‹â€ Ã‚ÂÃƒÂ¥Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ¥Ã…â€™Ã¢â‚¬â€œÃƒÂ¤Ã‚ÂºÃ‚Â¤ÃƒÂ¤Ã‚ÂºÃ¢â‚¬â„¢
 document.addEventListener("DOMContentLoaded", () => {
   // ===============
-  // ðŸŒ¸ æ¯æ¬¡è¿›å…¥ç½‘ç«™è‡ªåŠ¨å¼¹å‡ºå…¬å‘Š
+  // ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¸ ÃƒÂ¦Ã‚Â¯Ã‚ÂÃƒÂ¦Ã‚Â¬Ã‚Â¡ÃƒÂ¨Ã‚Â¿Ã¢â‚¬ÂºÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¥ÃƒÂ§Ã‚Â½Ã¢â‚¬ËœÃƒÂ§Ã‚Â«Ã¢â€žÂ¢ÃƒÂ¨Ã¢â‚¬Â¡Ã‚ÂªÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ¥Ã‚Â¼Ã‚Â¹ÃƒÂ¥Ã¢â‚¬Â¡Ã‚ÂºÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â 
   // ===============
-  showAnnouncementPopup();
+  if (qiiAnnouncementEnabled) {
+    showAnnouncementPopup();
+  }
   
-  getCartAndUpdate();
-
   const fab = document.getElementById("floating-cart");
   const modal = document.getElementById("cartModal");
   const close = document.querySelector(".close");
-  fab.onclick = () => modal.style.display = "block";
-  close.onclick = () => modal.style.display = "none";
-  window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+  if (fab && modal) {
+    let lastCartOpenAt = 0;
+    const openCartModal = (event) => {
+      event.preventDefault();
+      const now = Date.now();
+      modal.style.display = "block";
+      if (now - lastCartOpenAt < 250) return;
+      lastCartOpenAt = now;
+      getCartAndUpdate();
+    };
+    fab.onmousedown = openCartModal;
+    fab.onclick = openCartModal;
+  }
+  if (close && modal) close.onclick = () => modal.style.display = "none";
+  if (modal) window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
 
-  // æ•°é‡å¢žå‡
+  // ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ©Ã¢â‚¬Â¡Ã‚ÂÃƒÂ¥Ã‚Â¢Ã…Â¾ÃƒÂ¥Ã¢â‚¬Â¡Ã‚Â
   document.querySelector(".cart-content").addEventListener("click", e => {
       const t = e.target;
       if (t.classList.contains("dec") || t.classList.contains("inc")) {
         const fd = new FormData();
         fd.append("id", t.dataset.id);
         fd.append("variant_id", t.dataset.variantId || 0);
-        const url = t.classList.contains("dec") ? "api/add_to_cart.php?mode=removeOne" : "api/add_to_cart.php?mode=add";
+        const url = t.classList.contains("dec") ? qiiApiUrl("api/add_to_cart.php?mode=removeOne") : qiiApiUrl("api/add_to_cart.php?mode=add");
         fetch(url, { method:"POST", body: fd, headers: qiiCsrfHeaders() })
         .then(r => r.json())
         .then(d => updateCartUI(d))
@@ -755,34 +807,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // æ¸…ç©º
+  // ÃƒÂ¦Ã‚Â¸Ã¢â‚¬Â¦ÃƒÂ§Ã‚Â©Ã‚Âº
   const clearBtn = document.getElementById("clearCartBtn");
   if (clearBtn) clearBtn.addEventListener("click", () => {
-    fetch("api/add_to_cart.php?mode=clear", { method: "POST", headers: qiiCsrfHeaders() })
+    fetch(qiiApiUrl("api/add_to_cart.php?mode=clear"), { method: "POST", headers: qiiCsrfHeaders() })
       .then(r => r.json())
       .then(d => {
         updateCartUI(d);
       });
   });
 
-  // åŽ»ç»“è´¦
+  // ÃƒÂ¥Ã…Â½Ã‚Â»ÃƒÂ§Ã‚Â»Ã¢â‚¬Å“ÃƒÂ¨Ã‚Â´Ã‚Â¦
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", () => {
 
-      const region = document.querySelector('input[name="region"]:checked')?.value;
-
-      if (!region) {
-        alert("请选择邮费方式（西马 / 东马 / 存单）后再结账");
-        return;
-      }
+      const region = "free_ship";
 
       const fd = new FormData();
       fd.append("region", region);
 
-      fetch("api/checkout.php", {
+      fetch(qiiApiUrl("api/checkout.php"), {
         method: "POST",
         headers: qiiCsrfHeaders(),
+        credentials: "same-origin",
         body: fd
       })
         .then((r) => r.json())
@@ -790,25 +838,26 @@ document.addEventListener("DOMContentLoaded", () => {
           if (d.success && d.redirect) {
             window.location.href = d.redirect;
           } else {
-            alert(d.msg || "Checkout failed. Please try again.");
+            alert(d.msg || d.message || "Checkout failed. Please try again.");
           }
         })
         .catch(() => console.error("Checkout error"));
     });
   }
 
-  // ç›‘å¬åœ°åŒºåˆ‡æ¢ï¼Œè‡ªåŠ¨åˆ·æ–°å°è®¡ä¸Žè¿è´¹
+  // ÃƒÂ§Ã¢â‚¬ÂºÃ¢â‚¬ËœÃƒÂ¥Ã‚ÂÃ‚Â¬ÃƒÂ¥Ã…â€œÃ‚Â°ÃƒÂ¥Ã…â€™Ã‚ÂºÃƒÂ¥Ã‹â€ Ã¢â‚¬Â¡ÃƒÂ¦Ã‚ÂÃ‚Â¢ÃƒÂ¯Ã‚Â¼Ã…â€™ÃƒÂ¨Ã¢â‚¬Â¡Ã‚ÂªÃƒÂ¥Ã…Â Ã‚Â¨ÃƒÂ¥Ã‹â€ Ã‚Â·ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â°ÃƒÂ¥Ã‚Â°Ã‚ÂÃƒÂ¨Ã‚Â®Ã‚Â¡ÃƒÂ¤Ã‚Â¸Ã…Â½ÃƒÂ¨Ã‚Â¿Ã‚ÂÃƒÂ¨Ã‚Â´Ã‚Â¹
   document.addEventListener("change", (e) => {
     if (e.target && e.target.name === "region") {
       getCartAndUpdate();
     }
   });
 
-  // ðŸ“£ å–‡å­æŒ‰é’®å†æ¬¡æ‰“å¼€å…¬å‘Š
+  // ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â£ ÃƒÂ¥Ã¢â‚¬â€œÃ¢â‚¬Â¡ÃƒÂ¥Ã‚ÂÃ‚Â­ÃƒÂ¦Ã…â€™Ã¢â‚¬Â°ÃƒÂ©Ã¢â‚¬â„¢Ã‚Â®ÃƒÂ¥Ã¢â‚¬Â Ã‚ÂÃƒÂ¦Ã‚Â¬Ã‚Â¡ÃƒÂ¦Ã¢â‚¬Â°Ã¢â‚¬Å“ÃƒÂ¥Ã‚Â¼Ã¢â€šÂ¬ÃƒÂ¥Ã¢â‚¬Â¦Ã‚Â¬ÃƒÂ¥Ã¢â‚¬ËœÃ…Â 
   const speaker = document.getElementById("floating-speaker");
-  if (speaker) {
+  if (qiiAnnouncementEnabled && speaker) {
     speaker.addEventListener("click", () => showAnnouncementPopup());
   }
 });
 
 </script>
+

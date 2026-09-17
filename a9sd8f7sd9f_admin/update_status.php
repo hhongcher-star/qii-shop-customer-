@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $order_number = $_POST['order_number'] ?? '';
     $status = $_POST['status'] ?? '';
-    $allowedStatuses = ['pending', 'awaiting_payment', 'paid', 'shipped', 'completed', 'stored_uncombined', 'stored_combined'];
+    $allowedStatuses = ['pending', 'awaiting_payment', 'payment_received', 'paid', 'shipped', 'cancelled'];
 
     if ($order_number && in_array($status, $allowedStatuses, true)) {
         $stmt = $pdo->prepare("UPDATE orders SET order_status=?, updated_at=NOW() WHERE order_number=?");

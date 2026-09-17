@@ -53,11 +53,7 @@ try {
             addr_postcode = ?,
             addr_state = ?,
             order_note = ?,
-            order_status = CASE
-                WHEN region = 'hold' AND order_status = 'stored_combined' THEN 'stored_combined'
-                WHEN region = 'hold' THEN 'stored_uncombined'
-                ELSE 'pending'
-            END
+            order_status = 'pending'
         WHERE order_number = ?
         LIMIT 1
     ");

@@ -1,7 +1,7 @@
 <?php
 $productCardAos = $productCardAos ?? '';
 ?>
-<div class="product-card" data-product-id="<?= (int)$p['id'] ?>"<?= $productCardAos !== '' ? ' data-aos="' . htmlspecialchars($productCardAos, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+<div class="product-card" data-product-id="<?= (int)$p['id'] ?>" data-product-payload='<?= qii_product_payload($p) ?>'<?= $productCardAos !== '' ? ' data-aos="' . htmlspecialchars($productCardAos, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
   <?php if (!empty($p['brand'])): ?>
     <div class="brand-badge"><?= htmlspecialchars(qii_text($p['brand'])) ?></div>
   <?php endif; ?>
@@ -14,7 +14,7 @@ $productCardAos = $productCardAos ?? '';
     <div class="price">RM <?= number_format($p['price'], 2) ?></div>
   </div>
   <?php if ($p['stock'] > 0): ?>
-    <button onclick='openVariantModal(<?= qii_product_payload($p) ?>)' class="choose-btn" aria-label="Add to cart"></button>
+    <button type="button" onclick='event.stopPropagation(); openVariantModal(<?= qii_product_payload($p) ?>)' data-product-payload='<?= qii_product_payload($p) ?>' class="choose-btn" aria-label="Add to cart"></button>
   <?php else: ?>
     <button class="add-btn" disabled>Sold out</button>
   <?php endif; ?>

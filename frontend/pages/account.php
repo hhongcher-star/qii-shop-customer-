@@ -7,19 +7,51 @@ qii_require_customer();
 
 $customer = qii_customer();
 $view = (string)($_GET['view'] ?? 'orders');
-$allowedViews = ['orders', 'holds', 'favorites', 'recent'];
+$allowedViews = ['orders', 'settings'];
 if (!in_array($view, $allowedViews, true)) {
     $view = 'orders';
 }
 
-$orderWhere = 'o.customer_id=?';
-if ($view === 'holds') {
-    $orderWhere .= " AND o.order_status IN ('stored_uncombined','stored_combined')";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    qii_verify_frontend_csrf();
+    $action = (string)($_POST['address_action'] ?? '');
+    $customerId = (int)$customer['id'];
+
+    if ($action === 'save_address') {
+        qii_save_customer_address(
+            $pdo,
+            $customerId,
+            (string)($_POST['recipient_name'] ?? ''),
+            (string)($_POST['phone'] ?? ''),
+            (string)($_POST['address'] ?? ''),
+            (string)($_POST['postcode'] ?? ''),
+            (string)($_POST['state'] ?? '')
+        );
+        header('Location: account.php?view=settings&saved=1');
+        exit;
+    }
+
+    $addressId = (int)($_POST['address_id'] ?? 0);
+    if ($addressId > 0 && $action === 'delete_address') {
+        $stmt = $pdo->prepare('DELETE FROM customer_addresses WHERE id=? AND customer_id=?');
+        $stmt->execute([$addressId, $customerId]);
+        header('Location: account.php?view=settings&deleted=1');
+        exit;
+    }
+
+    if ($addressId > 0 && $action === 'default_address') {
+        $pdo->prepare('UPDATE customer_addresses SET is_default=0 WHERE customer_id=?')->execute([$customerId]);
+        $stmt = $pdo->prepare('UPDATE customer_addresses SET is_default=1, updated_at=NOW() WHERE id=? AND customer_id=?');
+        $stmt->execute([$addressId, $customerId]);
+        header('Location: account.php?view=settings&default=1');
+        exit;
+    }
 }
 
+$orderWhere = 'o.customer_id=?';
 $orders = [];
-$favoriteProducts = [];
-if (in_array($view, ['orders', 'holds'], true)) {
+$savedAddresses = [];
+if ($view === 'orders') {
     $stmt = $pdo->prepare("
         SELECT o.*, COUNT(oi.id) AS item_count
         FROM orders o
@@ -31,16 +63,8 @@ if (in_array($view, ['orders', 'holds'], true)) {
     $stmt->execute([(int)$customer['id']]);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-if ($view === 'favorites') {
-    $stmt = $pdo->prepare("
-        SELECT p.*
-        FROM customer_favorites f
-        INNER JOIN products p ON p.id=f.product_id
-        WHERE f.customer_id=? AND COALESCE(p.status, 'active')='active'
-        ORDER BY f.created_at DESC
-    ");
-    $stmt->execute([(int)$customer['id']]);
-    $favoriteProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if ($view === 'settings') {
+    $savedAddresses = qii_customer_addresses($pdo, (int)$customer['id'], 20);
 }
 
 $statsStmt = $pdo->prepare("
@@ -56,9 +80,7 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
 $pageTitles = [
     'orders' => ['全部订单', '这里记录你的全部订单历史。'],
-    'holds' => ['存单管理', '集中查看仍在存放或已经合单的订单。'],
-    'favorites' => ['我的收藏', '你收藏的商品会显示在这里。'],
-    'recent' => ['最近浏览', '你最近看过的商品会显示在这里。'],
+    'settings' => ['地址设置', '管理你的收件人和地址配套。'],
 ];
 ?>
 <!DOCTYPE html>
@@ -128,7 +150,9 @@ $pageTitles = [
     }
     .account-nav a:hover, .account-nav a.active { color:var(--account-pink); background:#fff1f7; border-left-color:var(--account-pink); }
     .account-nav i { width:17px; text-align:center; }
-    .logout-link { margin:10px; min-height:42px !important; justify-content:center; border:1px solid var(--account-pink) !important; border-radius:5px; color:var(--account-pink) !important; }
+    .logout-link { margin:10px; min-height:42px !important; display:flex; align-items:center; gap:12px; justify-content:center; border:1px solid var(--account-pink) !important; border-radius:5px; color:var(--account-pink) !important; }
+    .logout-form { margin:0; }
+    .logout-form button { width:calc(100% - 20px); background:#fff; cursor:pointer; font:inherit; }
     .account-main { min-width:0; }
     .account-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin-bottom:18px; overflow:hidden; }
     .account-stat { display:flex; align-items:center; gap:14px; padding:18px 22px; border-right:1px solid var(--account-border); }
@@ -151,20 +175,30 @@ $pageTitles = [
     .order-value span { display:block; color:var(--account-muted); font-size:11px; margin-bottom:4px; }
     .receipt-link { display:inline-flex; justify-content:center; align-items:center; min-height:36px; border-radius:5px; background:var(--account-pink); color:#fff; text-decoration:none; font-size:13px; font-weight:900; }
     .hold-badge { display:inline-flex; margin-top:7px; padding:5px 9px; border-radius:999px; background:#fff1d9; color:#bd7a00; font-size:11px; font-weight:900; }
-    .favorite-actions { display:grid; grid-template-columns:1fr 38px; gap:8px; }
-    .remove-favorite { border:1px solid #f0aac8; border-radius:5px; background:#fff; color:#ed4d94; cursor:pointer; }
     .empty-state { min-height:300px; display:grid; place-items:center; text-align:center; padding:40px 20px; }
     .empty-state i { display:block; margin-bottom:15px; color:#f3a6c7; font-size:54px; }
     .empty-state strong { display:block; margin-bottom:8px; font-size:17px; }
     .empty-state p { margin:0 0 18px; color:var(--account-muted); font-size:13px; }
     .empty-state a { display:inline-flex; align-items:center; gap:7px; min-height:38px; padding:0 18px; border-radius:5px; background:var(--account-pink); color:#fff; text-decoration:none; font-weight:900; font-size:13px; }
-    .favorite-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; padding:16px; }
-    .favorite-card { position:relative; overflow:hidden; border:1px solid var(--account-border); border-radius:7px; background:#fff; }
-    .favorite-card img { width:100%; aspect-ratio:1/1; display:block; object-fit:cover; }
-    .favorite-info { padding:12px; }
-    .favorite-info strong { display:block; min-height:38px; font-size:14px; }
-    .favorite-info span { display:block; margin:8px 0 12px; color:var(--account-pink); font-weight:900; }
-    .favorite-info a { display:flex; min-height:36px; align-items:center; justify-content:center; border-radius:5px; background:var(--account-pink); color:#fff; text-decoration:none; font-size:13px; font-weight:900; }
+    .settings-wrap { padding:16px; display:grid; gap:16px; }
+    .address-form, .address-list { border:1px solid var(--account-border); border-radius:8px; background:#fff; padding:16px; }
+    .address-form h3, .address-list h3 { margin:0 0 12px; font-size:16px; }
+    .address-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .address-grid label { display:grid; gap:6px; color:var(--account-muted); font-size:12px; font-weight:800; }
+    .address-grid input, .address-grid textarea {
+      width:100%; border:1px solid var(--account-border); border-radius:6px; padding:10px 12px; font:inherit; outline:none;
+    }
+    .address-grid textarea { min-height:78px; resize:vertical; grid-column:1/-1; }
+    .address-save { min-height:42px; margin-top:12px; padding:0 18px; border:0; border-radius:6px; background:var(--account-pink); color:#fff; font-weight:900; cursor:pointer; }
+    .address-cards { display:grid; gap:10px; }
+    .address-card { border:1px solid var(--account-border); border-radius:7px; padding:12px; display:grid; gap:8px; }
+    .address-card strong { font-size:15px; }
+    .address-card p { margin:0; color:var(--account-muted); font-size:13px; line-height:1.5; }
+    .address-card-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .address-card-actions button { min-height:34px; padding:0 12px; border-radius:5px; border:1px solid #f0aac8; background:#fff; color:var(--account-pink); font-weight:800; cursor:pointer; }
+    .address-card .default-badge { display:inline-flex; width:max-content; padding:3px 8px; border-radius:999px; background:#fff1f7; color:var(--account-pink); font-size:11px; font-weight:900; }
+    .qii-toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); opacity:0; pointer-events:none; z-index:8000; min-width:220px; max-width:calc(100% - 32px); padding:12px 16px; border-radius:999px; background:#ed4d94; color:#fff; text-align:center; font-weight:900; box-shadow:0 10px 24px rgba(237,77,148,.28); transition:.25s ease; }
+    .qii-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
     #loader{
       position: fixed;
       inset: 0;
@@ -304,7 +338,7 @@ $pageTitles = [
 
       .account-nav{
         display:grid;
-        grid-template-columns:repeat(4,1fr);
+        grid-template-columns:repeat(3,1fr);
         padding:0;
         width:100%;
       }
@@ -331,10 +365,25 @@ $pageTitles = [
         border-bottom:3px solid var(--account-pink);
       }
 
-      .logout-link{
+      .account-nav > .logout-link{
         display:flex !important;
         grid-column:1/-1;
+        min-height:44px !important;
+        flex-direction:row;
+        margin:10px 10px 0;
+        border-radius:10px !important;
+      }
+
+      .logout-form{
+        grid-column:1/-1;
         margin:10px;
+      }
+
+      .logout-form .logout-link{
+        width:100%;
+        min-height:44px !important;
+        flex-direction:row;
+        margin:0;
         border-radius:10px !important;
       }
 
@@ -360,9 +409,8 @@ $pageTitles = [
         justify-content:center;
       }
 
-      .favorite-grid{
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        padding:12px;
+      .address-grid{
+        grid-template-columns:1fr;
       }
 
       .order-row{
@@ -373,8 +421,7 @@ $pageTitles = [
         padding:12px;
       }
 
-      .order-row,
-      .favorite-card{
+      .order-row{
         min-width:0;
       }
 
@@ -395,7 +442,7 @@ $pageTitles = [
   <section class="account-hero">
     <div class="account-hero-copy">
       <h1>我的订单 <i class="fa-solid fa-heart"></i></h1>
-      <p><strong><?= htmlspecialchars($customer['name']) ?></strong>，这里会记录你的订单和存单历史。</p>
+      <p><strong><?= htmlspecialchars($customer['name']) ?></strong>，这里会记录你的订单历史。</p>
     </div>
   </section>
 
@@ -411,12 +458,13 @@ $pageTitles = [
       <nav class="account-nav">
         <div class="nav-section-title">订单中心</div>
         <a class="<?= $view === 'orders' ? 'active' : '' ?>" href="account.php?view=orders"><i class="fa-solid fa-bag-shopping"></i> 全部订单</a>
-        <a class="<?= $view === 'holds' ? 'active' : '' ?>" href="account.php?view=holds"><i class="fa-regular fa-bookmark"></i> 存单管理</a>
-        <div class="nav-section-title">我的收藏</div>
-        <a class="<?= $view === 'favorites' ? 'active' : '' ?>" href="account.php?view=favorites"><i class="fa-regular fa-heart"></i> 收藏夹</a>
-        <a class="<?= $view === 'recent' ? 'active' : '' ?>" href="account.php?view=recent"><i class="fa-regular fa-clock"></i> 最近浏览</a>
+        <div class="nav-section-title">账户设置</div>
+        <a class="<?= $view === 'settings' ? 'active' : '' ?>" href="account.php?view=settings"><i class="fa-solid fa-gear"></i> 设置</a>
         <a class="logout-link" href="change_password.php"><i class="fa-solid fa-key"></i> 修改密码</a>
-        <a class="logout-link" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> 退出登录</a>
+        <form class="logout-form" method="post" action="logout.php">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+          <button class="logout-link" type="submit"><i class="fa-solid fa-right-from-bracket"></i> 退出登录</button>
+        </form>
       </nav>
     </aside>
 
@@ -425,10 +473,6 @@ $pageTitles = [
         <div class="account-stat">
           <span class="stat-icon"><i class="fa-solid fa-bag-shopping"></i></span>
           <div><strong><?= (int)($stats['all_orders'] ?? 0) ?></strong><small>全部订单</small></div>
-        </div>
-        <div class="account-stat">
-          <span class="stat-icon"><i class="fa-solid fa-box-archive"></i></span>
-          <div><strong><?= (int)($stats['hold_orders'] ?? 0) ?></strong><small>存单记录</small></div>
         </div>
         <div class="account-stat">
           <span class="stat-icon"><i class="fa-solid fa-receipt"></i></span>
@@ -445,34 +489,76 @@ $pageTitles = [
           <a class="shop-link" href="shop.php">继续购物 <i class="fa-solid fa-arrow-right"></i></a>
         </header>
 
-        <?php if ($view === 'favorites' && $favoriteProducts): ?>
-          <div class="favorite-grid">
-            <?php foreach ($favoriteProducts as $product): ?>
-              <article class="favorite-card">
-                <img src="<?= htmlspecialchars(qii_asset_path($product['image_url'] ?? '')) ?>" alt="<?= htmlspecialchars(qii_text($product['name'])) ?>">
-                <div class="favorite-info">
-                  <strong><?= htmlspecialchars(qii_text($product['name'])) ?></strong>
-                  <span>RM <?= number_format((float)$product['price'], 2) ?></span>
-                  <button class="remove-favorite" type="button" data-remove-favorite="<?= (int)$product['id'] ?>"><i class="fa-solid fa-trash"></i> 取消收藏</button>
-                  <a href="shop.php?cat=<?= urlencode((string)$product['category']) ?>">查看商品</a>
+        <?php if ($view === 'settings'): ?>
+          <div class="settings-wrap">
+            <form class="address-form" method="post">
+              <h3>新增地址配套</h3>
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+              <input type="hidden" name="address_action" value="save_address">
+              <div class="address-grid">
+                <label>收件人名字
+                  <input name="recipient_name" required placeholder="例如：陈小琪">
+                </label>
+                <label>电话
+                  <input name="phone" placeholder="例如：0123456789">
+                </label>
+                <label>州属
+                  <input name="state" placeholder="例如：Selangor">
+                </label>
+                <label>邮编
+                  <input name="postcode" placeholder="例如：43000">
+                </label>
+                <label>详细地址
+                  <textarea name="address" placeholder="例如：No. 12, Jalan Bunga"></textarea>
+                </label>
+              </div>
+              <button class="address-save" type="submit">保存配套</button>
+            </form>
+
+            <section class="address-list">
+              <h3>已保存配套</h3>
+              <?php if (!$savedAddresses): ?>
+                <div class="empty-state" style="min-height:160px;padding:24px 12px;">
+                  <div><i class="fa-regular fa-address-card"></i><strong>还没有地址配套</strong><p>保存后，结账时可以直接选择。</p></div>
                 </div>
-              </article>
-            <?php endforeach; ?>
-          </div>
-        <?php elseif (in_array($view, ['favorites', 'recent'], true)): ?>
-          <div class="empty-state">
-            <div>
-              <i class="<?= $view === 'favorites' ? 'fa-regular fa-heart' : 'fa-regular fa-clock' ?>"></i>
-              <strong><?= $view === 'favorites' ? '收藏夹还是空的' : '还没有最近浏览记录' ?></strong>
-              <p><?= $view === 'favorites' ? '之后接入商品收藏按钮，收藏内容会显示在这里。' : '之后接入商品浏览记录，最近看过的商品会显示在这里。' ?></p>
-              <a href="shop.php"><i class="fa-solid fa-bag-shopping"></i> 去逛逛</a>
-            </div>
+              <?php else: ?>
+                <div class="address-cards">
+                  <?php foreach ($savedAddresses as $address): ?>
+                    <article class="address-card">
+                      <?php if (!empty($address['is_default'])): ?><span class="default-badge">默认</span><?php endif; ?>
+                      <strong><?= htmlspecialchars((string)$address['recipient_name']) ?></strong>
+                      <p>
+                        <?= htmlspecialchars((string)($address['phone'] ?? '')) ?><br>
+                        <?= htmlspecialchars((string)($address['address'] ?? '')) ?><br>
+                        <?= htmlspecialchars(trim((string)($address['state'] ?? '') . ' ' . (string)($address['postcode'] ?? ''))) ?>
+                      </p>
+                      <?php if ((int)($address['id'] ?? 0) > 0): ?>
+                        <div class="address-card-actions">
+                          <form method="post">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="address_action" value="default_address">
+                            <input type="hidden" name="address_id" value="<?= (int)$address['id'] ?>">
+                            <button type="submit">设为默认</button>
+                          </form>
+                          <form method="post">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(qii_frontend_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="address_action" value="delete_address">
+                            <input type="hidden" name="address_id" value="<?= (int)$address['id'] ?>">
+                            <button type="submit">删除</button>
+                          </form>
+                        </div>
+                      <?php endif; ?>
+                    </article>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </section>
           </div>
         <?php elseif (!$orders): ?>
           <div class="empty-state">
             <div>
               <i class="fa-solid fa-box-open"></i>
-              <strong><?= $view === 'holds' ? '还没有存单记录' : '还没有订单' ?></strong>
+              <strong>还没有订单</strong>
               <p>登录状态下结账后，相关记录会显示在这里。</p>
               <a href="shop.php"><i class="fa-solid fa-bag-shopping"></i> 去购物</a>
             </div>
@@ -484,9 +570,6 @@ $pageTitles = [
                 <div>
                   <div class="order-number"><?= htmlspecialchars($order['order_number']) ?></div>
                   <small><?= htmlspecialchars(date('Y-m-d H:i', strtotime($order['created_at']))) ?></small>
-                  <?php if (in_array($order['order_status'], ['stored_uncombined','stored_combined'], true)): ?>
-                    <span class="hold-badge"><?= $order['order_status'] === 'stored_combined' ? '存单：已合单' : '存单：未合单' ?></span>
-                  <?php endif; ?>
                 </div>
                 <div class="order-value"><span>商品</span><?= (int)$order['item_count'] ?> 件</div>
                 <div class="order-value"><span>金额</span>RM <?= number_format((float)($order['grand_total'] ?: $order['total']), 2) ?></div>
@@ -501,6 +584,7 @@ $pageTitles = [
 </main>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+<div id="qiiToast" class="qii-toast">已加入购物袋</div>
 
 <script>
 document.addEventListener("qii:announcement-closed", () => {
@@ -517,6 +601,15 @@ document.addEventListener("qii:announcement-closed", () => {
     }, 600);
   }, 1200);
 }, { once: true });
+
+function qiiToast(message) {
+  const toast = document.getElementById("qiiToast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(window.qiiAccountToastTimer);
+  window.qiiAccountToastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+}
 
 async function switchAccountView(url, pushState = true) {
   const panel = document.querySelector(".account-panel");
@@ -552,6 +645,36 @@ async function switchAccountView(url, pushState = true) {
   }
 }
 
+async function submitAccountPanelForm(form) {
+  const panel = document.querySelector(".account-panel");
+  if (!panel) return;
+  panel.style.opacity = ".45";
+  panel.style.pointerEvents = "none";
+
+  try {
+    const response = await fetch(form.action || location.href, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      body: new FormData(form)
+    });
+    if (!response.ok) throw new Error("Request failed");
+
+    const html = await response.text();
+    const nextDocument = new DOMParser().parseFromString(html, "text/html");
+    const nextPanel = nextDocument.querySelector(".account-panel");
+    if (!nextPanel) throw new Error("Panel missing");
+
+    panel.innerHTML = nextPanel.innerHTML;
+    history.replaceState({ accountView: "settings" }, "", "account.php?view=settings");
+    qiiToast("已保存");
+  } catch (error) {
+    form.submit();
+  } finally {
+    panel.style.opacity = "";
+    panel.style.pointerEvents = "";
+  }
+}
+
 document.addEventListener("click", event => {
   const link = event.target.closest('.account-nav a[href*="account.php?view="]');
   if (!link) return;
@@ -563,18 +686,6 @@ window.addEventListener("popstate", () => {
   switchAccountView(location.href, false);
 });
 
-document.addEventListener("click", async event => {
-  const button = event.target.closest("[data-remove-favorite]");
-  if (!button) return;
-  const token = document.querySelector('meta[name="qii-csrf-token"]')?.content || "";
-  const response = await fetch("api/toggle_favorite.php", {
-    method: "POST",
-    headers: { "Content-Type":"application/x-www-form-urlencoded", "X-QII-CSRF-Token":token },
-    body: new URLSearchParams({ product_id: button.dataset.removeFavorite })
-  });
-  const data = await response.json();
-  if (data.success && !data.favorite) button.closest(".favorite-card")?.remove();
-});
 </script>
 </body>
 </html>
